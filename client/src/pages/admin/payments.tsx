@@ -21,12 +21,14 @@ import {
   Image as ImageIcon,
   FileSpreadsheet,
   Calendar,
+  RotateCcw,
 } from "lucide-react";
 
 const statusLabels = {
   pending: { label: "Pendiente", variant: "secondary" as const, icon: Clock },
   verified: { label: "Verificado", variant: "default" as const, icon: CheckCircle },
   rejected: { label: "Rechazado", variant: "destructive" as const, icon: XCircle },
+  refunded: { label: "Reembolsado", variant: "outline" as const, icon: XCircle },
 };
 
 export default function PaymentsPage() {
@@ -240,6 +242,17 @@ export default function PaymentsPage() {
                                 <XCircle className="h-4 w-4 text-red-600" />
                               </Button>
                             </div>
+                          )}
+                          {payment.status === "verified" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => updateMutation.mutate({ id: payment.id, status: "refunded" })}
+                              disabled={updateMutation.isPending}
+                              data-testid={`button-refund-${payment.id}`}
+                            >
+                              <RotateCcw className="h-4 w-4 text-orange-600" />
+                            </Button>
                           )}
                         </TableCell>
                       </TableRow>

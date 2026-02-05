@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const userRoleEnum = pgEnum("user_role", ["admin", "tutor"]);
-export const paymentStatusEnum = pgEnum("payment_status", ["pending", "verified", "rejected"]);
+export const paymentStatusEnum = pgEnum("payment_status", ["pending", "verified", "rejected", "refunded"]);
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

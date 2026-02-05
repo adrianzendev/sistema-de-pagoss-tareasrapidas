@@ -18,6 +18,7 @@ const statusLabels = {
   pending: { label: "Pendiente", variant: "secondary" as const, icon: Clock },
   verified: { label: "Verificado", variant: "default" as const, icon: CheckCircle },
   rejected: { label: "Rechazado", variant: "destructive" as const, icon: XCircle },
+  refunded: { label: "Reembolsado", variant: "outline" as const, icon: XCircle },
 };
 
 const colorClassMap: Record<string, { header: string; cell: string; text: string }> = {
