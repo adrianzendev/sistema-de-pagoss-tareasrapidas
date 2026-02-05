@@ -10,6 +10,12 @@ interface DashboardStats {
   verifiedPayments: number;
   rejectedPayments: number;
   totalAmount: number;
+  tutorStats: Array<{
+    id: string;
+    name: string;
+    totalPayments: number;
+    verifiedAmount: number;
+  }>;
 }
 
 export default function AdminDashboard() {
@@ -81,63 +87,94 @@ export default function AdminDashboard() {
         />
         <StatCard
           title="Monto Total"
-          value={`$${(stats?.totalAmount ?? 0).toLocaleString()}`}
-          description="En pagos verificados"
+          value={`S/ ${(stats?.totalAmount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+          description="En pagos verificados (PEN)"
           icon={DollarSign}
         />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Estado de Pagos</CardTitle>
-          <CardDescription>Distribución de pagos por estado</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="flex items-center gap-4 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-950/20">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/40">
-                <Clock className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="md:col-span-2 lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Ingresos por Tutor</CardTitle>
+            <CardDescription>Monto total verificado por cada tutor (en Soles - PEN)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Pendientes</p>
-                {isLoading ? (
-                  <Skeleton className="h-7 w-16" />
-                ) : (
-                  <p className="text-2xl font-bold">{stats?.pendingPayments ?? 0}</p>
+            ) : (
+              <div className="space-y-6">
+                {stats?.tutorStats?.map((tutor) => (
+                  <div key={tutor.id} className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="font-medium">{tutor.name}</div>
+                      <div className="font-mono font-bold">
+                        S/ {tutor.verifiedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </div>
+                    </div>
+                    <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-primary transition-all duration-500" 
+                        style={{ 
+                          width: `${Math.min(100, (tutor.verifiedAmount / (stats.totalAmount || 1)) * 100)}%` 
+                        }} 
+                      />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                        {tutor.totalPayments} pagos verificados
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {((tutor.verifiedAmount / (stats.totalAmount || 1)) * 100).toFixed(1)}% del total
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {(!stats?.tutorStats || stats.tutorStats.length === 0) && (
+                  <div className="text-center py-8">
+                    <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-20" />
+                    <p className="text-sm text-muted-foreground">No hay datos de tutores con pagos verificados</p>
+                  </div>
                 )}
               </div>
-            </div>
+            )}
+          </CardContent>
+        </Card>
 
-            <div className="flex items-center gap-4 p-4 rounded-lg bg-green-50 dark:bg-green-950/20">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40">
-                <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
-              </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Estado de Pagos</CardTitle>
+            <CardDescription>Distribución general</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-100 dark:border-yellow-900/30">
+              <Clock className="h-5 w-5 text-yellow-600" />
               <div>
-                <p className="text-sm text-muted-foreground">Verificados</p>
-                {isLoading ? (
-                  <Skeleton className="h-7 w-16" />
-                ) : (
-                  <p className="text-2xl font-bold">{stats?.verifiedPayments ?? 0}</p>
-                )}
+                <p className="text-xs text-muted-foreground font-medium">Pendientes</p>
+                <p className="text-lg font-bold">{stats?.pendingPayments ?? 0}</p>
               </div>
             </div>
-
-            <div className="flex items-center gap-4 p-4 rounded-lg bg-red-50 dark:bg-red-950/20">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/40">
-                <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
-              </div>
+            <div className="flex items-center gap-4 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-100 dark:border-green-900/30">
+              <CheckCircle className="h-5 w-5 text-green-600" />
               <div>
-                <p className="text-sm text-muted-foreground">Rechazados</p>
-                {isLoading ? (
-                  <Skeleton className="h-7 w-16" />
-                ) : (
-                  <p className="text-2xl font-bold">{stats?.rejectedPayments ?? 0}</p>
-                )}
+                <p className="text-xs text-muted-foreground font-medium">Verificados</p>
+                <p className="text-lg font-bold">{stats?.verifiedPayments ?? 0}</p>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="flex items-center gap-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30">
+              <XCircle className="h-5 w-5 text-red-600" />
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">Rechazados</p>
+                <p className="text-lg font-bold">{stats?.rejectedPayments ?? 0}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

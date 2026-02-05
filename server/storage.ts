@@ -185,10 +185,37 @@ export class DatabaseStorage implements IStorage {
     const pendingResult = await db.select({ count: sql<number>`count(*)` }).from(payments).where(eq(payments.status, "pending"));
     const verifiedResult = await db.select({ count: sql<number>`count(*)` }).from(payments).where(eq(payments.status, "verified"));
     const rejectedResult = await db.select({ count: sql<number>`count(*)` }).from(payments).where(eq(payments.status, "rejected"));
+    
+    // Amount result in PEN (considering exchange rates)
     const amountResult = await db
-      .select({ total: sql<number>`COALESCE(SUM(amount::numeric), 0)` })
+      .select({ 
+        total: sql<number>`COALESCE(SUM(payments.amount * currencies.exchange_rate), 0)` 
+      })
       .from(payments)
+      .innerJoin(currencies, eq(payments.currencyId, currencies.id))
       .where(eq(payments.status, "verified"));
+
+    // Stats per tutor
+    const tutorsList = await this.getTutors();
+    const tutorStats = [];
+
+    for (const tutor of tutorsList) {
+      const stats = await db
+        .select({
+          count: sql<number>`count(*)`,
+          amount: sql<number>`COALESCE(SUM(payments.amount * currencies.exchange_rate), 0)`
+        })
+        .from(payments)
+        .innerJoin(currencies, eq(payments.currencyId, currencies.id))
+        .where(and(eq(payments.tutorId, tutor.id), eq(payments.status, "verified")));
+      
+      tutorStats.push({
+        id: tutor.id,
+        name: tutor.name,
+        totalPayments: Number(stats[0]?.count ?? 0),
+        verifiedAmount: Number(stats[0]?.amount ?? 0)
+      });
+    }
 
     return {
       totalTutors: Number(tutorsResult[0]?.count ?? 0),
@@ -197,6 +224,7 @@ export class DatabaseStorage implements IStorage {
       verifiedPayments: Number(verifiedResult[0]?.count ?? 0),
       rejectedPayments: Number(rejectedResult[0]?.count ?? 0),
       totalAmount: Number(amountResult[0]?.total ?? 0),
+      tutorStats
     };
   }
 }
