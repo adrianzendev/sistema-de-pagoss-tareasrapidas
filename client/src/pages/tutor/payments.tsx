@@ -451,7 +451,7 @@ export default function TutorPaymentsPage() {
 
       <Button
         size="lg"
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+        className="fixed bottom-16 right-6 h-14 w-14 rounded-full shadow-lg z-50"
         onClick={() => setIsNewPaymentOpen(true)}
         data-testid="button-add-payment"
       >
