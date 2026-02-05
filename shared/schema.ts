@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, decimal, timestamp, pgEnum, date, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -45,6 +45,25 @@ export const blacklist = pgTable("blacklist", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const weekStatusEnum = pgEnum("week_status", ["open", "closed", "paid"]);
+
+export const weeks = pgTable("weeks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  weekNumber: integer("week_number").notNull().unique(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  status: weekStatusEnum("status").notNull().default("open"),
+  advertisingCost: decimal("advertising_cost", { precision: 12, scale: 2 }).notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const agencySettings = pgTable("agency_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  agencyPercent: decimal("agency_percent", { precision: 5, scale: 2 }).notNull().default("30"),
+  tutorPercent: decimal("tutor_percent", { precision: 5, scale: 2 }).notNull().default("70"),
+  currentWeekNumber: integer("current_week_number").notNull().default(166),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -76,6 +95,15 @@ export const insertBlacklistSchema = createInsertSchema(blacklist).omit({
   createdAt: true,
 });
 
+export const insertWeekSchema = createInsertSchema(weeks).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAgencySettingsSchema = createInsertSchema(agencySettings).omit({
+  id: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -89,6 +117,12 @@ export type Payment = typeof payments.$inferSelect;
 export type InsertBlacklist = z.infer<typeof insertBlacklistSchema>;
 export type Blacklist = typeof blacklist.$inferSelect;
 
+export type InsertWeek = z.infer<typeof insertWeekSchema>;
+export type Week = typeof weeks.$inferSelect;
+
+export type InsertAgencySettings = z.infer<typeof insertAgencySettingsSchema>;
+export type AgencySettings = typeof agencySettings.$inferSelect;
+
 // Extended types for frontend
 export type PaymentWithDetails = Payment & {
   tutor?: User;
@@ -99,4 +133,18 @@ export type PaymentWithDetails = Payment & {
 export type TutorWithPayments = User & {
   payments?: Payment[];
   totalEarnings?: number;
+};
+
+export type WeeklySettlement = {
+  week: Week;
+  tutorId: string;
+  tutorName: string;
+  grossIncome: number;
+  advertisingCost: number;
+  tutorAdvertisingShare: number;
+  agencyAdvertisingShare: number;
+  netIncome: number;
+  tutorEarnings: number;
+  agencyEarnings: number;
+  payments: PaymentWithDetails[];
 };
