@@ -12,6 +12,7 @@ import { es } from "date-fns/locale";
 import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { NewPaymentModal } from "@/components/new-payment-modal";
 
 const statusLabels = {
   pending: { label: "Pendiente", variant: "secondary" as const, icon: Clock },
@@ -123,6 +124,7 @@ export default function TutorPaymentsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isNewPaymentOpen, setIsNewPaymentOpen] = useState(false);
   const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
   const [tabScrollPos, setTabScrollPos] = useState(0);
 
@@ -499,6 +501,17 @@ export default function TutorPaymentsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <Button
+        size="lg"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+        onClick={() => setIsNewPaymentOpen(true)}
+        data-testid="button-add-payment"
+      >
+        <Plus className="h-6 w-6" />
+      </Button>
+
+      <NewPaymentModal open={isNewPaymentOpen} onOpenChange={setIsNewPaymentOpen} />
     </div>
   );
 }
