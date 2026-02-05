@@ -53,6 +53,8 @@ export default function NewPaymentPage() {
   });
 
   const clientNumber = form.watch("clientNumber");
+  const selectedCurrencyId = form.watch("currencyId");
+  const selectedCurrency = currencies?.find(c => c.id === selectedCurrencyId);
 
   useEffect(() => {
     const checkBlacklist = async () => {
@@ -208,14 +210,16 @@ export default function NewPaymentPage() {
                     <FormLabel>Monto</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium w-9 text-center">
+                          {selectedCurrency?.code || "$"}
+                        </div>
                         <Input
                           {...field}
                           type="number"
                           step="0.01"
                           min="0"
                           placeholder="0.00"
-                          className="pl-10"
+                          className="pl-12"
                           data-testid="input-payment-amount"
                         />
                       </div>

@@ -160,7 +160,8 @@ export default function PaymentsPage() {
                           <Badge variant="outline">{payment.clientNumber}</Badge>
                         </TableCell>
                         <TableCell className="text-right font-mono">
-                          {payment.currency?.code} {Number(payment.amount).toLocaleString()}
+                          <span className="text-xs text-muted-foreground mr-1">{payment.currency?.code}</span>
+                          {Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell>
                           {payment.proofImage ? (

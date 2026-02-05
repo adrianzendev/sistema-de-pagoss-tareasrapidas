@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -182,10 +182,13 @@ export default function CurrenciesPage() {
                   name="exchangeRate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tipo de Cambio (a USD)</FormLabel>
+                      <FormLabel>Tipo de Cambio (1 {field.name === "PEN" ? "PEN" : "Divisa"} = X PEN)</FormLabel>
                       <FormControl>
                         <Input {...field} type="number" step="0.0001" min="0" placeholder="1.0000" data-testid="input-currency-rate" />
                       </FormControl>
+                      <FormDescription className="text-xs">
+                        Indica cuántos PEN (Soles) equivale a 1 unidad de esta divisa.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
