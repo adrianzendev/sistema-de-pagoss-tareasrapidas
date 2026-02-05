@@ -358,8 +358,15 @@ export default function TutorPaymentsPage() {
                     <div className="bg-emerald-50 dark:bg-emerald-950 p-2 text-right border-r border-emerald-100 dark:border-emerald-900 font-bold text-emerald-700 dark:text-emerald-300">
                       {(Number(payment.amount) * Number(payment.currency?.exchangeRate ?? 1)).toLocaleString("es-PE", { minimumFractionDigits: 0 })}
                     </div>
-                    <div className="bg-amber-50 dark:bg-amber-950 p-2 text-center border-r border-amber-100 dark:border-amber-900 flex items-center justify-center">
+                    <div className="bg-amber-50 dark:bg-amber-950 p-2 text-center border-r border-amber-100 dark:border-amber-900 flex flex-col items-center justify-center gap-0.5">
                       {getStatusBadge(payment.status)}
+                      {payment.verifiedAt ? (
+                        <div className="text-[9px] text-muted-foreground">{format(new Date(payment.verifiedAt), "dd/MM HH:mm", { locale: es })}</div>
+                      ) : (
+                        <div className="text-[9px] text-muted-foreground">
+                          {payment.createdAt && format(new Date(payment.createdAt), "dd/MM HH:mm", { locale: es })}
+                        </div>
+                      )}
                     </div>
                     <div className="bg-cyan-50 dark:bg-cyan-950 p-2 flex items-center justify-center">
                       {payment.proofImage ? (
