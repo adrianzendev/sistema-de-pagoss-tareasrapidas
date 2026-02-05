@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { PaymentWithDetails, Currency } from "@shared/schema";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { PaymentWithDetails, Currency, Week } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,9 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Link } from "wouter";
-import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, Plus } from "lucide-react";
+import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 const statusLabels = {
   pending: { label: "Pendiente", variant: "secondary" as const, icon: Clock },
@@ -54,7 +56,10 @@ const defaultCurrencyColor = {
 
 export default function TutorPaymentsPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
+  const [tabScrollPos, setTabScrollPos] = useState(0);
 
   const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
     queryKey: ["/api/tutor/payments"],
@@ -64,9 +69,40 @@ export default function TutorPaymentsPage() {
     queryKey: ["/api/currencies"],
   });
 
-  const activeCurrencies = currencies ?? [];
+  const { data: weeks } = useQuery<Week[]>({
+    queryKey: ["/api/weeks"],
+  });
 
-  const totalVerified = payments
+  const generateWeekMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/weeks/generate"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/weeks"] });
+      toast({ title: "Nueva semana creada" });
+    },
+    onError: () => {
+      toast({ title: "Error al crear semana", variant: "destructive" });
+    },
+  });
+
+  const activeCurrencies = currencies ?? [];
+  const sortedWeeks = [...(weeks ?? [])].sort((a, b) => b.weekNumber - a.weekNumber);
+
+  const isPaymentInWeek = (payment: PaymentWithDetails, week: Week) => {
+    if (!payment.createdAt) return false;
+    const paymentDate = new Date(payment.createdAt);
+    const startDate = new Date(week.startDate + "T00:00:00");
+    const endDate = new Date(week.endDate + "T23:59:59");
+    return paymentDate >= startDate && paymentDate <= endDate;
+  };
+
+  const filteredPayments = selectedWeekId 
+    ? payments?.filter(p => {
+        const week = sortedWeeks.find(w => w.id === selectedWeekId);
+        return week ? isPaymentInWeek(p, week) : false;
+      })
+    : payments;
+
+  const totalVerified = filteredPayments
     ?.filter((p) => p.status === "verified")
     .reduce((sum, p) => sum + Number(p.amount), 0) ?? 0;
 
@@ -94,13 +130,13 @@ export default function TutorPaymentsPage() {
   };
 
   const getTotalForCurrency = (currencyCode: string) => {
-    return payments
+    return filteredPayments
       ?.filter(p => p.currency?.code === currencyCode)
       .reduce((sum, p) => sum + Number(p.amount), 0) ?? 0;
   };
 
   const getTotalInPEN = () => {
-    return payments?.reduce((sum, p) => 
+    return filteredPayments?.reduce((sum, p) => 
       sum + (Number(p.amount) * Number(p.currency?.exchangeRate ?? 1)), 0
     ) ?? 0;
   };
@@ -109,12 +145,21 @@ export default function TutorPaymentsPage() {
     ? `50px 100px 130px repeat(${activeCurrencies.length}, 90px) 80px 100px 70px`
     : "50px 100px 130px 90px 80px 100px 70px";
 
+  const selectedWeek = sortedWeeks.find(w => w.id === selectedWeekId);
+  const maxVisibleTabs = 6;
+  const visibleWeeks = sortedWeeks.slice(tabScrollPos, tabScrollPos + maxVisibleTabs);
+
   return (
-    <div className="space-y-6 relative pb-20">
+    <div className="space-y-6 relative pb-24">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Mis Pagos</h1>
         <p className="text-muted-foreground">
           Tu comisión: <span className="font-medium">{user?.commissionPercent}%</span>
+          {selectedWeek && (
+            <span className="ml-2">
+              | Semana S{selectedWeek.weekNumber} ({format(new Date(selectedWeek.startDate + "T00:00:00"), "dd MMM", { locale: es })} - {format(new Date(selectedWeek.endDate + "T00:00:00"), "dd MMM", { locale: es })})
+            </span>
+          )}
         </p>
       </div>
 
@@ -124,7 +169,7 @@ export default function TutorPaymentsPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Pagos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{payments?.length ?? 0}</div>
+            <div className="text-2xl font-bold">{filteredPayments?.length ?? 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -133,7 +178,7 @@ export default function TutorPaymentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">
-              {payments?.filter((p) => p.status === "pending").length ?? 0}
+              {filteredPayments?.filter((p) => p.status === "pending").length ?? 0}
             </div>
           </CardContent>
         </Card>
@@ -143,7 +188,7 @@ export default function TutorPaymentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {payments?.filter((p) => p.status === "verified").length ?? 0}
+              {filteredPayments?.filter((p) => p.status === "verified").length ?? 0}
             </div>
           </CardContent>
         </Card>
@@ -157,10 +202,12 @@ export default function TutorPaymentsPage() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-2">
           <CardTitle>Historial de Pagos</CardTitle>
-          <CardDescription>Hoja de cálculo con todos tus pagos registrados</CardDescription>
+          <CardDescription>
+            {selectedWeekId ? `Pagos de la semana S${selectedWeek?.weekNumber}` : "Todos los pagos registrados"}
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
@@ -169,13 +216,15 @@ export default function TutorPaymentsPage() {
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
-          ) : payments?.length === 0 ? (
+          ) : filteredPayments?.length === 0 ? (
             <div className="text-center py-12">
               <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
                 <FileText className="h-8 w-8 text-muted-foreground" />
               </div>
               <h3 className="font-medium text-lg">No hay pagos</h3>
-              <p className="text-muted-foreground text-sm">Registra tu primer pago</p>
+              <p className="text-muted-foreground text-sm">
+                {selectedWeekId ? "No hay pagos en esta semana" : "Registra tu primer pago"}
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -205,7 +254,7 @@ export default function TutorPaymentsPage() {
                   <div className="bg-cyan-200 dark:bg-cyan-900 p-2 text-center text-cyan-900 dark:text-cyan-100">PRUEBA</div>
                 </div>
                 
-                {payments?.map((payment, index) => (
+                {filteredPayments?.map((payment, index) => (
                   <div 
                     key={payment.id}
                     className="grid border-b border-gray-200 dark:border-gray-700 text-sm"
@@ -290,6 +339,70 @@ export default function TutorPaymentsPage() {
             </div>
           )}
         </CardContent>
+
+        <div className="border-t bg-muted/30 p-2">
+          <div className="flex items-center gap-1">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              onClick={() => setTabScrollPos(Math.max(0, tabScrollPos - 1))}
+              disabled={tabScrollPos === 0}
+              data-testid="button-scroll-tabs-left"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            <div className="flex items-center gap-1 overflow-hidden">
+              <button
+                onClick={() => setSelectedWeekId(null)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-t border-b-2 transition-colors whitespace-nowrap ${
+                  selectedWeekId === null
+                    ? "bg-background border-primary text-primary"
+                    : "bg-muted/50 border-transparent text-muted-foreground hover:bg-muted"
+                }`}
+                data-testid="tab-all-payments"
+              >
+                Todas
+              </button>
+
+              {visibleWeeks.map((week) => (
+                <button
+                  key={week.id}
+                  onClick={() => setSelectedWeekId(week.id)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-t border-b-2 transition-colors whitespace-nowrap ${
+                    selectedWeekId === week.id
+                      ? "bg-background border-primary text-primary"
+                      : "bg-muted/50 border-transparent text-muted-foreground hover:bg-muted"
+                  }`}
+                  data-testid={`tab-week-${week.weekNumber}`}
+                >
+                  S{week.weekNumber}
+                </button>
+              ))}
+
+              <button
+                onClick={() => generateWeekMutation.mutate()}
+                disabled={generateWeekMutation.isPending}
+                className="px-2 py-1.5 text-xs font-medium rounded-t border-b-2 border-transparent bg-muted/50 text-muted-foreground hover:bg-muted transition-colors"
+                data-testid="button-add-week"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              onClick={() => setTabScrollPos(Math.min(sortedWeeks.length - maxVisibleTabs, tabScrollPos + 1))}
+              disabled={tabScrollPos >= sortedWeeks.length - maxVisibleTabs}
+              data-testid="button-scroll-tabs-right"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </Card>
 
       <Link href="/tutor/new-payment">

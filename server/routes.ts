@@ -530,7 +530,47 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Public: Get weeks for payment context
+  // Public: Get all weeks (for authenticated users)
+  app.get("/api/weeks", requireAuth, async (req, res) => {
+    const weeks = await storage.getWeeks();
+    res.json(weeks);
+  });
+
+  // Public: Generate new week (for authenticated users)
+  app.post("/api/weeks/generate", requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getAgencySettings();
+      const existingWeeks = await storage.getWeeks();
+      
+      let newWeekNumber = settings?.currentWeekNumber ?? 166;
+      if (existingWeeks.length > 0) {
+        const maxWeek = Math.max(...existingWeeks.map(w => w.weekNumber));
+        newWeekNumber = maxWeek + 1;
+      }
+
+      const today = new Date();
+      const dayOfWeek = today.getDay();
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() - dayOfWeek);
+      const endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+
+      const week = await storage.createWeek({
+        weekNumber: newWeekNumber,
+        startDate: startDate.toISOString().split("T")[0],
+        endDate: endDate.toISOString().split("T")[0],
+        status: "open",
+        advertisingCost: "0",
+      });
+
+      res.status(201).json(week);
+    } catch (error) {
+      console.error("Error generating week:", error);
+      res.status(500).json({ message: "Error al generar semana" });
+    }
+  });
+
+  // Public: Get current week
   app.get("/api/weeks/current", requireAuth, async (req, res) => {
     const week = await storage.getCurrentWeek();
     res.json(week);
