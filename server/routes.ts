@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import session from "express-session";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
-import { insertUserSchema, insertCurrencySchema, insertPaymentSchema, createTutorSchema, insertBlacklistSchema } from "@shared/schema";
+import { insertUserSchema, insertCurrencySchema, insertPaymentSchema, createTutorSchema, insertBlacklistSchema, insertWeekSchema, insertAgencySettingsSchema } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
 import { users, currencies, payments } from "@shared/schema";
@@ -280,6 +280,252 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
       res.status(500).json({ message: "Error al crear pago" });
     }
+  });
+
+  // Admin: Weeks Management
+  app.get("/api/admin/weeks", requireAdmin, async (req, res) => {
+    const allWeeks = await storage.getWeeks();
+    res.json(allWeeks);
+  });
+
+  app.get("/api/admin/weeks/current", requireAdmin, async (req, res) => {
+    const week = await storage.getCurrentWeek();
+    res.json(week);
+  });
+
+  app.post("/api/admin/weeks", requireAdmin, async (req, res) => {
+    try {
+      const data = insertWeekSchema.parse(req.body);
+      const existing = await storage.getWeekByNumber(data.weekNumber);
+      if (existing) {
+        return res.status(400).json({ message: "Ya existe una semana con este número" });
+      }
+      const week = await storage.createWeek(data);
+      res.status(201).json(week);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: "Error al crear semana" });
+    }
+  });
+
+  app.post("/api/admin/weeks/generate", requireAdmin, async (req, res) => {
+    try {
+      const settings = await storage.getAgencySettings();
+      let nextWeekNumber = settings?.currentWeekNumber ?? 166;
+      
+      const existingWeeks = await storage.getWeeks();
+      if (existingWeeks.length > 0) {
+        nextWeekNumber = Math.max(...existingWeeks.map(w => w.weekNumber)) + 1;
+      }
+
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const sunday = new Date(now);
+      sunday.setDate(now.getDate() - dayOfWeek);
+      sunday.setHours(0, 0, 0, 0);
+      
+      const saturday = new Date(sunday);
+      saturday.setDate(sunday.getDate() + 6);
+      
+      const startDate = sunday.toISOString().split('T')[0];
+      const endDate = saturday.toISOString().split('T')[0];
+
+      const existing = await storage.getWeekByNumber(nextWeekNumber);
+      if (existing) {
+        return res.status(400).json({ message: "La semana actual ya existe" });
+      }
+
+      const week = await storage.createWeek({
+        weekNumber: nextWeekNumber,
+        startDate,
+        endDate,
+        status: "open",
+        advertisingCost: "0",
+      });
+
+      res.status(201).json(week);
+    } catch (error) {
+      res.status(500).json({ message: "Error al generar semana" });
+    }
+  });
+
+  app.patch("/api/admin/weeks/:id", requireAdmin, async (req, res) => {
+    try {
+      const data = insertWeekSchema.partial().parse(req.body);
+      const week = await storage.updateWeek(req.params.id, data);
+      res.json(week);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: "Error al actualizar semana" });
+    }
+  });
+
+  app.delete("/api/admin/weeks/:id", requireAdmin, async (req, res) => {
+    await storage.deleteWeek(req.params.id);
+    res.status(204).send();
+  });
+
+  // Admin: Week Settlement (liquidation)
+  app.get("/api/admin/weeks/:id/settlement", requireAdmin, async (req, res) => {
+    try {
+      const week = await storage.getWeek(req.params.id);
+      if (!week) {
+        return res.status(404).json({ message: "Semana no encontrada" });
+      }
+
+      const settings = await storage.getAgencySettings();
+      const agencyPercent = Number(settings?.agencyPercent ?? 30);
+      const tutorPercent = Number(settings?.tutorPercent ?? 70);
+      const advertisingCost = Number(week.advertisingCost ?? 0);
+
+      const weekPayments = await storage.getPaymentsByWeek(week.id);
+      const verifiedPayments = weekPayments.filter(p => p.status === "verified");
+      const allCurrencies = await storage.getCurrencies();
+      const tutors = await storage.getTutors();
+
+      const settlements = tutors.map(tutor => {
+        const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
+        
+        let grossIncome = 0;
+        tutorPayments.forEach(p => {
+          const currency = allCurrencies.find(c => c.id === p.currencyId);
+          const rate = Number(currency?.exchangeRate ?? 1);
+          grossIncome += Number(p.amount) * rate;
+        });
+
+        const tutorCount = tutors.length || 1;
+        const tutorAdvertisingShare = (advertisingCost * (tutorPercent / 100)) / tutorCount;
+        const agencyAdvertisingShare = (advertisingCost * (agencyPercent / 100)) / tutorCount;
+        
+        const netIncome = grossIncome - tutorAdvertisingShare;
+        const tutorEarnings = netIncome * (tutorPercent / 100);
+        const agencyEarnings = netIncome * (agencyPercent / 100);
+
+        return {
+          week,
+          tutorId: tutor.id,
+          tutorName: tutor.name,
+          grossIncome,
+          advertisingCost: tutorAdvertisingShare + agencyAdvertisingShare,
+          tutorAdvertisingShare,
+          agencyAdvertisingShare,
+          netIncome,
+          tutorEarnings,
+          agencyEarnings,
+          payments: tutorPayments,
+        };
+      }).filter(s => s.payments.length > 0 || s.grossIncome > 0);
+
+      const totals = {
+        grossIncome: settlements.reduce((sum, s) => sum + s.grossIncome, 0),
+        advertisingCost,
+        netIncome: settlements.reduce((sum, s) => sum + s.netIncome, 0),
+        tutorEarnings: settlements.reduce((sum, s) => sum + s.tutorEarnings, 0),
+        agencyEarnings: settlements.reduce((sum, s) => sum + s.agencyEarnings, 0),
+      };
+
+      res.json({ week, settlements, totals, settings: { agencyPercent, tutorPercent } });
+    } catch (error) {
+      console.error("Error getting settlement:", error);
+      res.status(500).json({ message: "Error al obtener liquidación" });
+    }
+  });
+
+  // Admin: Agency Settings
+  app.get("/api/admin/settings", requireAdmin, async (req, res) => {
+    let settings = await storage.getAgencySettings();
+    if (!settings) {
+      settings = await storage.updateAgencySettings({
+        agencyPercent: "30",
+        tutorPercent: "70",
+        currentWeekNumber: 166,
+      });
+    }
+    res.json(settings);
+  });
+
+  app.patch("/api/admin/settings", requireAdmin, async (req, res) => {
+    try {
+      const data = insertAgencySettingsSchema.partial().parse(req.body);
+      const settings = await storage.updateAgencySettings(data);
+      res.json(settings);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: "Error al actualizar configuración" });
+    }
+  });
+
+  // Tutor: Weekly Settlement View
+  app.get("/api/tutor/settlement", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user || user.role !== "tutor") {
+        return res.status(403).json({ message: "Acceso denegado" });
+      }
+
+      const allWeeks = await storage.getWeeks();
+      const settings = await storage.getAgencySettings();
+      const agencyPercent = Number(settings?.agencyPercent ?? 30);
+      const tutorPercent = Number(settings?.tutorPercent ?? 70);
+      const allCurrencies = await storage.getCurrencies();
+      const tutors = await storage.getTutors();
+
+      const weeklySettlements = await Promise.all(
+        allWeeks.slice(0, 12).map(async (week) => {
+          const weekPayments = await storage.getPaymentsByWeek(week.id);
+          const tutorPayments = weekPayments.filter(p => p.tutorId === user.id && p.status === "verified");
+          const advertisingCost = Number(week.advertisingCost ?? 0);
+          
+          let grossIncome = 0;
+          tutorPayments.forEach(p => {
+            const currency = allCurrencies.find(c => c.id === p.currencyId);
+            const rate = Number(currency?.exchangeRate ?? 1);
+            grossIncome += Number(p.amount) * rate;
+          });
+
+          const tutorCount = tutors.length || 1;
+          const tutorAdvertisingShare = (advertisingCost * (tutorPercent / 100)) / tutorCount;
+          
+          const netIncome = grossIncome - tutorAdvertisingShare;
+          const tutorEarnings = netIncome * (tutorPercent / 100);
+          const agencyEarnings = netIncome * (agencyPercent / 100);
+
+          return {
+            week,
+            tutorId: user.id,
+            tutorName: user.name,
+            grossIncome,
+            advertisingCost: tutorAdvertisingShare,
+            tutorAdvertisingShare,
+            agencyAdvertisingShare: 0,
+            netIncome,
+            tutorEarnings,
+            agencyEarnings,
+            payments: tutorPayments,
+          };
+        })
+      );
+
+      res.json({ 
+        settlements: weeklySettlements,
+        settings: { agencyPercent, tutorPercent }
+      });
+    } catch (error) {
+      console.error("Error getting tutor settlement:", error);
+      res.status(500).json({ message: "Error al obtener liquidación" });
+    }
+  });
+
+  // Public: Get weeks for payment context
+  app.get("/api/weeks/current", requireAuth, async (req, res) => {
+    const week = await storage.getCurrentWeek();
+    res.json(week);
   });
 
   return httpServer;

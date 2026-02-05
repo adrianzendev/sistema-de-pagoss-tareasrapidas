@@ -15,8 +15,10 @@ import TutorsPage from "@/pages/admin/tutors";
 import AdminPaymentsPage from "@/pages/admin/payments";
 import CurrenciesPage from "@/pages/admin/currencies";
 import BlacklistPage from "@/pages/admin/blacklist";
+import WeeksPage from "@/pages/admin/weeks";
 import TutorPaymentsPage from "@/pages/tutor/payments";
 import NewPaymentPage from "@/pages/tutor/new-payment";
+import TutorSettlementPage from "@/pages/tutor/settlement";
 import NotFound from "@/pages/not-found";
 
 function LoadingScreen() {
@@ -35,6 +37,7 @@ function AdminRoutes() {
   return (
     <Switch>
       <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/weeks" component={WeeksPage} />
       <Route path="/admin/tutors" component={TutorsPage} />
       <Route path="/admin/payments" component={AdminPaymentsPage} />
       <Route path="/admin/currencies" component={CurrenciesPage} />
@@ -50,6 +53,7 @@ function TutorRoutes() {
   return (
     <Switch>
       <Route path="/tutor" component={TutorPaymentsPage} />
+      <Route path="/tutor/settlement" component={TutorSettlementPage} />
       <Route path="/tutor/new-payment" component={NewPaymentPage} />
       <Route>
         <Redirect to="/tutor" />

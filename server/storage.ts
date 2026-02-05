@@ -8,13 +8,19 @@ import {
   type PaymentWithDetails,
   type Blacklist,
   type InsertBlacklist,
+  type Week,
+  type InsertWeek,
+  type AgencySettings,
+  type InsertAgencySettings,
   users,
   currencies,
   payments,
   blacklist,
+  weeks,
+  agencySettings,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -59,6 +65,20 @@ export interface IStorage {
       verifiedAmount: number;
     }>;
   }>;
+
+  // Weeks
+  getWeeks(): Promise<Week[]>;
+  getWeek(id: string): Promise<Week | undefined>;
+  getWeekByNumber(weekNumber: number): Promise<Week | undefined>;
+  getCurrentWeek(): Promise<Week | undefined>;
+  createWeek(week: InsertWeek): Promise<Week>;
+  updateWeek(id: string, data: Partial<InsertWeek>): Promise<Week | undefined>;
+  deleteWeek(id: string): Promise<void>;
+  getPaymentsByWeek(weekId: string): Promise<PaymentWithDetails[]>;
+
+  // Agency Settings
+  getAgencySettings(): Promise<AgencySettings | undefined>;
+  updateAgencySettings(data: Partial<InsertAgencySettings>): Promise<AgencySettings>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -261,6 +281,97 @@ export class DatabaseStorage implements IStorage {
       totalAmount: Number(amountResult[0]?.total ?? 0),
       tutorStats
     };
+  }
+
+  // Weeks
+  async getWeeks(): Promise<Week[]> {
+    return db.select().from(weeks).orderBy(desc(weeks.weekNumber));
+  }
+
+  async getWeek(id: string): Promise<Week | undefined> {
+    const [week] = await db.select().from(weeks).where(eq(weeks.id, id));
+    return week;
+  }
+
+  async getWeekByNumber(weekNumber: number): Promise<Week | undefined> {
+    const [week] = await db.select().from(weeks).where(eq(weeks.weekNumber, weekNumber));
+    return week;
+  }
+
+  async getCurrentWeek(): Promise<Week | undefined> {
+    const today = new Date().toISOString().split('T')[0];
+    const [week] = await db
+      .select()
+      .from(weeks)
+      .where(and(
+        lte(weeks.startDate, today),
+        gte(weeks.endDate, today)
+      ));
+    return week;
+  }
+
+  async createWeek(insertWeek: InsertWeek): Promise<Week> {
+    const [week] = await db.insert(weeks).values(insertWeek).returning();
+    return week;
+  }
+
+  async updateWeek(id: string, data: Partial<InsertWeek>): Promise<Week | undefined> {
+    const [week] = await db.update(weeks).set(data).where(eq(weeks.id, id)).returning();
+    return week;
+  }
+
+  async deleteWeek(id: string): Promise<void> {
+    await db.delete(weeks).where(eq(weeks.id, id));
+  }
+
+  async getPaymentsByWeek(weekId: string): Promise<PaymentWithDetails[]> {
+    const week = await this.getWeek(weekId);
+    if (!week) return [];
+
+    const result = await db
+      .select()
+      .from(payments)
+      .where(and(
+        gte(payments.createdAt, new Date(week.startDate)),
+        lte(payments.createdAt, new Date(week.endDate + 'T23:59:59'))
+      ))
+      .orderBy(desc(payments.createdAt));
+
+    const paymentDetails: PaymentWithDetails[] = [];
+
+    for (const payment of result) {
+      const [tutor] = await db.select().from(users).where(eq(users.id, payment.tutorId));
+      const [currency] = await db.select().from(currencies).where(eq(currencies.id, payment.currencyId));
+      let verifier: User | undefined;
+      if (payment.verifiedBy) {
+        const [v] = await db.select().from(users).where(eq(users.id, payment.verifiedBy));
+        verifier = v;
+      }
+      paymentDetails.push({ ...payment, tutor, currency, verifier });
+    }
+
+    return paymentDetails;
+  }
+
+  // Agency Settings
+  async getAgencySettings(): Promise<AgencySettings | undefined> {
+    const [settings] = await db.select().from(agencySettings);
+    return settings;
+  }
+
+  async updateAgencySettings(data: Partial<InsertAgencySettings>): Promise<AgencySettings> {
+    const existing = await this.getAgencySettings();
+    if (existing) {
+      const [settings] = await db.update(agencySettings).set(data).where(eq(agencySettings.id, existing.id)).returning();
+      return settings;
+    } else {
+      const [settings] = await db.insert(agencySettings).values({
+        agencyPercent: data.agencyPercent ?? "30",
+        tutorPercent: data.tutorPercent ?? "70",
+        currentWeekNumber: data.currentWeekNumber ?? 166,
+      }).returning();
+      return settings;
+    }
   }
 }
 

@@ -25,10 +25,13 @@ import {
   PlusCircle,
   FileText,
   AlertTriangle,
+  Calendar,
+  Calculator,
 } from "lucide-react";
 
 const adminItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
+  { title: "Semanas", url: "/admin/weeks", icon: Calendar },
   { title: "Tutores", url: "/admin/tutors", icon: Users },
   { title: "Pagos", url: "/admin/payments", icon: CreditCard },
   { title: "Divisas", url: "/admin/currencies", icon: DollarSign },
@@ -37,6 +40,7 @@ const adminItems = [
 
 const tutorItems = [
   { title: "Mis Pagos", url: "/tutor", icon: FileText },
+  { title: "Liquidación", url: "/tutor/settlement", icon: Calculator },
   { title: "Nuevo Pago", url: "/tutor/new-payment", icon: PlusCircle },
 ];
 
