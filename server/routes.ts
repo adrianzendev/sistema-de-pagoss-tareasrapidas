@@ -99,10 +99,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/admin/tutors", requireAdmin, async (req, res) => {
     try {
-      const data = insertUserSchema.parse({ ...req.body, role: "tutor" });
+      const username = req.body.email.split("@")[0].toLowerCase().replace(/[^a-z0-9.]/g, "");
+      const data = insertUserSchema.parse({ ...req.body, username, role: "tutor" });
       const existing = await storage.getUserByUsername(data.username);
       if (existing) {
-        return res.status(400).json({ message: "El usuario ya existe" });
+        return res.status(400).json({ message: "Ya existe un tutor con este email" });
       }
       const hashedPassword = await bcrypt.hash(data.password, 10);
       const tutor = await storage.createUser({ ...data, password: hashedPassword });

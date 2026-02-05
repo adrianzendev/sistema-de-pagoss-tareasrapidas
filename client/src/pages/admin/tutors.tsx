@@ -29,7 +29,6 @@ import {
 const tutorSchema = z.object({
   name: z.string().min(2, "Nombre debe tener al menos 2 caracteres"),
   email: z.string().email("Email inválido"),
-  username: z.string().min(3, "Usuario debe tener al menos 3 caracteres"),
   password: z.string().min(4, "Contraseña debe tener al menos 4 caracteres"),
   commissionPercent: z.string().refine((val) => {
     const num = parseFloat(val);
@@ -54,7 +53,6 @@ export default function TutorsPage() {
     defaultValues: {
       name: "",
       email: "",
-      username: "",
       password: "",
       commissionPercent: "10",
     },
@@ -149,20 +147,6 @@ export default function TutorsPage() {
                           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input {...field} type="email" placeholder="juan@ejemplo.com" className="pl-10" data-testid="input-tutor-email" />
                         </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Usuario</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="juan.perez" data-testid="input-tutor-username" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -266,7 +250,6 @@ export default function TutorsPage() {
                   <TableRow>
                     <TableHead>Nombre</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Usuario</TableHead>
                     <TableHead className="text-right">Comisión</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
@@ -276,9 +259,6 @@ export default function TutorsPage() {
                     <TableRow key={tutor.id} data-testid={`row-tutor-${tutor.id}`}>
                       <TableCell className="font-medium">{tutor.name}</TableCell>
                       <TableCell>{tutor.email}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{tutor.username}</Badge>
-                      </TableCell>
                       <TableCell className="text-right">
                         <Badge variant="outline">{tutor.commissionPercent}%</Badge>
                       </TableCell>
