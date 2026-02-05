@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import session from "express-session";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
-import { insertUserSchema, insertCurrencySchema, insertPaymentSchema, createTutorSchema } from "@shared/schema";
+import { insertUserSchema, insertCurrencySchema, insertPaymentSchema, createTutorSchema, insertBlacklistSchema } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
 import { users, currencies, payments } from "@shared/schema";
@@ -203,6 +203,53 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.delete("/api/admin/currencies/:id", requireAdmin, async (req, res) => {
     await storage.deleteCurrency(req.params.id);
     res.status(204).send();
+  });
+
+  // Admin: Blacklist
+  app.get("/api/admin/blacklist", requireAdmin, async (req, res) => {
+    const entries = await storage.getBlacklist();
+    res.json(entries);
+  });
+
+  app.post("/api/admin/blacklist", requireAdmin, async (req, res) => {
+    try {
+      const data = insertBlacklistSchema.parse(req.body);
+      const existing = await storage.getBlacklistByClient(data.clientNumber);
+      if (existing) {
+        return res.status(400).json({ message: "Este cliente ya está en la lista negra" });
+      }
+      const entry = await storage.createBlacklistEntry(data);
+      res.status(201).json(entry);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: "Error al agregar a lista negra" });
+    }
+  });
+
+  app.patch("/api/admin/blacklist/:id", requireAdmin, async (req, res) => {
+    try {
+      const data = insertBlacklistSchema.partial().parse(req.body);
+      const entry = await storage.updateBlacklistEntry(req.params.id, data);
+      res.json(entry);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: "Error al actualizar entrada" });
+    }
+  });
+
+  app.delete("/api/admin/blacklist/:id", requireAdmin, async (req, res) => {
+    await storage.deleteBlacklistEntry(req.params.id);
+    res.status(204).send();
+  });
+
+  // Check if client is blacklisted (for tutors)
+  app.get("/api/blacklist/check/:clientNumber", requireAuth, async (req, res) => {
+    const entry = await storage.getBlacklistByClient(req.params.clientNumber);
+    res.json({ blacklisted: !!entry, reason: entry?.reason });
   });
 
   // Tutor: Payments

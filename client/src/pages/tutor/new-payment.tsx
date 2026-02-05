@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -11,8 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, X, DollarSign, User, Image as ImageIcon } from "lucide-react";
+import { Loader2, Upload, X, DollarSign, User, Image as ImageIcon, AlertTriangle } from "lucide-react";
 
 const paymentSchema = z.object({
   amount: z.string().refine((val) => {
@@ -25,11 +26,17 @@ const paymentSchema = z.object({
 
 type PaymentForm = z.infer<typeof paymentSchema>;
 
+type BlacklistCheck = {
+  blacklisted: boolean;
+  reason?: string;
+};
+
 export default function NewPaymentPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [proofImage, setProofImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [blacklistWarning, setBlacklistWarning] = useState<BlacklistCheck | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: currencies } = useQuery<Currency[]>({
@@ -44,6 +51,28 @@ export default function NewPaymentPage() {
       clientNumber: "",
     },
   });
+
+  const clientNumber = form.watch("clientNumber");
+
+  useEffect(() => {
+    const checkBlacklist = async () => {
+      if (!clientNumber || clientNumber.length < 2) {
+        setBlacklistWarning(null);
+        return;
+      }
+      try {
+        const res = await fetch(`/api/blacklist/check/${encodeURIComponent(clientNumber)}`);
+        if (res.ok) {
+          const data: BlacklistCheck = await res.json();
+          setBlacklistWarning(data.blacklisted ? data : null);
+        }
+      } catch {
+        // Ignore errors
+      }
+    };
+    const timeout = setTimeout(checkBlacklist, 500);
+    return () => clearTimeout(timeout);
+  }, [clientNumber]);
 
   const createMutation = useMutation({
     mutationFn: async (data: PaymentForm) => {
@@ -135,6 +164,16 @@ export default function NewPaymentPage() {
                   </FormItem>
                 )}
               />
+
+              {blacklistWarning && (
+                <Alert variant="destructive" data-testid="alert-blacklist">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Cliente en Lista Negra</AlertTitle>
+                  <AlertDescription>
+                    {blacklistWarning.reason || "Este cliente ha sido reportado como problemático. Procede con precaución."}
+                  </AlertDescription>
+                </Alert>
+              )}
 
               <FormField
                 control={form.control}

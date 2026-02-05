@@ -14,6 +14,7 @@ import AdminDashboard from "@/pages/admin/dashboard";
 import TutorsPage from "@/pages/admin/tutors";
 import AdminPaymentsPage from "@/pages/admin/payments";
 import CurrenciesPage from "@/pages/admin/currencies";
+import BlacklistPage from "@/pages/admin/blacklist";
 import TutorPaymentsPage from "@/pages/tutor/payments";
 import NewPaymentPage from "@/pages/tutor/new-payment";
 import NotFound from "@/pages/not-found";
@@ -37,6 +38,7 @@ function AdminRoutes() {
       <Route path="/admin/tutors" component={TutorsPage} />
       <Route path="/admin/payments" component={AdminPaymentsPage} />
       <Route path="/admin/currencies" component={CurrenciesPage} />
+      <Route path="/admin/blacklist" component={BlacklistPage} />
       <Route>
         <Redirect to="/admin" />
       </Route>

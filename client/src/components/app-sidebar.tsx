@@ -24,6 +24,7 @@ import {
   LogOut,
   PlusCircle,
   FileText,
+  AlertTriangle,
 } from "lucide-react";
 
 const adminItems = [
@@ -31,6 +32,7 @@ const adminItems = [
   { title: "Tutores", url: "/admin/tutors", icon: Users },
   { title: "Pagos", url: "/admin/payments", icon: CreditCard },
   { title: "Divisas", url: "/admin/currencies", icon: DollarSign },
+  { title: "Lista Negra", url: "/admin/blacklist", icon: AlertTriangle },
 ];
 
 const tutorItems = [

@@ -6,9 +6,12 @@ import {
   type Payment,
   type InsertPayment,
   type PaymentWithDetails,
+  type Blacklist,
+  type InsertBlacklist,
   users,
   currencies,
   payments,
+  blacklist,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -33,6 +36,13 @@ export interface IStorage {
   getPaymentsByTutor(tutorId: string): Promise<PaymentWithDetails[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePaymentStatus(id: string, status: string, verifiedBy: string): Promise<Payment | undefined>;
+
+  // Blacklist
+  getBlacklist(): Promise<Blacklist[]>;
+  getBlacklistByClient(clientNumber: string): Promise<Blacklist | undefined>;
+  createBlacklistEntry(entry: InsertBlacklist): Promise<Blacklist>;
+  updateBlacklistEntry(id: string, data: Partial<InsertBlacklist>): Promise<Blacklist | undefined>;
+  deleteBlacklistEntry(id: string): Promise<void>;
 
   // Stats
   getAdminStats(): Promise<{
@@ -142,6 +152,30 @@ export class DatabaseStorage implements IStorage {
       .where(eq(payments.id, id))
       .returning();
     return payment;
+  }
+
+  // Blacklist
+  async getBlacklist(): Promise<Blacklist[]> {
+    return db.select().from(blacklist).orderBy(desc(blacklist.createdAt));
+  }
+
+  async getBlacklistByClient(clientNumber: string): Promise<Blacklist | undefined> {
+    const [entry] = await db.select().from(blacklist).where(eq(blacklist.clientNumber, clientNumber));
+    return entry;
+  }
+
+  async createBlacklistEntry(entry: InsertBlacklist): Promise<Blacklist> {
+    const [result] = await db.insert(blacklist).values(entry).returning();
+    return result;
+  }
+
+  async updateBlacklistEntry(id: string, data: Partial<InsertBlacklist>): Promise<Blacklist | undefined> {
+    const [result] = await db.update(blacklist).set(data).where(eq(blacklist.id, id)).returning();
+    return result;
+  }
+
+  async deleteBlacklistEntry(id: string): Promise<void> {
+    await db.delete(blacklist).where(eq(blacklist.id, id));
   }
 
   // Stats

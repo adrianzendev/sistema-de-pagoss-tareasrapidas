@@ -38,6 +38,13 @@ export const payments = pgTable("payments", {
   verifiedBy: varchar("verified_by").references(() => users.id),
 });
 
+export const blacklist = pgTable("blacklist", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientNumber: text("client_number").notNull().unique(),
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -64,6 +71,11 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   status: true,
 });
 
+export const insertBlacklistSchema = createInsertSchema(blacklist).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -73,6 +85,9 @@ export type Currency = typeof currencies.$inferSelect;
 
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Payment = typeof payments.$inferSelect;
+
+export type InsertBlacklist = z.infer<typeof insertBlacklistSchema>;
+export type Blacklist = typeof blacklist.$inferSelect;
 
 // Extended types for frontend
 export type PaymentWithDetails = Payment & {
