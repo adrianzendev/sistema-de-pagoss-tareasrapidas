@@ -543,17 +543,29 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const existingWeeks = await storage.getWeeks();
       
       let newWeekNumber = settings?.currentWeekNumber ?? 166;
-      if (existingWeeks.length > 0) {
-        const maxWeek = Math.max(...existingWeeks.map(w => w.weekNumber));
-        newWeekNumber = maxWeek + 1;
-      }
+      let startDate: Date;
+      let endDate: Date;
 
-      const today = new Date();
-      const dayOfWeek = today.getDay();
-      const startDate = new Date(today);
-      startDate.setDate(today.getDate() - dayOfWeek);
-      const endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + 6);
+      if (existingWeeks.length > 0) {
+        // Find the latest week by week number
+        const latestWeek = existingWeeks.reduce((max, w) => 
+          w.weekNumber > max.weekNumber ? w : max, existingWeeks[0]);
+        newWeekNumber = latestWeek.weekNumber + 1;
+        
+        // New week starts the day after the latest week ends
+        startDate = new Date(latestWeek.endDate + "T00:00:00");
+        startDate.setDate(startDate.getDate() + 1);
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+      } else {
+        // First week: use current week (Sunday to Saturday)
+        const today = new Date();
+        const dayOfWeek = today.getDay();
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - dayOfWeek);
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+      }
 
       const week = await storage.createWeek({
         weekNumber: newWeekNumber,
