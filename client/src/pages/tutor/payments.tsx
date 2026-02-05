@@ -221,18 +221,6 @@ export default function TutorPaymentsPage() {
 
   return (
     <div className="space-y-6 relative pb-24">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Mis Pagos</h1>
-        <p className="text-muted-foreground">
-          Tu comisión: <span className="font-medium">{user?.commissionPercent}%</span>
-          {selectedWeek && (
-            <span className="ml-2">
-              | Semana S{selectedWeek.weekNumber} ({format(new Date(selectedWeek.startDate + "T00:00:00"), "dd MMM", { locale: es })} - {format(new Date(selectedWeek.endDate + "T00:00:00"), "dd MMM", { locale: es })})
-            </span>
-          )}
-        </p>
-      </div>
-
       <Card className="overflow-hidden">
         <CardHeader className="pb-2">
           <CardTitle>Historial de Pagos</CardTitle>
