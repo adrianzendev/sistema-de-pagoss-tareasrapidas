@@ -51,17 +51,33 @@ shared/
 
 ### Admin Role
 - Dashboard with statistics (total tutors, payments, amounts)
+- **Weeks Management**: Create and manage weekly payment periods (S166, S167, etc.)
+  - Configure advertising costs per week (editable by admin)
+  - View weekly settlements with tutor breakdown
+  - Change week status (open/closed/paid)
+- **Agency Settings**: Configure tutor/agency commission split (default 70%/30%, fully editable)
 - Tutors management (create with name, email, commission %)
 - Payment verification (pending → verified/rejected)
 - Currencies management with exchange rates
+- Blacklist management for problematic clients
 - Excel/CSV export of payments
+- Time period filters (week, month, quarter, year, all-time)
 
 ### Tutor Role
 - View payment history with status badges
+- **Settlement View**: Spreadsheet-style weekly earnings breakdown
+  - Shows gross income, advertising share, net income, and earnings per week
+  - Calculation formula displayed for transparency
 - Submit new payments with:
-  - Amount and currency
-  - Client number
-  - Proof image upload (optional)
+  - Amount and currency (with dynamic currency symbols)
+  - Client number (with blacklist warning)
+  - Proof image upload (optional, up to 10MB)
+
+### Weekly Settlement System
+- Weeks run Sunday to Saturday
+- Advertising costs are shared proportionally between tutors and agency
+- Commission split: Configurable (default 70% tutor / 30% agency)
+- Settlement calculation: (Gross Income - Advertising Share) × Commission %
 
 ### PWA
 - Installable on mobile devices
@@ -86,13 +102,26 @@ shared/
 - `POST /api/admin/currencies` - Create currency
 - `PATCH /api/admin/currencies/:id` - Update currency
 - `DELETE /api/admin/currencies/:id` - Delete currency
+- `GET /api/admin/weeks` - List all weeks
+- `POST /api/admin/weeks` - Create week
+- `POST /api/admin/weeks/generate` - Auto-generate current week
+- `PATCH /api/admin/weeks/:id` - Update week (advertising cost, status)
+- `DELETE /api/admin/weeks/:id` - Delete week
+- `GET /api/admin/weeks/:id/settlement` - Get week settlement with tutor breakdown
+- `GET /api/admin/settings` - Get agency settings
+- `PATCH /api/admin/settings` - Update agency settings (commission percentages)
+- `GET /api/admin/blacklist` - List blacklisted clients
+- `POST /api/admin/blacklist` - Add to blacklist
+- `DELETE /api/admin/blacklist/:id` - Remove from blacklist
 
 ### Tutor
 - `GET /api/tutor/payments` - List own payments
 - `POST /api/tutor/payments` - Create payment
+- `GET /api/tutor/settlement` - Get tutor's weekly settlements
 
 ### Public (authenticated)
 - `GET /api/currencies` - List currencies
+- `GET /api/blacklist/check/:clientNumber` - Check if client is blacklisted
 
 ## Database Schema
 
@@ -107,6 +136,17 @@ shared/
 - id, tutorId, amount, currencyId, clientNumber
 - proofImage, status (pending/verified/rejected)
 - createdAt, verifiedAt, verifiedBy
+
+### blacklist
+- id, clientNumber, reason, createdAt
+
+### weeks
+- id, weekNumber (S166, S167...), startDate, endDate
+- status (open/closed/paid), advertisingCost, createdAt
+
+### agencySettings
+- id, agencyPercent (default 30), tutorPercent (default 70)
+- currentWeekNumber (starting week number)
 
 ## Running the App
 ```bash

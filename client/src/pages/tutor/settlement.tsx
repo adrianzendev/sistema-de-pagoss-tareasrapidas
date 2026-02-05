@@ -236,9 +236,14 @@ export default function TutorSettlementPage() {
         <CardContent>
           <div className="space-y-2 text-sm text-muted-foreground">
             <p><strong>1. Ingreso Bruto:</strong> Total de pagos verificados convertidos a PEN</p>
-            <p><strong>2. Publicidad:</strong> Gasto compartido = (Costo Total × {settings.tutorPercent}%) ÷ Número de Tutores</p>
-            <p><strong>3. Ingreso Neto:</strong> Bruto - Mi parte de Publicidad</p>
-            <p><strong>4. Mi Ganancia:</strong> Ingreso Neto × {settings.tutorPercent}%</p>
+            <p><strong>2. Publicidad:</strong> Costo total de la semana dividido entre tutores activos</p>
+            <p><strong>3. Ingreso Neto:</strong> Ingreso Bruto - Mi parte de Publicidad</p>
+            <p><strong>4. Mi Ganancia ({settings.tutorPercent}%):</strong> Ingreso Neto × {settings.tutorPercent}%</p>
+          </div>
+          <div className="mt-4 p-3 bg-muted rounded-lg">
+            <p className="text-xs font-mono">
+              Ganancia = (Bruto - Publicidad) × {settings.tutorPercent}%
+            </p>
           </div>
         </CardContent>
       </Card>

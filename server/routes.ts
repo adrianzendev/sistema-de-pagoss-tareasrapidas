@@ -387,6 +387,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const allCurrencies = await storage.getCurrencies();
       const tutors = await storage.getTutors();
 
+      const tutorsWithPayments = tutors.filter(tutor => 
+        verifiedPayments.some(p => p.tutorId === tutor.id)
+      );
+      const activeTutorCount = tutorsWithPayments.length || 1;
+      const advertisingPerTutor = advertisingCost / activeTutorCount;
+
       const settlements = tutors.map(tutor => {
         const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
         
@@ -397,9 +403,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           grossIncome += Number(p.amount) * rate;
         });
 
-        const tutorCount = tutors.length || 1;
-        const tutorAdvertisingShare = (advertisingCost * (tutorPercent / 100)) / tutorCount;
-        const agencyAdvertisingShare = (advertisingCost * (agencyPercent / 100)) / tutorCount;
+        const tutorAdvertisingShare = tutorPayments.length > 0 ? advertisingPerTutor : 0;
         
         const netIncome = grossIncome - tutorAdvertisingShare;
         const tutorEarnings = netIncome * (tutorPercent / 100);
@@ -410,9 +414,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           tutorId: tutor.id,
           tutorName: tutor.name,
           grossIncome,
-          advertisingCost: tutorAdvertisingShare + agencyAdvertisingShare,
+          advertisingCost: tutorAdvertisingShare,
           tutorAdvertisingShare,
-          agencyAdvertisingShare,
+          agencyAdvertisingShare: 0,
           netIncome,
           tutorEarnings,
           agencyEarnings,
@@ -479,9 +483,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const weeklySettlements = await Promise.all(
         allWeeks.slice(0, 12).map(async (week) => {
           const weekPayments = await storage.getPaymentsByWeek(week.id);
-          const tutorPayments = weekPayments.filter(p => p.tutorId === user.id && p.status === "verified");
+          const verifiedPayments = weekPayments.filter(p => p.status === "verified");
+          const tutorPayments = verifiedPayments.filter(p => p.tutorId === user.id);
           const advertisingCost = Number(week.advertisingCost ?? 0);
           
+          const tutorsWithPayments = new Set(verifiedPayments.map(p => p.tutorId));
+          const activeTutorCount = tutorsWithPayments.size || 1;
+          const advertisingPerTutor = advertisingCost / activeTutorCount;
+
           let grossIncome = 0;
           tutorPayments.forEach(p => {
             const currency = allCurrencies.find(c => c.id === p.currencyId);
@@ -489,8 +498,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             grossIncome += Number(p.amount) * rate;
           });
 
-          const tutorCount = tutors.length || 1;
-          const tutorAdvertisingShare = (advertisingCost * (tutorPercent / 100)) / tutorCount;
+          const tutorAdvertisingShare = tutorPayments.length > 0 ? advertisingPerTutor : 0;
           
           const netIncome = grossIncome - tutorAdvertisingShare;
           const tutorEarnings = netIncome * (tutorPercent / 100);

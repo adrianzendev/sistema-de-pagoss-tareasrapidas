@@ -82,7 +82,7 @@ export default function WeeksPage() {
   });
 
   const generateWeekMutation = useMutation({
-    mutationFn: () => apiRequest("/api/admin/weeks/generate", "POST"),
+    mutationFn: () => apiRequest("POST", "/api/admin/weeks/generate"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/weeks"] });
       toast({ title: "Semana generada correctamente" });
@@ -94,7 +94,7 @@ export default function WeeksPage() {
 
   const updateWeekMutation = useMutation({
     mutationFn: (data: { id: string; advertisingCost?: string; status?: string }) =>
-      apiRequest(`/api/admin/weeks/${data.id}`, "PATCH", {
+      apiRequest("PATCH", `/api/admin/weeks/${data.id}`, {
         advertisingCost: data.advertisingCost,
         status: data.status,
       }),
@@ -109,7 +109,7 @@ export default function WeeksPage() {
   });
 
   const deleteWeekMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/admin/weeks/${id}`, "DELETE"),
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/weeks/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/weeks"] });
       toast({ title: "Semana eliminada" });
@@ -121,7 +121,7 @@ export default function WeeksPage() {
 
   const updateSettingsMutation = useMutation({
     mutationFn: (data: { agencyPercent: string; tutorPercent: string }) =>
-      apiRequest("/api/admin/settings", "PATCH", data),
+      apiRequest("PATCH", "/api/admin/settings", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
       setSettingsOpen(false);
