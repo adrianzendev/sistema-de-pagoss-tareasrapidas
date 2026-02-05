@@ -115,8 +115,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const { password, ...safeTutor } = tutor;
       res.status(201).json(safeTutor);
     } catch (error) {
+      console.error("Error creating tutor:", error);
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: error.errors[0].message });
+        console.error("Zod errors:", JSON.stringify(error.errors, null, 2));
+        return res.status(400).json({ message: error.errors[0].message, field: error.errors[0].path });
       }
       res.status(500).json({ message: "Error al crear tutor" });
     }
