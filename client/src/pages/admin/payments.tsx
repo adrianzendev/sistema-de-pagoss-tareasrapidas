@@ -1,0 +1,231 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { PaymentWithDetails } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import {
+  Search,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Image as ImageIcon,
+  Download,
+  FileSpreadsheet,
+} from "lucide-react";
+
+const statusLabels = {
+  pending: { label: "Pendiente", variant: "secondary" as const, icon: Clock },
+  verified: { label: "Verificado", variant: "default" as const, icon: CheckCircle },
+  rejected: { label: "Rechazado", variant: "destructive" as const, icon: XCircle },
+};
+
+export default function PaymentsPage() {
+  const [search, setSearch] = useState("");
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
+    queryKey: ["/api/admin/payments"],
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      apiRequest("PATCH", `/api/admin/payments/${id}`, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/payments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      toast({ title: "Pago actualizado", description: "El estado del pago ha sido actualizado" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const exportToExcel = async () => {
+    try {
+      const response = await fetch("/api/admin/payments/export");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pagos_${format(new Date(), "yyyy-MM-dd")}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast({ title: "Exportado", description: "El archivo ha sido descargado" });
+    } catch (error) {
+      toast({ title: "Error", description: "No se pudo exportar", variant: "destructive" });
+    }
+  };
+
+  const filteredPayments = payments?.filter(
+    (p) =>
+      p.tutor?.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.clientNumber.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Pagos</h1>
+          <p className="text-muted-foreground">Verifica y gestiona los pagos de tutores</p>
+        </div>
+
+        <Button onClick={exportToExcel} variant="outline" data-testid="button-export-excel">
+          <FileSpreadsheet className="h-4 w-4 mr-2" />
+          Exportar Excel
+        </Button>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex-1">
+              <CardTitle>Lista de Pagos</CardTitle>
+              <CardDescription>
+                {payments?.length ?? 0} pagos registrados
+              </CardDescription>
+            </div>
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por tutor o cliente..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+                data-testid="input-search-payments"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : filteredPayments?.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                <FileSpreadsheet className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="font-medium text-lg">No hay pagos</h3>
+              <p className="text-muted-foreground text-sm">
+                {search ? "No se encontraron pagos con ese criterio" : "Los tutores aún no han registrado pagos"}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Tutor</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead className="text-right">Monto</TableHead>
+                    <TableHead>Comprobante</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredPayments?.map((payment) => {
+                    const status = statusLabels[payment.status];
+                    const StatusIcon = status.icon;
+                    return (
+                      <TableRow key={payment.id} data-testid={`row-payment-${payment.id}`}>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {payment.createdAt && format(new Date(payment.createdAt), "dd MMM yyyy", { locale: es })}
+                        </TableCell>
+                        <TableCell className="font-medium">{payment.tutor?.name ?? "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{payment.clientNumber}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {payment.currency?.code} {Number(payment.amount).toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          {payment.proofImage ? (
+                            <button
+                              onClick={() => setPreviewImage(payment.proofImage!)}
+                              className="flex items-center gap-1 text-sm text-primary hover:underline"
+                              data-testid={`button-view-proof-${payment.id}`}
+                            >
+                              <ImageIcon className="h-4 w-4" />
+                              Ver
+                            </button>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">Sin imagen</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={status.variant} className="gap-1">
+                            <StatusIcon className="h-3 w-3" />
+                            {status.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {payment.status === "pending" && (
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => updateMutation.mutate({ id: payment.id, status: "verified" })}
+                                disabled={updateMutation.isPending}
+                                data-testid={`button-verify-${payment.id}`}
+                              >
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => updateMutation.mutate({ id: payment.id, status: "rejected" })}
+                                disabled={updateMutation.isPending}
+                                data-testid={`button-reject-${payment.id}`}
+                              >
+                                <XCircle className="h-4 w-4 text-red-600" />
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Comprobante de Pago</DialogTitle>
+          </DialogHeader>
+          {previewImage && (
+            <div className="relative aspect-video">
+              <img
+                src={previewImage}
+                alt="Comprobante"
+                className="w-full h-full object-contain rounded-lg"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
