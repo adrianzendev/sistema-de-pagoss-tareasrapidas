@@ -44,6 +44,13 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
 });
 
+export const createTutorSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  username: true,
+  role: true,
+});
+
 export const insertCurrencySchema = createInsertSchema(currencies).omit({
   id: true,
   createdAt: true,

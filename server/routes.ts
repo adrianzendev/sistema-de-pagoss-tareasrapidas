@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import session from "express-session";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
-import { insertUserSchema, insertCurrencySchema, insertPaymentSchema } from "@shared/schema";
+import { insertUserSchema, insertCurrencySchema, insertPaymentSchema, createTutorSchema } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
 import { users, currencies, payments } from "@shared/schema";
@@ -99,14 +99,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/admin/tutors", requireAdmin, async (req, res) => {
     try {
-      const username = req.body.email.split("@")[0].toLowerCase().replace(/[^a-z0-9.]/g, "");
-      const data = insertUserSchema.parse({ ...req.body, username, role: "tutor" });
-      const existing = await storage.getUserByUsername(data.username);
+      const validatedData = createTutorSchema.parse(req.body);
+      const username = validatedData.email.split("@")[0].toLowerCase().replace(/[^a-z0-9.]/g, "");
+      const existing = await storage.getUserByUsername(username);
       if (existing) {
         return res.status(400).json({ message: "Ya existe un tutor con este email" });
       }
-      const hashedPassword = await bcrypt.hash(data.password, 10);
-      const tutor = await storage.createUser({ ...data, password: hashedPassword });
+      const hashedPassword = await bcrypt.hash(validatedData.password, 10);
+      const tutor = await storage.createUser({ 
+        ...validatedData, 
+        username, 
+        role: "tutor", 
+        password: hashedPassword 
+      });
       const { password, ...safeTutor } = tutor;
       res.status(201).json(safeTutor);
     } catch (error) {
