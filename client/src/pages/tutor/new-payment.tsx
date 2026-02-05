@@ -116,21 +116,18 @@ export default function NewPaymentPage() {
             <form onSubmit={form.handleSubmit((data) => createMutation.mutate(data))} className="space-y-6">
               <FormField
                 control={form.control}
-                name="amount"
+                name="clientNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Monto</FormLabel>
+                    <FormLabel>Número de Cliente</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           {...field}
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="0.00"
+                          placeholder="Ej: CLI-001"
                           className="pl-10"
-                          data-testid="input-payment-amount"
+                          data-testid="input-client-number"
                         />
                       </div>
                     </FormControl>
@@ -166,18 +163,21 @@ export default function NewPaymentPage() {
 
               <FormField
                 control={form.control}
-                name="clientNumber"
+                name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Número de Cliente</FormLabel>
+                    <FormLabel>Monto</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           {...field}
-                          placeholder="Ej: CLI-001"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
                           className="pl-10"
-                          data-testid="input-client-number"
+                          data-testid="input-payment-amount"
                         />
                       </div>
                     </FormControl>
