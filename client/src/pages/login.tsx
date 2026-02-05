@@ -140,6 +140,42 @@ export default function LoginPage() {
         <p className="text-center text-xs text-muted-foreground mt-6">
           Contacta al administrador si no tienes credenciales
         </p>
+
+        {import.meta.env.DEV && (
+          <Card className="mt-4 border-dashed border-yellow-500/50 bg-yellow-500/5">
+            <CardHeader className="py-3">
+              <CardTitle className="text-sm text-yellow-600 dark:text-yellow-400">
+                Accesos Rápidos (Solo Desarrollo)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 pb-3 flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => {
+                  form.setValue("username", "admin");
+                  form.setValue("password", "admin123");
+                }}
+                data-testid="button-quick-admin"
+              >
+                Admin
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => {
+                  form.setValue("username", "maria.garcia");
+                  form.setValue("password", "tutor123");
+                }}
+                data-testid="button-quick-tutor"
+              >
+                Tutor
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
