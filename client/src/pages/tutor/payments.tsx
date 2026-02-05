@@ -172,10 +172,6 @@ export default function TutorPaymentsPage() {
       })
     : [];
 
-  const totalVerified = filteredPayments
-    ?.filter((p) => p.status === "verified")
-    .reduce((sum, p) => sum + Number(p.amount), 0) ?? 0;
-
   const getStatusBadge = (status: string) => {
     const statusInfo = statusLabels[status as keyof typeof statusLabels];
     if (!statusInfo) return <Badge variant="outline">{status}</Badge>;
@@ -205,15 +201,9 @@ export default function TutorPaymentsPage() {
       .reduce((sum, p) => sum + Number(p.amount), 0) ?? 0;
   };
 
-  const getTotalInPEN = () => {
-    return filteredPayments?.reduce((sum, p) => 
-      sum + (Number(p.amount) * Number(p.currency?.exchangeRate ?? 1)), 0
-    ) ?? 0;
-  };
-
   const baseColWidth = activeCurrencies.length > 0 
-    ? `50px 100px 130px repeat(${activeCurrencies.length}, 90px) 80px 100px 70px`
-    : "50px 100px 130px 90px 80px 100px 70px";
+    ? `50px 100px 130px repeat(${activeCurrencies.length}, 90px) 100px 70px`
+    : "50px 100px 130px 90px 100px 70px";
 
   const selectedWeek = sortedWeeks.find(w => w.id === activeWeekId);
   const maxVisibleTabs = 6;
@@ -268,7 +258,6 @@ export default function TutorPaymentsPage() {
                     );
                   })}
                   
-                  <div className="bg-emerald-300 dark:bg-emerald-800 p-2 text-center border-r border-emerald-400 dark:border-emerald-700 text-emerald-900 dark:text-emerald-100">EN PEN</div>
                   <div className="bg-amber-200 dark:bg-amber-900 p-2 text-center border-r border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100">ESTADO</div>
                   <div className="bg-cyan-200 dark:bg-cyan-900 p-2 text-center text-cyan-900 dark:text-cyan-100">PRUEBA</div>
                 </div>
@@ -308,9 +297,6 @@ export default function TutorPaymentsPage() {
                       );
                     })}
                     
-                    <div className="bg-emerald-50 dark:bg-emerald-950 p-2 text-right border-r border-emerald-100 dark:border-emerald-900 font-bold text-emerald-700 dark:text-emerald-300">
-                      {(Number(payment.amount) * Number(payment.currency?.exchangeRate ?? 1)).toLocaleString("es-PE", { minimumFractionDigits: 0 })}
-                    </div>
                     <div className="bg-amber-50 dark:bg-amber-950 p-2 text-center border-r border-amber-100 dark:border-amber-900 flex flex-col items-center justify-center gap-0.5">
                       {getStatusBadge(payment.status)}
                       {payment.verifiedAt ? (
@@ -360,9 +346,6 @@ export default function TutorPaymentsPage() {
                     );
                   })}
                   
-                  <div className="bg-emerald-300 dark:bg-emerald-800 p-2 text-right border-r border-emerald-400 dark:border-emerald-700 text-emerald-900 dark:text-emerald-100">
-                    {getTotalInPEN().toLocaleString("es-PE", { minimumFractionDigits: 0 })}
-                  </div>
                   <div className="bg-amber-100 dark:bg-amber-950 p-2 border-r border-amber-200 dark:border-amber-900"></div>
                   <div className="bg-cyan-100 dark:bg-cyan-950 p-2"></div>
                 </div>
@@ -427,7 +410,6 @@ export default function TutorPaymentsPage() {
           <span>Total: <strong className="text-foreground">{filteredPayments?.length ?? 0}</strong></span>
           <span>Pendientes: <strong className="text-yellow-600">{filteredPayments?.filter((p) => p.status === "pending").length ?? 0}</strong></span>
           <span>Verificados: <strong className="text-green-600">{filteredPayments?.filter((p) => p.status === "verified").length ?? 0}</strong></span>
-          <span>Total PEN: <strong className="text-foreground">S/ {getTotalInPEN().toLocaleString("es-PE", { minimumFractionDigits: 2 })}</strong></span>
         </div>
       </Card>
 
