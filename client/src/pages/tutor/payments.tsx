@@ -233,45 +233,6 @@ export default function TutorPaymentsPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Pagos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{filteredPayments?.length ?? 0}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pendientes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
-              {filteredPayments?.filter((p) => p.status === "pending").length ?? 0}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Verificados</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {filteredPayments?.filter((p) => p.status === "verified").length ?? 0}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total en PEN</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">S/ {getTotalInPEN().toLocaleString("es-PE", { minimumFractionDigits: 2 })}</div>
-          </CardContent>
-        </Card>
-      </div>
-
       <Card className="overflow-hidden">
         <CardHeader className="pb-2">
           <CardTitle>Historial de Pagos</CardTitle>
@@ -472,6 +433,13 @@ export default function TutorPaymentsPage() {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+        </div>
+
+        <div className="px-4 py-2 border-t bg-muted/30 flex flex-wrap gap-4 text-xs text-muted-foreground">
+          <span>Total: <strong className="text-foreground">{filteredPayments?.length ?? 0}</strong></span>
+          <span>Pendientes: <strong className="text-yellow-600">{filteredPayments?.filter((p) => p.status === "pending").length ?? 0}</strong></span>
+          <span>Verificados: <strong className="text-green-600">{filteredPayments?.filter((p) => p.status === "verified").length ?? 0}</strong></span>
+          <span>Total PEN: <strong className="text-foreground">S/ {getTotalInPEN().toLocaleString("es-PE", { minimumFractionDigits: 2 })}</strong></span>
         </div>
       </Card>
 
