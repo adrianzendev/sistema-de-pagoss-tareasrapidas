@@ -200,8 +200,8 @@ export default function TutorPaymentsPage() {
   };
 
   const baseColWidth = activeCurrencies.length > 0 
-    ? `50px 100px 130px repeat(${activeCurrencies.length}, 90px) 100px 70px`
-    : "50px 100px 130px 90px 100px 70px";
+    ? `50px 100px 130px 100px repeat(${activeCurrencies.length}, 90px) 70px`
+    : "50px 100px 130px 100px 90px 70px";
 
   const selectedWeek = sortedWeeks.find(w => w.id === activeWeekId);
   const maxVisibleTabs = 6;
@@ -243,6 +243,7 @@ export default function TutorPaymentsPage() {
                   <div className="bg-gray-300 dark:bg-gray-700 p-2 text-center border-r border-gray-400 dark:border-gray-600">#</div>
                   <div className="bg-slate-200 dark:bg-slate-800 p-2 text-center border-r border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100">FECHA</div>
                   <div className="bg-purple-200 dark:bg-purple-900 p-2 text-center border-r border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-100">CLIENTE</div>
+                  <div className="bg-amber-200 dark:bg-amber-900 p-2 text-center border-r border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100">ESTADO</div>
                   
                   {activeCurrencies.map((currency) => {
                     const colors = getCurrencyColor(currency.color ?? "gray");
@@ -256,7 +257,6 @@ export default function TutorPaymentsPage() {
                     );
                   })}
                   
-                  <div className="bg-amber-200 dark:bg-amber-900 p-2 text-center border-r border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100">ESTADO</div>
                   <div className="bg-cyan-200 dark:bg-cyan-900 p-2 text-center text-cyan-900 dark:text-cyan-100">PRUEBA</div>
                 </div>
                 
@@ -281,6 +281,16 @@ export default function TutorPaymentsPage() {
                     <div className="bg-purple-50 dark:bg-purple-950 p-2 text-center border-r border-purple-100 dark:border-purple-900 font-mono text-xs font-medium">
                       {payment.clientNumber}
                     </div>
+                    <div className="bg-amber-50 dark:bg-amber-950 p-2 text-center border-r border-amber-100 dark:border-amber-900 flex flex-col items-center justify-center gap-0.5">
+                      {getStatusBadge(payment.status)}
+                      {payment.verifiedAt ? (
+                        <div className="text-[9px] text-muted-foreground">{format(new Date(payment.verifiedAt), "dd/MM hh:mm a", { locale: es })}</div>
+                      ) : (
+                        <div className="text-[9px] text-muted-foreground">
+                          {payment.createdAt && format(new Date(payment.createdAt), "dd/MM hh:mm a", { locale: es })}
+                        </div>
+                      )}
+                    </div>
                     
                     {activeCurrencies.map((currency) => {
                       const amount = getPaymentAmountForCurrency(payment, currency.code);
@@ -295,16 +305,6 @@ export default function TutorPaymentsPage() {
                       );
                     })}
                     
-                    <div className="bg-amber-50 dark:bg-amber-950 p-2 text-center border-r border-amber-100 dark:border-amber-900 flex flex-col items-center justify-center gap-0.5">
-                      {getStatusBadge(payment.status)}
-                      {payment.verifiedAt ? (
-                        <div className="text-[9px] text-muted-foreground">{format(new Date(payment.verifiedAt), "dd/MM hh:mm a", { locale: es })}</div>
-                      ) : (
-                        <div className="text-[9px] text-muted-foreground">
-                          {payment.createdAt && format(new Date(payment.createdAt), "dd/MM hh:mm a", { locale: es })}
-                        </div>
-                      )}
-                    </div>
                     <div className="bg-cyan-50 dark:bg-cyan-950 p-2 flex items-center justify-center">
                       {payment.proofImage ? (
                         <button
@@ -330,6 +330,7 @@ export default function TutorPaymentsPage() {
                   <div className="bg-gray-200 dark:bg-gray-800 p-2 border-r border-gray-300 dark:border-gray-700 text-right text-xs">
                     TOTAL:
                   </div>
+                  <div className="bg-amber-100 dark:bg-amber-950 p-2 border-r border-amber-200 dark:border-amber-900"></div>
                   
                   {activeCurrencies.map((currency) => {
                     const total = getTotalForCurrency(currency.code);
@@ -344,7 +345,6 @@ export default function TutorPaymentsPage() {
                     );
                   })}
                   
-                  <div className="bg-amber-100 dark:bg-amber-950 p-2 border-r border-amber-200 dark:border-amber-900"></div>
                   <div className="bg-cyan-100 dark:bg-cyan-950 p-2"></div>
                 </div>
               </div>
