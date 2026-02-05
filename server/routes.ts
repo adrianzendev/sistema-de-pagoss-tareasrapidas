@@ -132,7 +132,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // Admin: Payments
   app.get("/api/admin/payments", requireAdmin, async (req, res) => {
-    const payments = await storage.getPayments();
+    const period = req.query.period as string || "all";
+    const payments = await storage.getPayments(period);
     res.json(payments);
   });
 
@@ -146,7 +147,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.get("/api/admin/payments/export", requireAdmin, async (req, res) => {
-    const allPayments = await storage.getPayments();
+    const period = req.query.period as string || "all";
+    const allPayments = await storage.getPayments(period);
     const csv = [
       "Fecha,Tutor,Email Tutor,Cliente,Monto,Divisa,Estado,Verificado Por,Fecha Verificación",
       ...allPayments.map((p) =>
@@ -165,7 +167,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     ].join("\n");
 
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", 'attachment; filename="pagos.csv"');
+    res.setHeader("Content-Disposition", `attachment; filename="pagos_${period}.csv"`);
     res.send(csv);
   });
 

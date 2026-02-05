@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -18,8 +19,8 @@ import {
   XCircle,
   Clock,
   Image as ImageIcon,
-  Download,
   FileSpreadsheet,
+  Calendar,
 } from "lucide-react";
 
 const statusLabels = {
@@ -30,11 +31,17 @@ const statusLabels = {
 
 export default function PaymentsPage() {
   const [search, setSearch] = useState("");
+  const [period, setPeriod] = useState("all");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const { toast } = useToast();
 
   const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
-    queryKey: ["/api/admin/payments"],
+    queryKey: ["/api/admin/payments", period],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/payments?period=${period}`);
+      if (!res.ok) throw new Error("Failed to fetch payments");
+      return res.json();
+    }
   });
 
   const updateMutation = useMutation({
@@ -52,12 +59,12 @@ export default function PaymentsPage() {
 
   const exportToExcel = async () => {
     try {
-      const response = await fetch("/api/admin/payments/export");
+      const response = await fetch(`/api/admin/payments/export?period=${period}`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `pagos_${format(new Date(), "yyyy-MM-dd")}.csv`;
+      a.download = `pagos_${period}_${format(new Date(), "yyyy-MM-dd")}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -82,10 +89,28 @@ export default function PaymentsPage() {
           <p className="text-muted-foreground">Verifica y gestiona los pagos de tutores</p>
         </div>
 
-        <Button onClick={exportToExcel} variant="outline" data-testid="button-export-excel">
-          <FileSpreadsheet className="h-4 w-4 mr-2" />
-          Exportar Excel
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={exportToExcel} variant="outline" size="sm" data-testid="button-export-excel">
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Exportar
+          </Button>
+          <div className="h-8 w-[1px] bg-border mx-1" />
+          <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-md border">
+            <Calendar className="h-4 w-4 text-muted-foreground ml-1" />
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger className="h-7 w-[140px] border-0 bg-transparent focus:ring-0">
+                <SelectValue placeholder="Periodo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todo</SelectItem>
+                <SelectItem value="week">Esta semana</SelectItem>
+                <SelectItem value="month">Este mes</SelectItem>
+                <SelectItem value="quarter">Trimestre</SelectItem>
+                <SelectItem value="year">Este año</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       <Card>
@@ -94,7 +119,7 @@ export default function PaymentsPage() {
             <div className="flex-1">
               <CardTitle>Lista de Pagos</CardTitle>
               <CardDescription>
-                {payments?.length ?? 0} pagos registrados
+                {payments?.length ?? 0} pagos en el periodo seleccionado
               </CardDescription>
             </div>
             <div className="relative w-full sm:w-64">
@@ -119,11 +144,11 @@ export default function PaymentsPage() {
           ) : filteredPayments?.length === 0 ? (
             <div className="text-center py-12">
               <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                <FileSpreadsheet className="h-8 w-8 text-muted-foreground" />
+                <Clock className="h-8 w-8 text-muted-foreground" />
               </div>
               <h3 className="font-medium text-lg">No hay pagos</h3>
               <p className="text-muted-foreground text-sm">
-                {search ? "No se encontraron pagos con ese criterio" : "Los tutores aún no han registrado pagos"}
+                {search ? "No se encontraron pagos con ese criterio" : "No hay pagos registrados en este periodo"}
               </p>
             </div>
           ) : (

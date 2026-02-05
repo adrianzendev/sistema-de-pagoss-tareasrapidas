@@ -32,7 +32,7 @@ export interface IStorage {
   deleteCurrency(id: string): Promise<void>;
 
   // Payments
-  getPayments(): Promise<PaymentWithDetails[]>;
+  getPayments(period?: string): Promise<PaymentWithDetails[]>;
   getPaymentsByTutor(tutorId: string): Promise<PaymentWithDetails[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePaymentStatus(id: string, status: string, verifiedBy: string): Promise<Payment | undefined>;
@@ -112,8 +112,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Payments
-  async getPayments(): Promise<PaymentWithDetails[]> {
-    const result = await db.select().from(payments).orderBy(desc(payments.createdAt));
+  async getPayments(period: string = "all"): Promise<PaymentWithDetails[]> {
+    let dateFilter = sql`TRUE`;
+    
+    if (period === "week") {
+      dateFilter = sql`payments.created_at >= NOW() - INTERVAL '7 days'`;
+    } else if (period === "month") {
+      dateFilter = sql`payments.created_at >= NOW() - INTERVAL '30 days'`;
+    } else if (period === "quarter") {
+      dateFilter = sql`payments.created_at >= NOW() - INTERVAL '90 days'`;
+    } else if (period === "year") {
+      dateFilter = sql`payments.created_at >= NOW() - INTERVAL '365 days'`;
+    }
+
+    const result = await db
+      .select()
+      .from(payments)
+      .where(dateFilter)
+      .orderBy(desc(payments.createdAt));
+    
     const paymentDetails: PaymentWithDetails[] = [];
 
     for (const payment of result) {
