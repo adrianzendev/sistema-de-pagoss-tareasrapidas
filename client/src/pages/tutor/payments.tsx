@@ -152,7 +152,7 @@ export default function TutorPaymentsPage() {
   });
 
   const activeCurrencies = currencies ?? [];
-  const sortedWeeks = [...(weeks ?? [])].sort((a, b) => b.weekNumber - a.weekNumber);
+  const sortedWeeks = [...(weeks ?? [])].sort((a, b) => a.weekNumber - b.weekNumber);
 
   const isPaymentInWeek = (payment: PaymentWithDetails, week: Week) => {
     if (!payment.createdAt) return false;
@@ -162,12 +162,14 @@ export default function TutorPaymentsPage() {
     return paymentDate >= startDate && paymentDate <= endDate;
   };
 
-  const filteredPayments = selectedWeekId 
+  const activeWeekId = selectedWeekId ?? sortedWeeks[0]?.id ?? null;
+
+  const filteredPayments = activeWeekId 
     ? payments?.filter(p => {
-        const week = sortedWeeks.find(w => w.id === selectedWeekId);
+        const week = sortedWeeks.find(w => w.id === activeWeekId);
         return week ? isPaymentInWeek(p, week) : false;
       })
-    : payments;
+    : [];
 
   const totalVerified = filteredPayments
     ?.filter((p) => p.status === "verified")
@@ -212,7 +214,7 @@ export default function TutorPaymentsPage() {
     ? `50px 100px 130px repeat(${activeCurrencies.length}, 90px) 80px 100px 70px`
     : "50px 100px 130px 90px 80px 100px 70px";
 
-  const selectedWeek = sortedWeeks.find(w => w.id === selectedWeekId);
+  const selectedWeek = sortedWeeks.find(w => w.id === activeWeekId);
   const maxVisibleTabs = 6;
   const visibleWeeks = sortedWeeks.slice(tabScrollPos, tabScrollPos + maxVisibleTabs);
 
@@ -433,24 +435,12 @@ export default function TutorPaymentsPage() {
             </Button>
 
             <div className="flex items-center gap-1 overflow-hidden">
-              <button
-                onClick={() => setSelectedWeekId(null)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-t border-b-2 transition-colors whitespace-nowrap ${
-                  selectedWeekId === null
-                    ? "bg-background border-primary text-primary"
-                    : "bg-muted/50 border-transparent text-muted-foreground hover:bg-muted"
-                }`}
-                data-testid="tab-all-payments"
-              >
-                Todas
-              </button>
-
               {visibleWeeks.map((week) => (
                 <button
                   key={week.id}
                   onClick={() => setSelectedWeekId(week.id)}
                   className={`px-3 py-1.5 text-xs font-medium rounded-t border-b-2 transition-colors whitespace-nowrap ${
-                    selectedWeekId === week.id
+                    activeWeekId === week.id
                       ? "bg-background border-primary text-primary"
                       : "bg-muted/50 border-transparent text-muted-foreground hover:bg-muted"
                   }`}
