@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, CreditCard, DollarSign, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Users, CreditCard, DollarSign, CheckCircle, Clock, XCircle, Calendar } from "lucide-react";
 
 interface DashboardStats {
   totalTutors: number;
@@ -19,8 +21,14 @@ interface DashboardStats {
 }
 
 export default function AdminDashboard() {
+  const [period, setPeriod] = useState("all");
   const { data: stats, isLoading } = useQuery<DashboardStats>({
-    queryKey: ["/api/admin/stats"],
+    queryKey: ["/api/admin/stats", period],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/stats?period=${period}`);
+      if (!res.ok) throw new Error("Failed to fetch stats");
+      return res.json();
+    }
   });
 
   const StatCard = ({
@@ -65,11 +73,29 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Resumen general del sistema de gestión de tutores
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Resumen general del sistema de gestión de tutores
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Periodo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todo el tiempo</SelectItem>
+              <SelectItem value="week">Esta semana</SelectItem>
+              <SelectItem value="month">Este mes</SelectItem>
+              <SelectItem value="quarter">Último trimestre</SelectItem>
+              <SelectItem value="year">Este año</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -82,13 +108,13 @@ export default function AdminDashboard() {
         <StatCard
           title="Total Pagos"
           value={stats?.totalPayments ?? 0}
-          description="Pagos registrados"
+          description="En el periodo seleccionado"
           icon={CreditCard}
         />
         <StatCard
           title="Monto Total"
           value={`S/ ${(stats?.totalAmount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
-          description="En pagos verificados (PEN)"
+          description="Verificados en el periodo (PEN)"
           icon={DollarSign}
         />
       </div>
@@ -97,7 +123,7 @@ export default function AdminDashboard() {
         <Card className="md:col-span-2 lg:col-span-2">
           <CardHeader>
             <CardTitle>Ingresos por Tutor</CardTitle>
-            <CardDescription>Monto total verificado por cada tutor (en Soles - PEN)</CardDescription>
+            <CardDescription>Monto verificado en el periodo seleccionado (PEN)</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -112,7 +138,7 @@ export default function AdminDashboard() {
                   <div key={tutor.id} className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <div className="font-medium">{tutor.name}</div>
-                      <div className="font-mono font-bold">
+                      <div className="font-mono font-bold text-primary">
                         S/ {tutor.verifiedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </div>
                     </div>
@@ -129,15 +155,15 @@ export default function AdminDashboard() {
                         {tutor.totalPayments} pagos verificados
                       </p>
                       <p className="text-[10px] text-muted-foreground">
-                        {((tutor.verifiedAmount / (stats.totalAmount || 1)) * 100).toFixed(1)}% del total
+                        {((tutor.verifiedAmount / (stats.totalAmount || 1)) * 100).toFixed(1)}% del periodo
                       </p>
                     </div>
                   </div>
                 ))}
-                {(!stats?.tutorStats || stats.tutorStats.length === 0) && (
+                {(!stats?.tutorStats || stats.tutorStats.filter(t => t.totalPayments > 0).length === 0) && (
                   <div className="text-center py-8">
                     <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-20" />
-                    <p className="text-sm text-muted-foreground">No hay datos de tutores con pagos verificados</p>
+                    <p className="text-sm text-muted-foreground">No hay pagos verificados en este periodo</p>
                   </div>
                 )}
               </div>
@@ -148,7 +174,7 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Estado de Pagos</CardTitle>
-            <CardDescription>Distribución general</CardDescription>
+            <CardDescription>En el periodo seleccionado</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-100 dark:border-yellow-900/30">

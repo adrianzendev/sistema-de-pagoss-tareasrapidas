@@ -45,13 +45,19 @@ export interface IStorage {
   deleteBlacklistEntry(id: string): Promise<void>;
 
   // Stats
-  getAdminStats(): Promise<{
+  getAdminStats(period?: string): Promise<{
     totalTutors: number;
     totalPayments: number;
     pendingPayments: number;
     verifiedPayments: number;
     rejectedPayments: number;
     totalAmount: number;
+    tutorStats: Array<{
+      id: string;
+      name: string;
+      totalPayments: number;
+      verifiedAmount: number;
+    }>;
   }>;
 }
 
@@ -179,12 +185,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Stats
-  async getAdminStats() {
+  async getAdminStats(period: string = "all") {
+    let dateFilter = sql`TRUE`;
+    
+    if (period === "week") {
+      dateFilter = sql`payments.created_at >= NOW() - INTERVAL '7 days'`;
+    } else if (period === "month") {
+      dateFilter = sql`payments.created_at >= NOW() - INTERVAL '30 days'`;
+    } else if (period === "quarter") {
+      dateFilter = sql`payments.created_at >= NOW() - INTERVAL '90 days'`;
+    } else if (period === "year") {
+      dateFilter = sql`payments.created_at >= NOW() - INTERVAL '365 days'`;
+    }
+
     const tutorsResult = await db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.role, "tutor"));
-    const paymentsResult = await db.select({ count: sql<number>`count(*)` }).from(payments);
-    const pendingResult = await db.select({ count: sql<number>`count(*)` }).from(payments).where(eq(payments.status, "pending"));
-    const verifiedResult = await db.select({ count: sql<number>`count(*)` }).from(payments).where(eq(payments.status, "verified"));
-    const rejectedResult = await db.select({ count: sql<number>`count(*)` }).from(payments).where(eq(payments.status, "rejected"));
+    const paymentsResult = await db.select({ count: sql<number>`count(*)` }).from(payments).where(dateFilter);
+    const pendingResult = await db.select({ count: sql<number>`count(*)` }).from(payments).where(and(eq(payments.status, "pending"), dateFilter));
+    const verifiedResult = await db.select({ count: sql<number>`count(*)` }).from(payments).where(and(eq(payments.status, "verified"), dateFilter));
+    const rejectedResult = await db.select({ count: sql<number>`count(*)` }).from(payments).where(and(eq(payments.status, "rejected"), dateFilter));
     
     // Amount result in PEN (considering exchange rates)
     const amountResult = await db
@@ -193,7 +211,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(payments)
       .innerJoin(currencies, eq(payments.currencyId, currencies.id))
-      .where(eq(payments.status, "verified"));
+      .where(and(eq(payments.status, "verified"), dateFilter));
 
     // Stats per tutor
     const tutorsList = await this.getTutors();
@@ -207,7 +225,7 @@ export class DatabaseStorage implements IStorage {
         })
         .from(payments)
         .innerJoin(currencies, eq(payments.currencyId, currencies.id))
-        .where(and(eq(payments.tutorId, tutor.id), eq(payments.status, "verified")));
+        .where(and(eq(payments.tutorId, tutor.id), eq(payments.status, "verified"), dateFilter));
       
       tutorStats.push({
         id: tutor.id,
