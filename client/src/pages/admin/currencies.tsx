@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -25,6 +26,27 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Loader2, DollarSign, Edit, Trash2 } from "lucide-react";
 
+const colorOptions = [
+  { value: "green", label: "Verde", preview: "bg-green-500" },
+  { value: "pink", label: "Rosa", preview: "bg-pink-500" },
+  { value: "blue", label: "Azul", preview: "bg-blue-500" },
+  { value: "indigo", label: "Índigo", preview: "bg-indigo-500" },
+  { value: "amber", label: "Ámbar", preview: "bg-amber-500" },
+  { value: "rose", label: "Rosado", preview: "bg-rose-500" },
+  { value: "teal", label: "Turquesa", preview: "bg-teal-500" },
+  { value: "purple", label: "Púrpura", preview: "bg-purple-500" },
+  { value: "cyan", label: "Cian", preview: "bg-cyan-500" },
+  { value: "orange", label: "Naranja", preview: "bg-orange-500" },
+  { value: "red", label: "Rojo", preview: "bg-red-500" },
+  { value: "yellow", label: "Amarillo", preview: "bg-yellow-500" },
+  { value: "lime", label: "Lima", preview: "bg-lime-500" },
+  { value: "emerald", label: "Esmeralda", preview: "bg-emerald-500" },
+  { value: "sky", label: "Cielo", preview: "bg-sky-500" },
+  { value: "violet", label: "Violeta", preview: "bg-violet-500" },
+  { value: "fuchsia", label: "Fucsia", preview: "bg-fuchsia-500" },
+  { value: "slate", label: "Gris", preview: "bg-slate-500" },
+];
+
 const currencySchema = z.object({
   code: z.string().min(1, "Código requerido").max(10, "Código muy largo"),
   name: z.string().min(2, "Nombre muy corto"),
@@ -32,9 +54,35 @@ const currencySchema = z.object({
     const num = parseFloat(val);
     return !isNaN(num) && num > 0;
   }, "Tasa debe ser mayor a 0"),
+  color: z.string().min(1, "Color requerido"),
 });
 
 type CurrencyForm = z.infer<typeof currencySchema>;
+
+const getColorPreview = (color: string) => {
+  const colorMap: Record<string, string> = {
+    green: "bg-green-500",
+    pink: "bg-pink-500",
+    blue: "bg-blue-500",
+    indigo: "bg-indigo-500",
+    amber: "bg-amber-500",
+    rose: "bg-rose-500",
+    teal: "bg-teal-500",
+    purple: "bg-purple-500",
+    cyan: "bg-cyan-500",
+    orange: "bg-orange-500",
+    red: "bg-red-500",
+    yellow: "bg-yellow-500",
+    lime: "bg-lime-500",
+    emerald: "bg-emerald-500",
+    sky: "bg-sky-500",
+    violet: "bg-violet-500",
+    fuchsia: "bg-fuchsia-500",
+    slate: "bg-slate-500",
+    gray: "bg-gray-500",
+  };
+  return colorMap[color] ?? "bg-gray-500";
+};
 
 export default function CurrenciesPage() {
   const [isOpen, setIsOpen] = useState(false);
@@ -52,6 +100,7 @@ export default function CurrenciesPage() {
       code: "",
       name: "",
       exchangeRate: "1",
+      color: "gray",
     },
   });
 
@@ -100,6 +149,7 @@ export default function CurrenciesPage() {
       code: currency.code,
       name: currency.name,
       exchangeRate: String(currency.exchangeRate),
+      color: currency.color ?? "gray",
     });
   };
 
@@ -118,7 +168,7 @@ export default function CurrenciesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Divisas</h1>
-          <p className="text-muted-foreground">Gestiona los tipos de cambio</p>
+          <p className="text-muted-foreground">Gestiona los tipos de cambio y colores de columnas</p>
         </div>
 
         <Dialog
@@ -158,6 +208,7 @@ export default function CurrenciesPage() {
                       <FormControl>
                         <Input {...field} placeholder="USD" className="uppercase" data-testid="input-currency-code" />
                       </FormControl>
+                      <FormDescription className="text-xs">Este código aparecerá como encabezado de columna</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -182,12 +233,43 @@ export default function CurrenciesPage() {
                   name="exchangeRate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tipo de Cambio (1 {field.name === "PEN" ? "PEN" : "Divisa"} = X PEN)</FormLabel>
+                      <FormLabel>Tipo de Cambio (1 Divisa = X PEN)</FormLabel>
                       <FormControl>
                         <Input {...field} type="number" step="0.0001" min="0" placeholder="1.0000" data-testid="input-currency-rate" />
                       </FormControl>
                       <FormDescription className="text-xs">
                         Indica cuántos PEN (Soles) equivale a 1 unidad de esta divisa.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="color"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Color de Columna</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-currency-color">
+                            <SelectValue placeholder="Selecciona un color" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {colorOptions.map((color) => (
+                            <SelectItem key={color.value} value={color.value}>
+                              <div className="flex items-center gap-2">
+                                <div className={`w-4 h-4 rounded ${color.preview}`} />
+                                <span>{color.label}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription className="text-xs">
+                        Este color se usará para la columna en la tabla de pagos
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -252,6 +334,7 @@ export default function CurrenciesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Color</TableHead>
                     <TableHead>Código</TableHead>
                     <TableHead>Nombre</TableHead>
                     <TableHead className="text-right">Tipo de Cambio</TableHead>
@@ -261,6 +344,9 @@ export default function CurrenciesPage() {
                 <TableBody>
                   {currencies?.map((currency) => (
                     <TableRow key={currency.id} data-testid={`row-currency-${currency.id}`}>
+                      <TableCell>
+                        <div className={`w-6 h-6 rounded ${getColorPreview(currency.color ?? "gray")}`} />
+                      </TableCell>
                       <TableCell className="font-mono font-medium">{currency.code}</TableCell>
                       <TableCell>{currency.name}</TableCell>
                       <TableCell className="text-right font-mono">

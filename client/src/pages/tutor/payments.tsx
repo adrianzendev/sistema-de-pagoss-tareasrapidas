@@ -20,39 +20,105 @@ const statusLabels = {
   rejected: { label: "Rechazado", variant: "destructive" as const, icon: XCircle },
 };
 
-const currencyColors: Record<string, { header: string; cell: string; text: string }> = {
-  PEN: {
+const colorClassMap: Record<string, { header: string; cell: string; text: string }> = {
+  green: {
     header: "bg-green-300 dark:bg-green-800 border-green-400 dark:border-green-700 text-green-900 dark:text-green-100",
     cell: "bg-green-100 dark:bg-green-950 border-green-200 dark:border-green-900",
     text: "text-green-800 dark:text-green-200",
   },
-  MXN: {
+  pink: {
     header: "bg-pink-300 dark:bg-pink-800 border-pink-400 dark:border-pink-700 text-pink-900 dark:text-pink-100",
     cell: "bg-pink-100 dark:bg-pink-950 border-pink-200 dark:border-pink-900",
     text: "text-pink-800 dark:text-pink-200",
   },
-  USD: {
+  blue: {
     header: "bg-blue-300 dark:bg-blue-800 border-blue-400 dark:border-blue-700 text-blue-900 dark:text-blue-100",
     cell: "bg-blue-100 dark:bg-blue-950 border-blue-200 dark:border-blue-900",
     text: "text-blue-800 dark:text-blue-200",
   },
-  EUR: {
+  indigo: {
     header: "bg-indigo-300 dark:bg-indigo-800 border-indigo-400 dark:border-indigo-700 text-indigo-900 dark:text-indigo-100",
     cell: "bg-indigo-100 dark:bg-indigo-950 border-indigo-200 dark:border-indigo-900",
     text: "text-indigo-800 dark:text-indigo-200",
   },
-  COP: {
+  amber: {
     header: "bg-amber-300 dark:bg-amber-800 border-amber-400 dark:border-amber-700 text-amber-900 dark:text-amber-100",
     cell: "bg-amber-100 dark:bg-amber-950 border-amber-200 dark:border-amber-900",
     text: "text-amber-800 dark:text-amber-200",
   },
+  rose: {
+    header: "bg-rose-300 dark:bg-rose-800 border-rose-400 dark:border-rose-700 text-rose-900 dark:text-rose-100",
+    cell: "bg-rose-100 dark:bg-rose-950 border-rose-200 dark:border-rose-900",
+    text: "text-rose-800 dark:text-rose-200",
+  },
+  teal: {
+    header: "bg-teal-300 dark:bg-teal-800 border-teal-400 dark:border-teal-700 text-teal-900 dark:text-teal-100",
+    cell: "bg-teal-100 dark:bg-teal-950 border-teal-200 dark:border-teal-900",
+    text: "text-teal-800 dark:text-teal-200",
+  },
+  purple: {
+    header: "bg-purple-300 dark:bg-purple-800 border-purple-400 dark:border-purple-700 text-purple-900 dark:text-purple-100",
+    cell: "bg-purple-100 dark:bg-purple-950 border-purple-200 dark:border-purple-900",
+    text: "text-purple-800 dark:text-purple-200",
+  },
+  cyan: {
+    header: "bg-cyan-300 dark:bg-cyan-800 border-cyan-400 dark:border-cyan-700 text-cyan-900 dark:text-cyan-100",
+    cell: "bg-cyan-100 dark:bg-cyan-950 border-cyan-200 dark:border-cyan-900",
+    text: "text-cyan-800 dark:text-cyan-200",
+  },
+  orange: {
+    header: "bg-orange-300 dark:bg-orange-800 border-orange-400 dark:border-orange-700 text-orange-900 dark:text-orange-100",
+    cell: "bg-orange-100 dark:bg-orange-950 border-orange-200 dark:border-orange-900",
+    text: "text-orange-800 dark:text-orange-200",
+  },
+  red: {
+    header: "bg-red-300 dark:bg-red-800 border-red-400 dark:border-red-700 text-red-900 dark:text-red-100",
+    cell: "bg-red-100 dark:bg-red-950 border-red-200 dark:border-red-900",
+    text: "text-red-800 dark:text-red-200",
+  },
+  yellow: {
+    header: "bg-yellow-300 dark:bg-yellow-800 border-yellow-400 dark:border-yellow-700 text-yellow-900 dark:text-yellow-100",
+    cell: "bg-yellow-100 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-900",
+    text: "text-yellow-800 dark:text-yellow-200",
+  },
+  lime: {
+    header: "bg-lime-300 dark:bg-lime-800 border-lime-400 dark:border-lime-700 text-lime-900 dark:text-lime-100",
+    cell: "bg-lime-100 dark:bg-lime-950 border-lime-200 dark:border-lime-900",
+    text: "text-lime-800 dark:text-lime-200",
+  },
+  emerald: {
+    header: "bg-emerald-300 dark:bg-emerald-800 border-emerald-400 dark:border-emerald-700 text-emerald-900 dark:text-emerald-100",
+    cell: "bg-emerald-100 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-900",
+    text: "text-emerald-800 dark:text-emerald-200",
+  },
+  sky: {
+    header: "bg-sky-300 dark:bg-sky-800 border-sky-400 dark:border-sky-700 text-sky-900 dark:text-sky-100",
+    cell: "bg-sky-100 dark:bg-sky-950 border-sky-200 dark:border-sky-900",
+    text: "text-sky-800 dark:text-sky-200",
+  },
+  violet: {
+    header: "bg-violet-300 dark:bg-violet-800 border-violet-400 dark:border-violet-700 text-violet-900 dark:text-violet-100",
+    cell: "bg-violet-100 dark:bg-violet-950 border-violet-200 dark:border-violet-900",
+    text: "text-violet-800 dark:text-violet-200",
+  },
+  fuchsia: {
+    header: "bg-fuchsia-300 dark:bg-fuchsia-800 border-fuchsia-400 dark:border-fuchsia-700 text-fuchsia-900 dark:text-fuchsia-100",
+    cell: "bg-fuchsia-100 dark:bg-fuchsia-950 border-fuchsia-200 dark:border-fuchsia-900",
+    text: "text-fuchsia-800 dark:text-fuchsia-200",
+  },
+  slate: {
+    header: "bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-600 text-slate-900 dark:text-slate-100",
+    cell: "bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800",
+    text: "text-slate-800 dark:text-slate-200",
+  },
+  gray: {
+    header: "bg-gray-300 dark:bg-gray-700 border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100",
+    cell: "bg-gray-100 dark:bg-gray-900 border-gray-200 dark:border-gray-800",
+    text: "text-gray-800 dark:text-gray-200",
+  },
 };
 
-const defaultCurrencyColor = {
-  header: "bg-gray-300 dark:bg-gray-700 border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100",
-  cell: "bg-gray-100 dark:bg-gray-900 border-gray-200 dark:border-gray-800",
-  text: "text-gray-800 dark:text-gray-200",
-};
+const defaultCurrencyColor = colorClassMap.gray;
 
 export default function TutorPaymentsPage() {
   const { user } = useAuth();
@@ -118,8 +184,8 @@ export default function TutorPaymentsPage() {
     );
   };
 
-  const getCurrencyColor = (code: string) => {
-    return currencyColors[code] ?? defaultCurrencyColor;
+  const getCurrencyColor = (colorName: string) => {
+    return colorClassMap[colorName] ?? defaultCurrencyColor;
   };
 
   const getPaymentAmountForCurrency = (payment: PaymentWithDetails, currencyCode: string) => {
@@ -238,7 +304,7 @@ export default function TutorPaymentsPage() {
                   <div className="bg-purple-200 dark:bg-purple-900 p-2 text-center border-r border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-100">CLIENTE</div>
                   
                   {activeCurrencies.map((currency) => {
-                    const colors = getCurrencyColor(currency.code);
+                    const colors = getCurrencyColor(currency.color ?? "gray");
                     return (
                       <div 
                         key={currency.id}
@@ -273,7 +339,7 @@ export default function TutorPaymentsPage() {
                     
                     {activeCurrencies.map((currency) => {
                       const amount = getPaymentAmountForCurrency(payment, currency.code);
-                      const colors = getCurrencyColor(currency.code);
+                      const colors = getCurrencyColor(currency.color ?? "gray");
                       return (
                         <div 
                           key={currency.id}
@@ -318,7 +384,7 @@ export default function TutorPaymentsPage() {
                   
                   {activeCurrencies.map((currency) => {
                     const total = getTotalForCurrency(currency.code);
-                    const colors = getCurrencyColor(currency.code);
+                    const colors = getCurrencyColor(currency.color ?? "gray");
                     return (
                       <div 
                         key={currency.id}

@@ -22,6 +22,7 @@ export const currencies = pgTable("currencies", {
   code: text("code").notNull().unique(),
   name: text("name").notNull(),
   exchangeRate: decimal("exchange_rate", { precision: 12, scale: 4 }).notNull(),
+  color: text("color").notNull().default("gray"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
