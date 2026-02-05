@@ -131,12 +131,13 @@ export default function PaymentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Fecha</TableHead>
+                    <TableHead>Solicitud</TableHead>
                     <TableHead>Tutor</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead className="text-right">Monto</TableHead>
                     <TableHead>Comprobante</TableHead>
                     <TableHead>Estado</TableHead>
+                    <TableHead>Verificación</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -146,8 +147,13 @@ export default function PaymentsPage() {
                     const StatusIcon = status.icon;
                     return (
                       <TableRow key={payment.id} data-testid={`row-payment-${payment.id}`}>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {payment.createdAt && format(new Date(payment.createdAt), "dd MMM yyyy", { locale: es })}
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {payment.createdAt && (
+                            <div>
+                              <div>{format(new Date(payment.createdAt), "dd MMM yyyy", { locale: es })}</div>
+                              <div className="text-xs">{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="font-medium">{payment.tutor?.name ?? "—"}</TableCell>
                         <TableCell>
@@ -175,6 +181,16 @@ export default function PaymentsPage() {
                             <StatusIcon className="h-3 w-3" />
                             {status.label}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {payment.verifiedAt ? (
+                            <div>
+                              <div>{format(new Date(payment.verifiedAt), "dd MMM yyyy", { locale: es })}</div>
+                              <div className="text-xs">{format(new Date(payment.verifiedAt), "HH:mm", { locale: es })}</div>
+                            </div>
+                          ) : (
+                            <span className="text-xs">—</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           {payment.status === "pending" && (

@@ -1,4 +1,5 @@
 import { useLocation, Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import {
   Sidebar,
   SidebarContent,
@@ -14,6 +15,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   LayoutDashboard,
   Users,
@@ -36,12 +38,21 @@ const tutorItems = [
   { title: "Nuevo Pago", url: "/tutor/new-payment", icon: PlusCircle },
 ];
 
+type Stats = {
+  pendingPayments: number;
+};
+
 export function AppSidebar() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
 
   const isAdmin = user?.role === "admin";
   const items = isAdmin ? adminItems : tutorItems;
+
+  const { data: stats } = useQuery<Stats>({
+    queryKey: ["/api/admin/stats"],
+    enabled: isAdmin,
+  });
 
   const getInitials = (name: string) => {
     return name
@@ -75,6 +86,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => {
                 const isActive = location === item.url;
+                const showBadge = item.title === "Pagos" && stats && stats.pendingPayments > 0;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
@@ -84,7 +96,12 @@ export function AppSidebar() {
                     >
                       <Link href={item.url}>
                         <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
+                        <span className="flex-1">{item.title}</span>
+                        {showBadge && (
+                          <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs" data-testid="badge-pending-payments">
+                            {stats.pendingPayments}
+                          </Badge>
+                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
