@@ -334,7 +334,7 @@ export default function TutorPaymentsPage() {
                       {payment.createdAt && (
                         <>
                           <div>{format(new Date(payment.createdAt), "dd/MM/yy", { locale: es })}</div>
-                          <div className="text-[10px] text-muted-foreground">{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
+                          <div className="text-[10px] text-muted-foreground">{format(new Date(payment.createdAt), "hh:mm a", { locale: es })}</div>
                         </>
                       )}
                     </div>
@@ -361,10 +361,10 @@ export default function TutorPaymentsPage() {
                     <div className="bg-amber-50 dark:bg-amber-950 p-2 text-center border-r border-amber-100 dark:border-amber-900 flex flex-col items-center justify-center gap-0.5">
                       {getStatusBadge(payment.status)}
                       {payment.verifiedAt ? (
-                        <div className="text-[9px] text-muted-foreground">{format(new Date(payment.verifiedAt), "dd/MM HH:mm", { locale: es })}</div>
+                        <div className="text-[9px] text-muted-foreground">{format(new Date(payment.verifiedAt), "dd/MM hh:mm a", { locale: es })}</div>
                       ) : (
                         <div className="text-[9px] text-muted-foreground">
-                          {payment.createdAt && format(new Date(payment.createdAt), "dd/MM HH:mm", { locale: es })}
+                          {payment.createdAt && format(new Date(payment.createdAt), "dd/MM hh:mm a", { locale: es })}
                         </div>
                       )}
                     </div>
