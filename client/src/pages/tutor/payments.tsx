@@ -331,7 +331,12 @@ export default function TutorPaymentsPage() {
                       {index + 1}
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-900 p-2 text-center border-r border-slate-100 dark:border-slate-800 text-xs">
-                      {payment.createdAt && format(new Date(payment.createdAt), "dd/MM/yy", { locale: es })}
+                      {payment.createdAt && (
+                        <>
+                          <div>{format(new Date(payment.createdAt), "dd/MM/yy", { locale: es })}</div>
+                          <div className="text-[10px] text-muted-foreground">{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
+                        </>
+                      )}
                     </div>
                     <div className="bg-purple-50 dark:bg-purple-950 p-2 text-center border-r border-purple-100 dark:border-purple-900 font-mono text-xs font-medium">
                       {payment.clientNumber}
