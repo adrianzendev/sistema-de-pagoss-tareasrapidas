@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Currency } from "@shared/schema";
+import { Currency, Week } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, X, DollarSign, User, Image as ImageIcon, AlertTriangle } from "lucide-react";
+import { Loader2, Upload, X, DollarSign, User, Image as ImageIcon, AlertTriangle, Calendar } from "lucide-react";
 
 const paymentSchema = z.object({
   amount: z.string().refine((val) => {
@@ -42,6 +42,21 @@ export default function NewPaymentPage() {
   const { data: currencies } = useQuery<Currency[]>({
     queryKey: ["/api/currencies"],
   });
+
+  const { data: weeks } = useQuery<Week[]>({
+    queryKey: ["/api/weeks"],
+  });
+
+  // Check if there's an open week for today
+  const today = new Date();
+  const currentOpenWeek = weeks?.find(week => {
+    if (week.status !== "open") return false;
+    const startDate = new Date(week.startDate + "T00:00:00");
+    const endDate = new Date(week.endDate + "T23:59:59");
+    return today >= startDate && today <= endDate;
+  });
+
+  const canCreatePayment = !!currentOpenWeek;
 
   const form = useForm<PaymentForm>({
     resolver: zodResolver(paymentSchema),
@@ -137,10 +152,26 @@ export default function NewPaymentPage() {
         <p className="text-muted-foreground">Registra un nuevo pago recibido</p>
       </div>
 
+      {!canCreatePayment && weeks !== undefined && (
+        <Alert variant="destructive" data-testid="alert-no-week">
+          <Calendar className="h-4 w-4" />
+          <AlertTitle>No hay semana abierta</AlertTitle>
+          <AlertDescription>
+            No puedes registrar pagos porque no hay una semana abierta para la fecha actual. 
+            Contacta al administrador para que abra la semana correspondiente.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Información del Pago</CardTitle>
-          <CardDescription>Completa los datos del pago para enviarlo a verificación</CardDescription>
+          <CardDescription>
+            {currentOpenWeek 
+              ? `Semana S${currentOpenWeek.weekNumber} - Completa los datos del pago para enviarlo a verificación`
+              : "Completa los datos del pago para enviarlo a verificación"
+            }
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -291,7 +322,7 @@ export default function NewPaymentPage() {
                 <Button
                   type="submit"
                   className="flex-1"
-                  disabled={createMutation.isPending}
+                  disabled={createMutation.isPending || !canCreatePayment}
                   data-testid="button-submit-payment"
                 >
                   {createMutation.isPending ? (
