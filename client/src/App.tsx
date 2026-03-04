@@ -10,7 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, LogOut } from "lucide-react";
 import { NewPaymentModal } from "@/components/new-payment-modal";
 
 import LoginPage from "@/pages/login";
@@ -79,7 +79,7 @@ function VerifierRoutes() {
 }
 
 function AuthenticatedApp() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const isAdmin = user?.role === "admin";
   const isTutor = user?.role === "tutor";
   const isVerifier = user?.role === "verifier";
@@ -117,6 +117,14 @@ function AuthenticatedApp() {
                 </Button>
               )}
               <ThemeToggle />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={logout}
+                data-testid="button-logout-bottom"
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
             </div>
           </nav>
         </div>
