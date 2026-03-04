@@ -23,6 +23,20 @@ export async function seedDatabase() {
         });
         console.log("Verifier Adrian created: adrian / 123456");
       }
+      // Ensure tutor1 exists even if DB was already seeded
+      const [existingTutor1] = await db.select().from(users).where(eq(users.username, "tutor1"));
+      if (!existingTutor1) {
+        const tutor1Password = await bcrypt.hash("tutor123", 10);
+        await db.insert(users).values({
+          username: "tutor1",
+          password: tutor1Password,
+          role: "tutor",
+          name: "Tutor 1",
+          email: "tutor1@gmail.com",
+          commissionPercent: "15",
+        });
+        console.log("Tutor1 created: tutor1 / tutor123");
+      }
       return;
     }
 
@@ -76,6 +90,18 @@ export async function seedDatabase() {
       commissionPercent: "0",
     });
     console.log("Verifier Adrian created: adrian / 123456");
+
+    // Create tutor1
+    const tutor1Password = await bcrypt.hash("tutor123", 10);
+    await db.insert(users).values({
+      username: "tutor1",
+      password: tutor1Password,
+      role: "tutor",
+      name: "Tutor 1",
+      email: "tutor1@gmail.com",
+      commissionPercent: "15",
+    });
+    console.log("Tutor1 created: tutor1 / tutor123");
 
     // Create sample payments
     const paymentsData = [
