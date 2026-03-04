@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, CreditCard, DollarSign, CheckCircle, Clock, XCircle, Calendar } from "lucide-react";
+import { Users, CreditCard, Coins, CheckCircle, Clock, XCircle, Calendar } from "lucide-react";
 
 interface DashboardStats {
   totalTutors: number;
@@ -115,7 +115,7 @@ export default function AdminDashboard() {
           title="Monto Total"
           value={`${(stats?.totalAmount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
           description="Verificados en el periodo"
-          icon={DollarSign}
+          icon={Coins}
         />
       </div>
 

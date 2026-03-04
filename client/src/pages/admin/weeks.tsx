@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Calendar, Plus, Settings, Eye, Trash2, DollarSign } from "lucide-react";
+import { Calendar, Plus, Settings, Eye, Trash2, Coins } from "lucide-react";
 import type { Week, AgencySettings } from "@shared/schema";
 
 type WeekSettlement = {
@@ -296,7 +296,7 @@ export default function WeeksPage() {
                           onClick={() => openEditDialog(week)}
                           data-testid={`button-edit-week-${week.weekNumber}`}
                         >
-                          <DollarSign className="h-4 w-4" />
+                          <Coins className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"

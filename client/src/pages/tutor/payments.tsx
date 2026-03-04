@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, Plus, ChevronLeft, ChevronRight, Calendar, Phone, DollarSign, RotateCcw } from "lucide-react";
+import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, Plus, ChevronLeft, ChevronRight, Calendar, Phone, Coins, RotateCcw } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -225,7 +225,7 @@ export default function TutorPaymentsPage() {
                   </div>
 
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <DollarSign className="h-3.5 w-3.5 shrink-0" />
+                    <Coins className="h-3.5 w-3.5 shrink-0" />
                     <span className="text-foreground font-semibold">
                       {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })} {payment.currency?.code ?? ""}
                     </span>

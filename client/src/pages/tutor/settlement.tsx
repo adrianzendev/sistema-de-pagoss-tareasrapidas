@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calculator, TrendingUp, Calendar, DollarSign } from "lucide-react";
+import { Calculator, TrendingUp, Calendar, Coins } from "lucide-react";
 import type { Week, PaymentWithDetails } from "@shared/schema";
 
 type TutorSettlement = {
@@ -102,7 +102,7 @@ export default function TutorSettlementPage() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <div className="p-3 rounded-lg bg-primary/10">
-                <DollarSign className="h-6 w-6 text-primary" />
+                <Coins className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Ingreso Bruto Total</p>

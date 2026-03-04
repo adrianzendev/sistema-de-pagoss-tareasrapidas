@@ -13,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, X, DollarSign, User, Image as ImageIcon, AlertTriangle, Calendar } from "lucide-react";
+import { Loader2, Upload, X, Coins, User, Image as ImageIcon, AlertTriangle, Calendar } from "lucide-react";
 
 const paymentSchema = z.object({
   amount: z.string().refine((val) => {

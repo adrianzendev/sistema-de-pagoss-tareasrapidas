@@ -22,7 +22,7 @@ import {
   LayoutDashboard,
   Users,
   CreditCard,
-  DollarSign,
+  Coins,
   LogOut,
   PlusCircle,
   FileText,
@@ -39,7 +39,7 @@ const adminItems = [
   { title: "Tutores", url: "/admin/tutors", icon: Users },
   { title: "Verificadores", url: "/admin/verifiers", icon: ShieldCheck },
   { title: "Pagos", url: "/admin/payments", icon: CreditCard },
-  { title: "Divisas", url: "/admin/currencies", icon: DollarSign },
+  { title: "Divisas", url: "/admin/currencies", icon: Coins },
   { title: "Clientes", url: "/admin/clients", icon: Phone },
   { title: "Lista Negra", url: "/admin/blacklist", icon: AlertTriangle },
 ];

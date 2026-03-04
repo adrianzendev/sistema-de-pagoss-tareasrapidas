@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Loader2, DollarSign, Edit, Trash2 } from "lucide-react";
+import { Plus, Loader2, Coins, Edit, Trash2 } from "lucide-react";
 
 const colorOptions = [
   { value: "white", label: "Blanco", preview: "bg-white border border-gray-300" },
@@ -168,7 +168,7 @@ export default function CurrenciesPage() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
+                <Coins className="h-5 w-5" />
                 {editingCurrency ? "Editar Divisa" : "Nueva Divisa"}
               </DialogTitle>
               <DialogDescription>
@@ -331,7 +331,7 @@ export default function CurrenciesPage() {
           ) : currencies?.length === 0 ? (
             <div className="text-center py-12">
               <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                <DollarSign className="h-8 w-8 text-muted-foreground" />
+                <Coins className="h-8 w-8 text-muted-foreground" />
               </div>
               <h3 className="font-medium text-lg">No hay divisas</h3>
               <p className="text-muted-foreground text-sm">Crea la primera divisa para comenzar</p>
