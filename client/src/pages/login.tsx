@@ -173,6 +173,18 @@ export default function LoginPage() {
               >
                 Tutor
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => {
+                  form.setValue("username", "testverifier");
+                  form.setValue("password", "verifier123");
+                }}
+                data-testid="button-quick-verifier"
+              >
+                Verificador
+              </Button>
             </CardContent>
           </Card>
         )}
