@@ -9,36 +9,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, Plus, ChevronLeft, ChevronRight, Calendar, Phone, DollarSign, RotateCcw } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-const statusLabels = {
-  pending: { label: "Pendiente", variant: "secondary" as const, icon: Clock },
-  verified: { label: "Verificado", variant: "default" as const, icon: CheckCircle },
-  rejected: { label: "Rechazado", variant: "destructive" as const, icon: XCircle },
-  refunded: { label: "Reembolsado", variant: "outline" as const, icon: XCircle },
+const statusConfig: Record<string, { label: string; variant: "secondary" | "default" | "destructive" | "outline"; icon: typeof Clock; className: string }> = {
+  pending: { label: "Pendiente", variant: "secondary", icon: Clock, className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" },
+  verified: { label: "Verificado", variant: "default", icon: CheckCircle, className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" },
+  rejected: { label: "Rechazado", variant: "destructive", icon: XCircle, className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" },
+  refunded: { label: "Reembolsado", variant: "outline", icon: RotateCcw, className: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200" },
 };
-
-const colorClassMap: Record<string, { header: string; cell: string; text: string }> = {
-  white: {
-    header: "bg-white dark:bg-gray-200 border-gray-300 dark:border-gray-400 text-black dark:text-black",
-    cell: "bg-white dark:bg-gray-100 border-gray-200 dark:border-gray-300",
-    text: "text-black dark:text-black",
-  },
-  black: {
-    header: "bg-gray-900 dark:bg-black border-gray-700 dark:border-gray-600 text-white dark:text-white",
-    cell: "bg-gray-800 dark:bg-gray-900 border-gray-700 dark:border-gray-800",
-    text: "text-white dark:text-white",
-  },
-  gray: {
-    header: "bg-gray-300 dark:bg-gray-700 border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100",
-    cell: "bg-gray-100 dark:bg-gray-900 border-gray-200 dark:border-gray-800",
-    text: "text-gray-800 dark:text-gray-200",
-  },
-};
-
-const defaultCurrencyColor = colorClassMap.gray;
 
 export default function TutorPaymentsPage() {
   const { user } = useAuth();
@@ -70,7 +50,6 @@ export default function TutorPaymentsPage() {
     },
   });
 
-  const activeCurrencies = currencies ?? [];
   const sortedWeeks = [...(weeks ?? [])].sort((a, b) => a.weekNumber - b.weekNumber);
 
   const isPaymentInWeek = (payment: PaymentWithDetails, week: Week) => {
@@ -81,203 +60,39 @@ export default function TutorPaymentsPage() {
     return paymentDate >= startDate && paymentDate <= endDate;
   };
 
+  const getWeekForPayment = (payment: PaymentWithDetails) => {
+    return sortedWeeks.find(w => isPaymentInWeek(payment, w));
+  };
+
   const activeWeekId = selectedWeekId ?? sortedWeeks[0]?.id ?? null;
 
-  const filteredPayments = activeWeekId 
+  const filteredPayments = activeWeekId
     ? payments?.filter(p => {
         const week = sortedWeeks.find(w => w.id === activeWeekId);
         return week ? isPaymentInWeek(p, week) : false;
       })
     : [];
 
-  const getStatusBadge = (status: string) => {
-    const statusInfo = statusLabels[status as keyof typeof statusLabels];
-    if (!statusInfo) return <Badge variant="outline">{status}</Badge>;
-    const StatusIcon = statusInfo.icon;
-    return (
-      <Badge variant={statusInfo.variant} className="gap-1 text-[10px] px-1">
-        <StatusIcon className="h-2.5 w-2.5" />
-        {statusInfo.label}
-      </Badge>
-    );
-  };
-
-  const getCurrencyColor = (colorName: string) => {
-    return colorClassMap[colorName] ?? defaultCurrencyColor;
-  };
-
-  const getPaymentAmountForCurrency = (payment: PaymentWithDetails, currencyCode: string) => {
-    if (payment.currency?.code === currencyCode) {
-      return Number(payment.amount);
-    }
-    return null;
-  };
-
-  const getTotalForCurrency = (currencyCode: string) => {
-    return filteredPayments
-      ?.filter(p => p.currency?.code === currencyCode)
-      .reduce((sum, p) => sum + Number(p.amount), 0) ?? 0;
-  };
-
-  const baseColWidth = activeCurrencies.length > 0 
-    ? `50px 100px 130px 100px repeat(${activeCurrencies.length}, 90px) 70px`
-    : "50px 100px 130px 100px 90px 70px";
-
   const selectedWeek = sortedWeeks.find(w => w.id === activeWeekId);
   const maxVisibleTabs = 6;
   const visibleWeeks = sortedWeeks.slice(tabScrollPos, tabScrollPos + maxVisibleTabs);
 
   return (
-    <div className="space-y-6 relative pb-24">
-      <Card className="overflow-hidden">
+    <div className="space-y-4 relative pb-24">
+      <Card>
         <CardHeader className="pb-2">
-          <CardTitle>Historial de Pagos</CardTitle>
+          <CardTitle className="text-lg">Historial de Pagos</CardTitle>
           <CardDescription>
-            {selectedWeekId ? `Pagos de la semana S${selectedWeek?.weekNumber}` : "Todos los pagos registrados"}
+            {selectedWeekId ? `Semana S${selectedWeek?.weekNumber}` : "Todos los pagos registrados"}
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="p-4 space-y-3">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : filteredPayments?.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                <FileText className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="font-medium text-lg">No hay pagos</h3>
-              <p className="text-muted-foreground text-sm">
-                {selectedWeekId ? "No hay pagos en esta semana" : "Registra tu primer pago"}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <div style={{ minWidth: activeCurrencies.length > 3 ? `${600 + activeCurrencies.length * 90}px` : "800px" }}>
-                <div 
-                  className="grid border-b-2 border-gray-400 dark:border-gray-600 font-bold text-xs uppercase"
-                  style={{ gridTemplateColumns: baseColWidth }}
-                >
-                  <div className="bg-gray-300 dark:bg-gray-700 p-2 text-center border-r border-gray-400 dark:border-gray-600">#</div>
-                  <div className="bg-slate-200 dark:bg-slate-800 p-2 text-center border-r border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100">FECHA</div>
-                  <div className="bg-purple-200 dark:bg-purple-900 p-2 text-center border-r border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-100">CLIENTE</div>
-                  <div className="bg-amber-200 dark:bg-amber-900 p-2 text-center border-r border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100">ESTADO</div>
-                  
-                  {activeCurrencies.map((currency) => {
-                    const colors = getCurrencyColor(currency.color ?? "gray");
-                    return (
-                      <div 
-                        key={currency.id}
-                        className={`${colors.header} p-2 text-center border-r`}
-                      >
-                        {currency.code}
-                      </div>
-                    );
-                  })}
-                  
-                  <div className="bg-cyan-200 dark:bg-cyan-900 p-2 text-center text-cyan-900 dark:text-cyan-100">PRUEBA</div>
-                </div>
-                
-                {filteredPayments?.map((payment, index) => (
-                  <div 
-                    key={payment.id}
-                    className="grid border-b border-gray-200 dark:border-gray-700 text-sm"
-                    style={{ gridTemplateColumns: baseColWidth }}
-                    data-testid={`payment-row-${payment.id}`}
-                  >
-                    <div className="bg-gray-200 dark:bg-gray-800 p-2 text-center border-r border-gray-300 dark:border-gray-600 font-medium text-gray-600 dark:text-gray-400">
-                      {index + 1}
-                    </div>
-                    <div className="bg-slate-50 dark:bg-slate-900 p-2 text-center border-r border-slate-100 dark:border-slate-800 text-xs">
-                      {payment.createdAt && (
-                        <>
-                          <div>{format(new Date(payment.createdAt), "dd/MM/yy", { locale: es })}</div>
-                          <div className="text-[10px] text-muted-foreground">{format(new Date(payment.createdAt), "hh:mm a", { locale: es })}</div>
-                        </>
-                      )}
-                    </div>
-                    <div className="bg-purple-50 dark:bg-purple-950 p-2 text-center border-r border-purple-100 dark:border-purple-900 font-mono text-xs font-medium">
-                      {payment.clientNumber}
-                    </div>
-                    <div className="bg-amber-50 dark:bg-amber-950 p-2 text-center border-r border-amber-100 dark:border-amber-900 flex flex-col items-center justify-center gap-0.5">
-                      {getStatusBadge(payment.status)}
-                      {payment.verifiedAt ? (
-                        <div className="text-[9px] text-muted-foreground">{format(new Date(payment.verifiedAt), "dd/MM hh:mm a", { locale: es })}</div>
-                      ) : (
-                        <div className="text-[9px] text-muted-foreground">
-                          {payment.createdAt && format(new Date(payment.createdAt), "dd/MM hh:mm a", { locale: es })}
-                        </div>
-                      )}
-                    </div>
-                    
-                    {activeCurrencies.map((currency) => {
-                      const amount = getPaymentAmountForCurrency(payment, currency.code);
-                      const colors = getCurrencyColor(currency.color ?? "gray");
-                      return (
-                        <div 
-                          key={currency.id}
-                          className={`${colors.cell} p-2 text-right border-r font-medium ${colors.text}`}
-                        >
-                          {amount !== null ? amount.toLocaleString("es-PE", { minimumFractionDigits: 0 }) : ""}
-                        </div>
-                      );
-                    })}
-                    
-                    <div className="bg-cyan-50 dark:bg-cyan-950 p-2 flex items-center justify-center">
-                      {payment.proofImage ? (
-                        <button
-                          onClick={() => setPreviewImage(payment.proofImage!)}
-                          className="w-8 h-8 rounded overflow-hidden border bg-white dark:bg-gray-800 hover:opacity-80 transition-opacity"
-                          data-testid={`button-proof-${payment.id}`}
-                        >
-                          <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
-                        </button>
-                      ) : (
-                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                <div 
-                  className="grid border-t-2 border-gray-500 dark:border-gray-400 font-bold text-sm bg-gray-100 dark:bg-gray-800"
-                  style={{ gridTemplateColumns: baseColWidth }}
-                >
-                  <div className="bg-gray-300 dark:bg-gray-700 p-2 text-center border-r border-gray-400 dark:border-gray-600"></div>
-                  <div className="bg-gray-200 dark:bg-gray-800 p-2 border-r border-gray-300 dark:border-gray-700"></div>
-                  <div className="bg-gray-200 dark:bg-gray-800 p-2 border-r border-gray-300 dark:border-gray-700 text-right text-xs">
-                    TOTAL:
-                  </div>
-                  <div className="bg-amber-100 dark:bg-amber-950 p-2 border-r border-amber-200 dark:border-amber-900"></div>
-                  
-                  {activeCurrencies.map((currency) => {
-                    const total = getTotalForCurrency(currency.code);
-                    const colors = getCurrencyColor(currency.color ?? "gray");
-                    return (
-                      <div 
-                        key={currency.id}
-                        className={`${colors.header} p-2 text-right border-r ${colors.text}`}
-                      >
-                        {total > 0 ? total.toLocaleString("es-PE", { minimumFractionDigits: 0 }) : ""}
-                      </div>
-                    );
-                  })}
-                  
-                  <div className="bg-cyan-100 dark:bg-cyan-950 p-2"></div>
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
 
         <div className="border-t bg-muted/30 p-2">
           <div className="flex items-center gap-1">
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8"
+              className="h-8 w-8 shrink-0"
               onClick={() => setTabScrollPos(Math.max(0, tabScrollPos - 1))}
               disabled={tabScrollPos === 0}
               data-testid="button-scroll-tabs-left"
@@ -285,15 +100,15 @@ export default function TutorPaymentsPage() {
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
-            <div className="flex items-center gap-1 overflow-hidden">
+            <div className="flex items-center gap-1 overflow-hidden flex-1">
               {visibleWeeks.map((week) => (
                 <button
                   key={week.id}
                   onClick={() => setSelectedWeekId(week.id)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-t border-b-2 transition-colors whitespace-nowrap ${
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
                     activeWeekId === week.id
-                      ? "bg-background border-primary text-primary"
-                      : "bg-muted/50 border-transparent text-muted-foreground hover:bg-muted"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted/50 text-muted-foreground hover:bg-muted"
                   }`}
                   data-testid={`tab-week-${week.weekNumber}`}
                 >
@@ -304,7 +119,7 @@ export default function TutorPaymentsPage() {
               <button
                 onClick={() => generateWeekMutation.mutate()}
                 disabled={generateWeekMutation.isPending}
-                className="px-2 py-1.5 text-xs font-medium rounded-t border-b-2 border-transparent bg-muted/50 text-muted-foreground hover:bg-muted transition-colors"
+                className="px-2 py-1.5 text-xs font-medium rounded-md bg-muted/50 text-muted-foreground hover:bg-muted transition-colors"
                 data-testid="button-add-week"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -314,7 +129,7 @@ export default function TutorPaymentsPage() {
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8"
+              className="h-8 w-8 shrink-0"
               onClick={() => setTabScrollPos(Math.min(sortedWeeks.length - maxVisibleTabs, tabScrollPos + 1))}
               disabled={tabScrollPos >= sortedWeeks.length - maxVisibleTabs}
               data-testid="button-scroll-tabs-right"
@@ -331,6 +146,93 @@ export default function TutorPaymentsPage() {
         </div>
       </Card>
 
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-28 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : filteredPayments?.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+            <FileText className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="font-medium text-lg">No hay pagos</h3>
+          <p className="text-muted-foreground text-sm">
+            {selectedWeekId ? "No hay pagos en esta semana" : "Registra tu primer pago"}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredPayments?.map((payment, index) => {
+            const status = statusConfig[payment.status] ?? statusConfig.pending;
+            const StatusIcon = status.icon;
+            const paymentWeek = getWeekForPayment(payment);
+
+            return (
+              <div
+                key={payment.id}
+                className="bg-card border rounded-lg p-4 shadow-sm"
+                data-testid={`payment-card-${payment.id}`}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-muted-foreground">#{index + 1}</span>
+                    {paymentWeek && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0.5" data-testid={`badge-week-${payment.id}`}>
+                        S{paymentWeek.weekNumber}
+                      </Badge>
+                    )}
+                  </div>
+                  <Badge className={`gap-1 text-[11px] px-2 py-0.5 ${status.className}`} data-testid={`badge-status-${payment.id}`}>
+                    <StatusIcon className="h-3 w-3" />
+                    {status.label}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Calendar className="h-3.5 w-3.5 shrink-0" />
+                    <span className="text-foreground text-xs">
+                      {payment.createdAt && format(new Date(payment.createdAt), "dd/MM/yyyy hh:mm a", { locale: es })}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Phone className="h-3.5 w-3.5 shrink-0" />
+                    <span className="text-foreground text-xs font-mono">{payment.clientNumber}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <DollarSign className="h-3.5 w-3.5 shrink-0" />
+                    <span className="text-foreground font-semibold">
+                      {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })} {payment.currency?.code}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {payment.proofImage ? (
+                      <button
+                        onClick={() => setPreviewImage(payment.proofImage!)}
+                        className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        data-testid={`button-proof-${payment.id}`}
+                      >
+                        <ImageIcon className="h-3.5 w-3.5" />
+                        Ver prueba
+                      </button>
+                    ) : (
+                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <ImageIcon className="h-3.5 w-3.5" />
+                        Sin prueba
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
         <DialogContent className="max-w-2xl">
