@@ -33,8 +33,8 @@ export default function TutorSettlementPage() {
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("es-PE", {
-      style: "currency",
-      currency: "PEN",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount);
   };
 
@@ -161,7 +161,7 @@ export default function TutorSettlementPage() {
                   <div className="bg-purple-200 dark:bg-purple-900 p-2 text-center border-r border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-100">PERÍODO</div>
                   <div className="bg-slate-200 dark:bg-slate-800 p-2 text-center border-r border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100">ESTADO</div>
                   <div className="bg-cyan-200 dark:bg-cyan-900 p-2 text-center border-r border-cyan-300 dark:border-cyan-700 text-cyan-900 dark:text-cyan-100">PAGOS</div>
-                  <div className="bg-green-300 dark:bg-green-800 p-2 text-center border-r border-green-400 dark:border-green-700 text-green-900 dark:text-green-100">BRUTO (S/.)</div>
+                  <div className="bg-green-300 dark:bg-green-800 p-2 text-center border-r border-green-400 dark:border-green-700 text-green-900 dark:text-green-100">BRUTO</div>
                   <div className="bg-pink-300 dark:bg-pink-900 p-2 text-center border-r border-pink-400 dark:border-pink-700 text-pink-900 dark:text-pink-100">PUBLICIDAD</div>
                   <div className="bg-amber-200 dark:bg-amber-900 p-2 text-center border-r border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100">NETO</div>
                   <div className="bg-emerald-400 dark:bg-emerald-800 p-2 text-center text-emerald-900 dark:text-emerald-100">MI {settings.tutorPercent}%</div>

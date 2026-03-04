@@ -229,7 +229,7 @@ export default function TutorPaymentsPage() {
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <DollarSign className="h-3.5 w-3.5 shrink-0" />
                     <span className="text-foreground font-semibold">
-                      {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })} {payment.currency?.code}
+                      {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })} {payment.currency?.code ?? ""}
                     </span>
                   </div>
 

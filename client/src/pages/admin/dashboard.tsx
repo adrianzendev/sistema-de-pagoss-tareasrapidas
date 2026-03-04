@@ -113,8 +113,8 @@ export default function AdminDashboard() {
         />
         <StatCard
           title="Monto Total"
-          value={`S/ ${(stats?.totalAmount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
-          description="Verificados en el periodo (PEN)"
+          value={`${(stats?.totalAmount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+          description="Verificados en el periodo"
           icon={DollarSign}
         />
       </div>
@@ -123,7 +123,7 @@ export default function AdminDashboard() {
         <Card className="md:col-span-2 lg:col-span-2">
           <CardHeader>
             <CardTitle>Ingresos por Tutor</CardTitle>
-            <CardDescription>Monto verificado en el periodo seleccionado (PEN)</CardDescription>
+            <CardDescription>Monto verificado en el periodo seleccionado</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -139,7 +139,7 @@ export default function AdminDashboard() {
                     <div className="flex items-center justify-between text-sm">
                       <div className="font-medium">{tutor.name}</div>
                       <div className="font-mono font-bold text-primary">
-                        S/ {tutor.verifiedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        {tutor.verifiedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </div>
                     </div>
                     <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
