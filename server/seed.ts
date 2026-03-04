@@ -9,6 +9,20 @@ export async function seedDatabase() {
     const [existingAdmin] = await db.select().from(users).where(eq(users.username, "admin"));
     if (existingAdmin) {
       console.log("Database already seeded");
+      // Ensure verifier Adrian exists even if DB was already seeded
+      const [existingAdrian] = await db.select().from(users).where(eq(users.username, "adrian"));
+      if (!existingAdrian) {
+        const adrianPassword = await bcrypt.hash("123456", 10);
+        await db.insert(users).values({
+          username: "adrian",
+          password: adrianPassword,
+          role: "verifier",
+          name: "Verificador Adrian",
+          email: "adrian@gmail.com",
+          commissionPercent: "0",
+        });
+        console.log("Verifier Adrian created: adrian / 123456");
+      }
       return;
     }
 
@@ -50,6 +64,18 @@ export async function seedDatabase() {
     ];
 
     const insertedTutors = await db.insert(users).values(tutorsData).returning();
+
+    // Create verifier Adrian
+    const adrianPassword = await bcrypt.hash("123456", 10);
+    await db.insert(users).values({
+      username: "adrian",
+      password: adrianPassword,
+      role: "verifier",
+      name: "Verificador Adrian",
+      email: "adrian@gmail.com",
+      commissionPercent: "0",
+    });
+    console.log("Verifier Adrian created: adrian / 123456");
 
     // Create sample payments
     const paymentsData = [
