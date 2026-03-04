@@ -29,6 +29,9 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   getTutors(): Promise<User[]>;
   deleteTutor(id: string): Promise<void>;
+  getVerifiers(): Promise<User[]>;
+  createVerifier(user: InsertUser): Promise<User>;
+  deleteVerifier(id: string): Promise<void>;
 
   // Currencies
   getCurrencies(): Promise<Currency[]>;
@@ -41,7 +44,8 @@ export interface IStorage {
   getPayments(period?: string): Promise<PaymentWithDetails[]>;
   getPaymentsByTutor(tutorId: string): Promise<PaymentWithDetails[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
-  updatePaymentStatus(id: string, status: string, verifiedBy: string): Promise<Payment | undefined>;
+  updatePaymentStatus(id: string, status: string, verifiedBy: string, notes?: string): Promise<Payment | undefined>;
+  getPaymentsByVerifier(verifierId: string): Promise<PaymentWithDetails[]>;
 
   // Blacklist
   getBlacklist(): Promise<Blacklist[]>;
@@ -105,6 +109,20 @@ export class DatabaseStorage implements IStorage {
   async deleteTutor(id: string): Promise<void> {
     await db.delete(payments).where(eq(payments.tutorId, id));
     await db.delete(users).where(and(eq(users.id, id), eq(users.role, "tutor")));
+  }
+
+  async getVerifiers(): Promise<User[]> {
+    return db.select().from(users).where(eq(users.role, "verifier")).orderBy(desc(users.createdAt));
+  }
+
+  async createVerifier(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values({ ...insertUser, role: "verifier" }).returning();
+    return user;
+  }
+
+  async deleteVerifier(id: string): Promise<void> {
+    await db.update(currencies).set({ verifierId: null }).where(eq(currencies.verifierId, id));
+    await db.delete(users).where(and(eq(users.id, id), eq(users.role, "verifier")));
   }
 
   // Currencies
@@ -184,17 +202,40 @@ export class DatabaseStorage implements IStorage {
     return payment;
   }
 
-  async updatePaymentStatus(id: string, status: string, verifiedBy: string): Promise<Payment | undefined> {
+  async updatePaymentStatus(id: string, status: string, verifiedBy: string, notes?: string): Promise<Payment | undefined> {
+    const updateData: any = {
+      status: status as "pending" | "verified" | "rejected",
+      verifiedBy,
+      verifiedAt: new Date(),
+    };
+    if (notes !== undefined) {
+      updateData.notes = notes;
+    }
     const [payment] = await db
       .update(payments)
-      .set({
-        status: status as "pending" | "verified" | "rejected",
-        verifiedBy,
-        verifiedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(payments.id, id))
       .returning();
     return payment;
+  }
+
+  async getPaymentsByVerifier(verifierId: string): Promise<PaymentWithDetails[]> {
+    const verifierCurrencies = await db.select().from(currencies).where(eq(currencies.verifierId, verifierId));
+    const currencyIds = verifierCurrencies.map(c => c.id);
+    
+    if (currencyIds.length === 0) return [];
+    
+    const result = await db.select().from(payments)
+      .where(sql`${payments.currencyId} IN (${sql.join(currencyIds.map(id => sql`${id}`), sql`, `)})`)
+      .orderBy(desc(payments.createdAt));
+    
+    const paymentDetails: PaymentWithDetails[] = [];
+    for (const payment of result) {
+      const [tutor] = await db.select().from(users).where(eq(users.id, payment.tutorId));
+      const [currency] = await db.select().from(currencies).where(eq(currencies.id, payment.currencyId));
+      paymentDetails.push({ ...payment, tutor, currency });
+    }
+    return paymentDetails;
   }
 
   // Blacklist

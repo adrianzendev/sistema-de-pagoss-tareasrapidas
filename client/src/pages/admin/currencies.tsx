@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Currency } from "@shared/schema";
+import { Currency, User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ const currencySchema = z.object({
     return !isNaN(num) && num > 0;
   }, "Tasa debe ser mayor a 0"),
   color: z.string().min(1, "Color requerido"),
+  verifierId: z.string().optional(),
 });
 
 type CurrencyForm = z.infer<typeof currencySchema>;
@@ -61,6 +62,10 @@ export default function CurrenciesPage() {
     queryKey: ["/api/currencies"],
   });
 
+  const { data: verifiers } = useQuery<User[]>({
+    queryKey: ["/api/admin/verifiers"],
+  });
+
   const form = useForm<CurrencyForm>({
     resolver: zodResolver(currencySchema),
     defaultValues: {
@@ -68,6 +73,7 @@ export default function CurrenciesPage() {
       name: "",
       exchangeRate: "1",
       color: "white",
+      verifierId: "",
     },
   });
 
@@ -117,14 +123,19 @@ export default function CurrenciesPage() {
       name: currency.name,
       exchangeRate: String(currency.exchangeRate),
       color: currency.color ?? "gray",
+      verifierId: currency.verifierId ?? "",
     });
   };
 
   const handleSubmit = (data: CurrencyForm) => {
+    const submitData = {
+      ...data,
+      verifierId: data.verifierId === "none" || data.verifierId === "" ? null : data.verifierId,
+    };
     if (editingCurrency) {
-      updateMutation.mutate({ id: editingCurrency.id, data });
+      updateMutation.mutate({ id: editingCurrency.id, data: submitData as any });
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(submitData as any);
     }
   };
 
@@ -243,6 +254,35 @@ export default function CurrenciesPage() {
                   )}
                 />
 
+                <FormField
+                  control={form.control}
+                  name="verifierId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Verificador</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ""}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-currency-verifier">
+                            <SelectValue placeholder="Sin verificador asignado" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">Sin verificador</SelectItem>
+                          {verifiers?.map((v) => (
+                            <SelectItem key={v.id} value={v.id}>
+                              {v.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription className="text-xs">
+                        El verificador recibirá los pagos en esta divisa para verificar
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <div className="flex justify-end gap-2 pt-4">
                   <Button
                     type="button"
@@ -304,6 +344,7 @@ export default function CurrenciesPage() {
                     <TableHead>Color</TableHead>
                     <TableHead>Código</TableHead>
                     <TableHead>Nombre</TableHead>
+                    <TableHead>Verificador</TableHead>
                     <TableHead className="text-right">Tipo de Cambio</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
@@ -316,6 +357,11 @@ export default function CurrenciesPage() {
                       </TableCell>
                       <TableCell className="font-mono font-medium">{currency.code}</TableCell>
                       <TableCell>{currency.name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {currency.verifierId 
+                          ? verifiers?.find(v => v.id === currency.verifierId)?.name ?? "—"
+                          : "—"}
+                      </TableCell>
                       <TableCell className="text-right font-mono">
                         {Number(currency.exchangeRate).toFixed(4)}
                       </TableCell>

@@ -6,6 +6,7 @@ TutorPay es una aplicación web PWA para gestionar tutores y verificar pagos en 
 ## User Credentials
 - **Admin**: username: `admin`, password: `admin123`
 - **Tutor**: username: `maria.garcia`, password: `tutor123`
+- **Verifier**: Created by admin via Verificadores page
 
 ## Tech Stack
 - **Frontend**: React, TypeScript, Vite, Tailwind CSS, Shadcn UI
@@ -30,10 +31,13 @@ client/
         dashboard.tsx     # Admin dashboard with stats
         tutors.tsx        # Tutors CRUD
         payments.tsx      # Payment verification
-        currencies.tsx    # Currencies CRUD
+        currencies.tsx    # Currencies CRUD (with verifier linking)
+        verifiers.tsx     # Verifiers CRUD
       tutor/
         payments.tsx      # Tutor payment history
         new-payment.tsx   # Submit new payment
+      verifier/
+        payments.tsx      # Verifier payment verification
     App.tsx               # Main app with routing
 
 server/

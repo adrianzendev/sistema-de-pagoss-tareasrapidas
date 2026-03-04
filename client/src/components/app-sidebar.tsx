@@ -29,12 +29,14 @@ import {
   AlertTriangle,
   Calendar,
   Calculator,
+  ShieldCheck,
 } from "lucide-react";
 
 const adminItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Semanas", url: "/admin/weeks", icon: Calendar },
   { title: "Tutores", url: "/admin/tutors", icon: Users },
+  { title: "Verificadores", url: "/admin/verifiers", icon: ShieldCheck },
   { title: "Pagos", url: "/admin/payments", icon: CreditCard },
   { title: "Divisas", url: "/admin/currencies", icon: DollarSign },
   { title: "Lista Negra", url: "/admin/blacklist", icon: AlertTriangle },
@@ -43,6 +45,10 @@ const adminItems = [
 const tutorItems = [
   { title: "Mis Pagos", url: "/tutor", icon: FileText },
   { title: "Liquidación", url: "/tutor/settlement", icon: Calculator },
+];
+
+const verifierItems = [
+  { title: "Verificar Pagos", url: "/verifier", icon: ShieldCheck },
 ];
 
 type Stats = {
@@ -55,7 +61,9 @@ export function AppSidebar() {
   const [isNewPaymentOpen, setIsNewPaymentOpen] = useState(false);
 
   const isAdmin = user?.role === "admin";
-  const items = isAdmin ? adminItems : tutorItems;
+  const isTutor = user?.role === "tutor";
+  const isVerifier = user?.role === "verifier";
+  const items = isAdmin ? adminItems : isVerifier ? verifierItems : tutorItems;
 
   const { data: stats } = useQuery<Stats>({
     queryKey: ["/api/admin/stats"],
@@ -82,7 +90,7 @@ export function AppSidebar() {
             <div className="flex flex-col">
               <span className="font-semibold text-sm">TutorPay</span>
               <span className="text-xs text-muted-foreground">
-                {isAdmin ? "Administrador" : "Tutor"}
+                {isAdmin ? "Administrador" : isVerifier ? "Verificador" : "Tutor"}
               </span>
             </div>
           </div>
@@ -90,7 +98,7 @@ export function AppSidebar() {
 
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>Menú Principal</SidebarGroupLabel>
+            <SidebarGroupLabel>{isAdmin ? "Administración" : isVerifier ? "Verificación" : "Menú Principal"}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {items.map((item) => {
@@ -117,7 +125,7 @@ export function AppSidebar() {
                   );
                 })}
 
-                {!isAdmin && (
+                {isTutor && (
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       onClick={() => setIsNewPaymentOpen(true)}

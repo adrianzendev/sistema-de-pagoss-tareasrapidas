@@ -3,7 +3,7 @@ import { pgTable, text, varchar, integer, decimal, timestamp, pgEnum, date, bool
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const userRoleEnum = pgEnum("user_role", ["admin", "tutor"]);
+export const userRoleEnum = pgEnum("user_role", ["admin", "tutor", "verifier"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["pending", "verified", "rejected", "refunded"]);
 
 export const users = pgTable("users", {
@@ -23,6 +23,7 @@ export const currencies = pgTable("currencies", {
   name: text("name").notNull(),
   exchangeRate: decimal("exchange_rate", { precision: 12, scale: 4 }).notNull(),
   color: text("color").notNull().default("gray"),
+  verifierId: varchar("verifier_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -34,6 +35,7 @@ export const payments = pgTable("payments", {
   clientNumber: text("client_number").notNull(),
   proofImage: text("proof_image"),
   status: paymentStatusEnum("status").notNull().default("pending"),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   verifiedAt: timestamp("verified_at"),
   verifiedBy: varchar("verified_by").references(() => users.id),
@@ -89,6 +91,7 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   verifiedAt: true,
   verifiedBy: true,
   status: true,
+  notes: true,
 });
 
 export const insertBlacklistSchema = createInsertSchema(blacklist).omit({
@@ -125,6 +128,10 @@ export type InsertAgencySettings = z.infer<typeof insertAgencySettingsSchema>;
 export type AgencySettings = typeof agencySettings.$inferSelect;
 
 // Extended types for frontend
+export type CurrencyWithVerifier = Currency & {
+  verifier?: User;
+};
+
 export type PaymentWithDetails = Payment & {
   tutor?: User;
   currency?: Currency;

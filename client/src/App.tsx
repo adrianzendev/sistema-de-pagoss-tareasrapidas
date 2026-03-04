@@ -20,8 +20,10 @@ import AdminPaymentsPage from "@/pages/admin/payments";
 import CurrenciesPage from "@/pages/admin/currencies";
 import BlacklistPage from "@/pages/admin/blacklist";
 import WeeksPage from "@/pages/admin/weeks";
+import VerifiersPage from "@/pages/admin/verifiers";
 import TutorPaymentsPage from "@/pages/tutor/payments";
 import TutorSettlementPage from "@/pages/tutor/settlement";
+import VerifierPaymentsPage from "@/pages/verifier/payments";
 import NotFound from "@/pages/not-found";
 
 function LoadingScreen() {
@@ -44,6 +46,7 @@ function AdminRoutes() {
       <Route path="/admin/tutors" component={TutorsPage} />
       <Route path="/admin/payments" component={AdminPaymentsPage} />
       <Route path="/admin/currencies" component={CurrenciesPage} />
+      <Route path="/admin/verifiers" component={VerifiersPage} />
       <Route path="/admin/blacklist" component={BlacklistPage} />
       <Route>
         <Redirect to="/admin" />
@@ -64,14 +67,33 @@ function TutorRoutes() {
   );
 }
 
+function VerifierRoutes() {
+  return (
+    <Switch>
+      <Route path="/verifier" component={VerifierPaymentsPage} />
+      <Route>
+        <Redirect to="/verifier" />
+      </Route>
+    </Switch>
+  );
+}
+
 function AuthenticatedApp() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+  const isTutor = user?.role === "tutor";
+  const isVerifier = user?.role === "verifier";
   const [isNewPaymentOpen, setIsNewPaymentOpen] = useState(false);
 
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
+  };
+
+  const getRoutes = () => {
+    if (isAdmin) return <AdminRoutes />;
+    if (isVerifier) return <VerifierRoutes />;
+    return <TutorRoutes />;
   };
 
   return (
@@ -80,12 +102,12 @@ function AuthenticatedApp() {
         <AppSidebar />
         <div className="flex flex-col flex-1 min-w-0">
           <main className="flex-1 overflow-auto p-4 sm:p-6 pb-16">
-            {isAdmin ? <AdminRoutes /> : <TutorRoutes />}
+            {getRoutes()}
           </main>
           <nav className="fixed bottom-0 left-0 right-0 flex items-center justify-between gap-2 px-4 py-2 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-40">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
             <div className="flex items-center gap-2">
-              {!isAdmin && (
+              {isTutor && (
                 <Button
                   size="icon"
                   onClick={() => setIsNewPaymentOpen(true)}
@@ -99,7 +121,7 @@ function AuthenticatedApp() {
           </nav>
         </div>
       </div>
-      {!isAdmin && <NewPaymentModal open={isNewPaymentOpen} onOpenChange={setIsNewPaymentOpen} />}
+      {isTutor && <NewPaymentModal open={isNewPaymentOpen} onOpenChange={setIsNewPaymentOpen} />}
     </SidebarProvider>
   );
 }

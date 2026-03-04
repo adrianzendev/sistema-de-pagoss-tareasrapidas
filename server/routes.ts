@@ -33,6 +33,17 @@ async function requireAdmin(req: Request, res: Response, next: () => void) {
   next();
 }
 
+async function requireVerifier(req: Request, res: Response, next: () => void) {
+  if (!req.session.userId) {
+    return res.status(401).json({ message: "No autorizado" });
+  }
+  const user = await storage.getUser(req.session.userId);
+  if (!user || user.role !== "verifier") {
+    return res.status(403).json({ message: "Acceso denegado" });
+  }
+  next();
+}
+
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   // Session middleware
   app.use(
@@ -130,6 +141,45 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.status(204).send();
   });
 
+  // Admin: Verifiers
+  app.get("/api/admin/verifiers", requireAdmin, async (req, res) => {
+    const verifiers = await storage.getVerifiers();
+    res.json(verifiers.map(({ password, ...v }) => v));
+  });
+
+  app.post("/api/admin/verifiers", requireAdmin, async (req, res) => {
+    try {
+      const { name, email, password: rawPassword } = req.body;
+      if (!name || !email || !rawPassword) {
+        return res.status(400).json({ message: "Nombre, email y contraseña son requeridos" });
+      }
+      const username = email.split("@")[0].toLowerCase().replace(/[^a-z0-9.]/g, "");
+      const existing = await storage.getUserByUsername(username);
+      if (existing) {
+        return res.status(400).json({ message: "Ya existe un usuario con este email" });
+      }
+      const hashedPassword = await bcrypt.hash(rawPassword, 10);
+      const verifier = await storage.createVerifier({
+        name,
+        email,
+        password: hashedPassword,
+        username,
+        role: "verifier",
+        commissionPercent: "0",
+      });
+      const { password, ...safeVerifier } = verifier;
+      res.status(201).json(safeVerifier);
+    } catch (error) {
+      console.error("Error creating verifier:", error);
+      res.status(500).json({ message: "Error al crear verificador" });
+    }
+  });
+
+  app.delete("/api/admin/verifiers/:id", requireAdmin, async (req, res) => {
+    await storage.deleteVerifier(req.params.id);
+    res.status(204).send();
+  });
+
   // Admin: Payments
   app.get("/api/admin/payments", requireAdmin, async (req, res) => {
     const period = req.query.period as string || "all";
@@ -138,11 +188,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.patch("/api/admin/payments/:id", requireAdmin, async (req, res) => {
-    const { status } = req.body;
-    if (!["verified", "rejected"].includes(status)) {
+    const { status, notes } = req.body;
+    if (!["verified", "rejected", "refunded"].includes(status)) {
       return res.status(400).json({ message: "Estado inválido" });
     }
-    const payment = await storage.updatePaymentStatus(req.params.id, status, req.session.userId!);
+    const payment = await storage.updatePaymentStatus(req.params.id, status, req.session.userId!, notes);
     res.json(payment);
   });
 
@@ -180,6 +230,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post("/api/admin/currencies", requireAdmin, async (req, res) => {
     try {
       const data = insertCurrencySchema.parse(req.body);
+      if (data.verifierId) {
+        const verifier = await storage.getUser(data.verifierId);
+        if (!verifier || verifier.role !== "verifier") {
+          return res.status(400).json({ message: "Verificador inválido" });
+        }
+      }
       const currency = await storage.createCurrency(data);
       res.status(201).json(currency);
     } catch (error) {
@@ -193,6 +249,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.patch("/api/admin/currencies/:id", requireAdmin, async (req, res) => {
     try {
       const data = insertCurrencySchema.partial().parse(req.body);
+      if (data.verifierId) {
+        const verifier = await storage.getUser(data.verifierId);
+        if (!verifier || verifier.role !== "verifier") {
+          return res.status(400).json({ message: "Verificador inválido" });
+        }
+      }
       const currency = await storage.updateCurrency(req.params.id, data);
       res.json(currency);
     } catch (error) {
@@ -586,6 +648,26 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get("/api/weeks/current", requireAuth, async (req, res) => {
     const week = await storage.getCurrentWeek();
     res.json(week);
+  });
+
+  // Verifier routes
+  app.get("/api/verifier/payments", requireVerifier, async (req, res) => {
+    const verifierPayments = await storage.getPaymentsByVerifier(req.session.userId!);
+    res.json(verifierPayments);
+  });
+
+  app.patch("/api/verifier/payments/:id", requireVerifier, async (req, res) => {
+    const { status, notes } = req.body;
+    if (!["verified", "rejected"].includes(status)) {
+      return res.status(400).json({ message: "Estado inválido" });
+    }
+    const verifierPayments = await storage.getPaymentsByVerifier(req.session.userId!);
+    const ownsPayment = verifierPayments.some(p => p.id === req.params.id);
+    if (!ownsPayment) {
+      return res.status(403).json({ message: "No tienes permiso para modificar este pago" });
+    }
+    const payment = await storage.updatePaymentStatus(req.params.id, status, req.session.userId!, notes);
+    res.json(payment);
   });
 
   return httpServer;
