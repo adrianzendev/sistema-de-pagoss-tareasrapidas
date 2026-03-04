@@ -26,7 +26,7 @@ export async function seedDatabase() {
       // Ensure tutor1 exists even if DB was already seeded
       const [existingTutor1] = await db.select().from(users).where(eq(users.username, "tutor1"));
       if (!existingTutor1) {
-        const tutor1Password = await bcrypt.hash("tutor123", 10);
+        const tutor1Password = await bcrypt.hash("123456", 10);
         await db.insert(users).values({
           username: "tutor1",
           password: tutor1Password,
@@ -35,23 +35,26 @@ export async function seedDatabase() {
           email: "tutor1@gmail.com",
           commissionPercent: "15",
         });
-        console.log("Tutor1 created: tutor1 / tutor123");
+        console.log("Tutor1 created: tutor1 / 123456");
       }
+      // Reset all passwords to 123456
+      const standardPassword = await bcrypt.hash("123456", 10);
+      await db.update(users).set({ password: standardPassword });
+      console.log("All passwords reset to 123456");
       return;
     }
 
     console.log("Seeding database...");
 
-    // Hash passwords
-    const adminPassword = await bcrypt.hash("admin123", 10);
-    const tutorPassword = await bcrypt.hash("tutor123", 10);
+    // Hash passwords - all users use 123456
+    const standardPwd = await bcrypt.hash("123456", 10);
 
     // Create admin user
     const [admin] = await db
       .insert(users)
       .values({
         username: "admin",
-        password: adminPassword,
+        password: standardPwd,
         role: "admin",
         name: "Administrador",
         email: "admin@tutorpay.com",
@@ -72,18 +75,17 @@ export async function seedDatabase() {
 
     // Create sample tutors
     const tutorsData = [
-      { username: "maria.garcia", password: tutorPassword, role: "tutor" as const, name: "María García", email: "maria.garcia@email.com", commissionPercent: "15" },
-      { username: "carlos.lopez", password: tutorPassword, role: "tutor" as const, name: "Carlos López", email: "carlos.lopez@email.com", commissionPercent: "12" },
-      { username: "ana.martinez", password: tutorPassword, role: "tutor" as const, name: "Ana Martínez", email: "ana.martinez@email.com", commissionPercent: "18" },
+      { username: "maria.garcia", password: standardPwd, role: "tutor" as const, name: "María García", email: "maria.garcia@email.com", commissionPercent: "15" },
+      { username: "carlos.lopez", password: standardPwd, role: "tutor" as const, name: "Carlos López", email: "carlos.lopez@email.com", commissionPercent: "12" },
+      { username: "ana.martinez", password: standardPwd, role: "tutor" as const, name: "Ana Martínez", email: "ana.martinez@email.com", commissionPercent: "18" },
     ];
 
     const insertedTutors = await db.insert(users).values(tutorsData).returning();
 
     // Create verifier Adrian
-    const adrianPassword = await bcrypt.hash("123456", 10);
     await db.insert(users).values({
       username: "adrian",
-      password: adrianPassword,
+      password: standardPwd,
       role: "verifier",
       name: "Verificador Adrian",
       email: "adrian@gmail.com",
@@ -92,10 +94,9 @@ export async function seedDatabase() {
     console.log("Verifier Adrian created: adrian / 123456");
 
     // Create tutor1
-    const tutor1Password = await bcrypt.hash("tutor123", 10);
     await db.insert(users).values({
       username: "tutor1",
-      password: tutor1Password,
+      password: standardPwd,
       role: "tutor",
       name: "Tutor 1",
       email: "tutor1@gmail.com",

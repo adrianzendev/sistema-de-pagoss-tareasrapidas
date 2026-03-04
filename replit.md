@@ -4,9 +4,10 @@
 TutorPay es una aplicación web PWA para gestionar tutores y verificar pagos en una agencia de trabajos académicos. El administrador puede gestionar tutores, verificar pagos y configurar tipos de cambio de divisas. Los tutores pueden registrar pagos y ver su historial.
 
 ## User Credentials
-- **Admin**: username: `admin`, password: `admin123`
-- **Tutor**: username: `maria.garcia`, password: `tutor123`
-- **Tutor**: username: `tutor1`, email: `tutor1@gmail.com`, password: `tutor123`
+All passwords are `123456`
+- **Admin**: username: `admin`, password: `123456`
+- **Tutor**: username: `maria.garcia`, password: `123456`
+- **Tutor**: username: `tutor1`, email: `tutor1@gmail.com`, password: `123456`
 - **Verifier**: username: `adrian`, email: `adrian@gmail.com`, password: `123456`
 
 ## Tech Stack
