@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, Plus, ChevronLeft, ChevronRight, Calendar, Phone, DollarSign, RotateCcw } from "lucide-react";
@@ -25,7 +25,7 @@ export default function TutorPaymentsPage() {
   const { toast } = useToast();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
-  const [tabScrollPos, setTabScrollPos] = useState(0);
+  const [tabScrollPos, setTabScrollPos] = useState<number | null>(null);
 
   const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
     queryKey: ["/api/tutor/payments"],
@@ -64,7 +64,11 @@ export default function TutorPaymentsPage() {
     return sortedWeeks.find(w => isPaymentInWeek(payment, w));
   };
 
-  const activeWeekId = selectedWeekId ?? sortedWeeks[0]?.id ?? null;
+  const today = new Date().toISOString().split("T")[0];
+  const currentWeek = sortedWeeks.find(w => w.startDate <= today && w.endDate >= today);
+  const isWeekPast = (week: Week) => week.endDate < today;
+
+  const activeWeekId = selectedWeekId ?? currentWeek?.id ?? sortedWeeks[sortedWeeks.length - 1]?.id ?? null;
 
   const filteredPayments = activeWeekId
     ? payments?.filter(p => {
@@ -75,7 +79,15 @@ export default function TutorPaymentsPage() {
 
   const selectedWeek = sortedWeeks.find(w => w.id === activeWeekId);
   const maxVisibleTabs = 6;
-  const visibleWeeks = sortedWeeks.slice(tabScrollPos, tabScrollPos + maxVisibleTabs);
+
+  const defaultScrollPos = useMemo(() => {
+    if (!currentWeek) return 0;
+    const idx = sortedWeeks.findIndex(w => w.id === currentWeek.id);
+    return Math.max(0, Math.min(idx, sortedWeeks.length - maxVisibleTabs));
+  }, [sortedWeeks, currentWeek]);
+
+  const effectiveScrollPos = tabScrollPos ?? defaultScrollPos;
+  const visibleWeeks = sortedWeeks.slice(effectiveScrollPos, effectiveScrollPos + maxVisibleTabs);
 
   return (
     <div className="space-y-4 relative pb-24">
@@ -83,7 +95,7 @@ export default function TutorPaymentsPage() {
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">Historial de Pagos</CardTitle>
           <CardDescription>
-            {selectedWeekId ? `Semana S${selectedWeek?.weekNumber}` : "Todos los pagos registrados"}
+            {selectedWeek ? `Semana S${selectedWeek.weekNumber}` : "Todos los pagos registrados"}
           </CardDescription>
         </CardHeader>
 
@@ -93,28 +105,39 @@ export default function TutorPaymentsPage() {
               size="icon"
               variant="ghost"
               className="h-8 w-8 shrink-0"
-              onClick={() => setTabScrollPos(Math.max(0, tabScrollPos - 1))}
-              disabled={tabScrollPos === 0}
+              onClick={() => setTabScrollPos(Math.max(0, effectiveScrollPos - 1))}
+              disabled={effectiveScrollPos === 0}
               data-testid="button-scroll-tabs-left"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
             <div className="flex items-center gap-1 overflow-hidden flex-1">
-              {visibleWeeks.map((week) => (
-                <button
-                  key={week.id}
-                  onClick={() => setSelectedWeekId(week.id)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
-                    activeWeekId === week.id
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted/50 text-muted-foreground hover:bg-muted"
-                  }`}
-                  data-testid={`tab-week-${week.weekNumber}`}
-                >
-                  S{week.weekNumber}
-                </button>
-              ))}
+              {visibleWeeks.map((week) => {
+                const isCurrent = currentWeek?.id === week.id;
+                const isPast = isWeekPast(week);
+                return (
+                  <button
+                    key={week.id}
+                    onClick={() => setSelectedWeekId(week.id)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+                      activeWeekId === week.id
+                        ? isCurrent
+                          ? "bg-green-600 text-white"
+                          : "bg-primary text-primary-foreground"
+                        : isPast
+                          ? "bg-muted/30 text-muted-foreground/60 hover:bg-muted/50"
+                          : isCurrent
+                            ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50"
+                            : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                    }`}
+                    data-testid={`tab-week-${week.weekNumber}`}
+                  >
+                    S{week.weekNumber}
+                    {isCurrent && <span className="ml-1 text-[9px]">●</span>}
+                  </button>
+                );
+              })}
 
               <button
                 onClick={() => generateWeekMutation.mutate()}
@@ -130,8 +153,8 @@ export default function TutorPaymentsPage() {
               size="icon"
               variant="ghost"
               className="h-8 w-8 shrink-0"
-              onClick={() => setTabScrollPos(Math.min(sortedWeeks.length - maxVisibleTabs, tabScrollPos + 1))}
-              disabled={tabScrollPos >= sortedWeeks.length - maxVisibleTabs}
+              onClick={() => setTabScrollPos(Math.min(sortedWeeks.length - maxVisibleTabs, effectiveScrollPos + 1))}
+              disabled={effectiveScrollPos >= sortedWeeks.length - maxVisibleTabs}
               data-testid="button-scroll-tabs-right"
             >
               <ChevronRight className="h-4 w-4" />
@@ -159,7 +182,7 @@ export default function TutorPaymentsPage() {
           </div>
           <h3 className="font-medium text-lg">No hay pagos</h3>
           <p className="text-muted-foreground text-sm">
-            {selectedWeekId ? "No hay pagos en esta semana" : "Registra tu primer pago"}
+            {activeWeekId ? "No hay pagos en esta semana" : "Registra tu primer pago"}
           </p>
         </div>
       ) : (

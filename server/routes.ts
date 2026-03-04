@@ -412,6 +412,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (!user || user.role !== "tutor") {
         return res.status(403).json({ message: "Acceso denegado" });
       }
+      const currentWeek = await storage.getCurrentWeek();
+      if (!currentWeek || currentWeek.status !== "open") {
+        return res.status(400).json({ message: "No hay una semana abierta para la fecha actual. Solo puedes registrar pagos en la semana vigente." });
+      }
+
       const data = insertPaymentSchema.parse({ ...req.body, tutorId: user.id });
       const normalized = normalizePhone(data.clientNumber);
       if (normalized) {
