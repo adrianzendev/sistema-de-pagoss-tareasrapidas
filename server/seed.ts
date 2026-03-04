@@ -1,173 +1,115 @@
 import { db } from "./db";
-import { users, currencies, payments, blacklist, clients, normalizePhone } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { users, currencies, payments, blacklist, clients, normalizePhone, weeks, agencySettings } from "@shared/schema";
+import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
+
+async function ensureUser(standardPwd: string, data: { username: string; role: "admin" | "tutor" | "verifier"; name: string; email: string; commissionPercent: string }) {
+  const [existing] = await db.select().from(users).where(eq(users.username, data.username));
+  if (!existing) {
+    await db.insert(users).values({ ...data, password: standardPwd });
+    console.log(`User created: ${data.username} (${data.role})`);
+  }
+}
+
+async function ensureCurrency(data: { code: string; name: string; exchangeRate: string }) {
+  const [existing] = await db.select().from(currencies).where(eq(currencies.code, data.code));
+  if (!existing) {
+    await db.insert(currencies).values(data);
+    console.log(`Currency created: ${data.code}`);
+  }
+}
+
+async function ensureWeek(data: { weekNumber: number; startDate: string; endDate: string }) {
+  const [existing] = await db.select().from(weeks).where(eq(weeks.weekNumber, data.weekNumber));
+  if (!existing) {
+    await db.insert(weeks).values({ ...data, status: "open", advertisingCost: "0.00" });
+    console.log(`Week S${data.weekNumber} created`);
+  }
+}
 
 export async function seedDatabase() {
   try {
-    // Check if admin exists
-    const [existingAdmin] = await db.select().from(users).where(eq(users.username, "admin"));
-    if (existingAdmin) {
-      console.log("Database already seeded");
-      // Ensure verifier Adrian exists even if DB was already seeded
-      const [existingAdrian] = await db.select().from(users).where(eq(users.username, "adrian"));
-      if (!existingAdrian) {
-        const adrianPassword = await bcrypt.hash("123456", 10);
-        await db.insert(users).values({
-          username: "adrian",
-          password: adrianPassword,
-          role: "verifier",
-          name: "Verificador Adrian",
-          email: "adrian@gmail.com",
-          commissionPercent: "0",
-        });
-        console.log("Verifier Adrian created: adrian / 123456");
-      }
-      // Ensure tutor1 exists even if DB was already seeded
-      const [existingTutor1] = await db.select().from(users).where(eq(users.username, "tutor1"));
-      if (!existingTutor1) {
-        const tutor1Password = await bcrypt.hash("123456", 10);
-        await db.insert(users).values({
-          username: "tutor1",
-          password: tutor1Password,
-          role: "tutor",
-          name: "Tutor 1",
-          email: "tutor1@gmail.com",
-          commissionPercent: "15",
-        });
-        console.log("Tutor1 created: tutor1 / 123456");
-      }
-      // Reset all passwords to 123456
-      const standardPassword = await bcrypt.hash("123456", 10);
-      await db.update(users).set({ password: standardPassword });
-      console.log("All passwords reset to 123456");
-      return;
-    }
-
-    console.log("Seeding database...");
-
-    // Hash passwords - all users use 123456
     const standardPwd = await bcrypt.hash("123456", 10);
 
-    // Create admin user
-    const [admin] = await db
-      .insert(users)
-      .values({
+    const [existingAdmin] = await db.select().from(users).where(eq(users.username, "admin"));
+    if (existingAdmin) {
+      console.log("Database already seeded, syncing missing data...");
+    } else {
+      console.log("Seeding database from scratch...");
+    }
+
+    // === USERS ===
+    if (!existingAdmin) {
+      await db.insert(users).values({
         username: "admin",
         password: standardPwd,
         role: "admin",
         name: "Administrador",
         email: "admin@tutorpay.com",
         commissionPercent: "0",
-      })
-      .returning();
-
-    // Create sample currencies
-    const currencyData = [
-      { code: "USD", name: "Dólar Estadounidense", exchangeRate: "1.0000" },
-      { code: "EUR", name: "Euro", exchangeRate: "0.9200" },
-      { code: "MXN", name: "Peso Mexicano", exchangeRate: "17.5000" },
-      { code: "COP", name: "Peso Colombiano", exchangeRate: "4000.0000" },
-      { code: "ARS", name: "Peso Argentino", exchangeRate: "875.0000" },
-    ];
-
-    const insertedCurrencies = await db.insert(currencies).values(currencyData).returning();
-
-    // Create sample tutors
-    const tutorsData = [
-      { username: "maria.garcia", password: standardPwd, role: "tutor" as const, name: "María García", email: "maria.garcia@email.com", commissionPercent: "15" },
-      { username: "carlos.lopez", password: standardPwd, role: "tutor" as const, name: "Carlos López", email: "carlos.lopez@email.com", commissionPercent: "12" },
-      { username: "ana.martinez", password: standardPwd, role: "tutor" as const, name: "Ana Martínez", email: "ana.martinez@email.com", commissionPercent: "18" },
-    ];
-
-    const insertedTutors = await db.insert(users).values(tutorsData).returning();
-
-    // Create verifier Adrian
-    await db.insert(users).values({
-      username: "adrian",
-      password: standardPwd,
-      role: "verifier",
-      name: "Verificador Adrian",
-      email: "adrian@gmail.com",
-      commissionPercent: "0",
-    });
-    console.log("Verifier Adrian created: adrian / 123456");
-
-    // Create tutor1
-    await db.insert(users).values({
-      username: "tutor1",
-      password: standardPwd,
-      role: "tutor",
-      name: "Tutor 1",
-      email: "tutor1@gmail.com",
-      commissionPercent: "15",
-    });
-    console.log("Tutor1 created: tutor1 / tutor123");
-
-    // Create sample payments
-    const paymentsData = [
-      {
-        tutorId: insertedTutors[0].id,
-        amount: "150.00",
-        currencyId: insertedCurrencies[0].id, // USD
-        clientNumber: "CLI-001",
-        status: "verified" as const,
-        proofImage: null,
-      },
-      {
-        tutorId: insertedTutors[0].id,
-        amount: "200.00",
-        currencyId: insertedCurrencies[0].id, // USD
-        clientNumber: "CLI-002",
-        status: "pending" as const,
-        proofImage: null,
-      },
-      {
-        tutorId: insertedTutors[1].id,
-        amount: "3500.00",
-        currencyId: insertedCurrencies[2].id, // MXN
-        clientNumber: "CLI-003",
-        status: "verified" as const,
-        proofImage: null,
-      },
-      {
-        tutorId: insertedTutors[1].id,
-        amount: "180.00",
-        currencyId: insertedCurrencies[1].id, // EUR
-        clientNumber: "CLI-004",
-        status: "rejected" as const,
-        proofImage: null,
-      },
-      {
-        tutorId: insertedTutors[2].id,
-        amount: "500000.00",
-        currencyId: insertedCurrencies[3].id, // COP
-        clientNumber: "CLI-005",
-        status: "pending" as const,
-        proofImage: null,
-      },
-    ];
-
-    await db.insert(payments).values(paymentsData);
-
-    // Seed blacklist with example number
-    await db.insert(blacklist).values({
-      clientNumber: "+51935436864",
-      reason: "Cliente reportado - número de ejemplo para pruebas",
-    });
-
-    // Seed clients with example numbers
-    const clientNumbers = ["CLI-001", "CLI-002", "CLI-003", "CLI-004", "CLI-005"];
-    for (const cn of clientNumbers) {
-      await db.insert(clients).values({
-        phoneNumber: cn,
-        normalizedPhone: normalizePhone(cn),
       });
+      console.log("Admin created");
     }
 
-    console.log("Database seeded successfully!");
-    console.log("Admin credentials: admin / admin123");
-    console.log("Tutor credentials: maria.garcia / tutor123");
+    await ensureUser(standardPwd, { username: "maria.garcia", role: "tutor", name: "María García", email: "maria.garcia@email.com", commissionPercent: "15" });
+    await ensureUser(standardPwd, { username: "carlos.lopez", role: "tutor", name: "Carlos López", email: "carlos.lopez@email.com", commissionPercent: "12" });
+    await ensureUser(standardPwd, { username: "ana.martinez", role: "tutor", name: "Ana Martínez", email: "ana.martinez@email.com", commissionPercent: "18" });
+    await ensureUser(standardPwd, { username: "roger", role: "tutor", name: "Roger", email: "roger@gmail.com", commissionPercent: "70" });
+    await ensureUser(standardPwd, { username: "tutor1", role: "tutor", name: "Tutor 1", email: "tutor1@gmail.com", commissionPercent: "15" });
+    await ensureUser(standardPwd, { username: "adrian", role: "verifier", name: "Verificador Adrian", email: "adrian@gmail.com", commissionPercent: "0" });
+
+    // Reset all passwords to 123456
+    await db.update(users).set({ password: standardPwd });
+    console.log("All passwords set to 123456");
+
+    // === CURRENCIES ===
+    await ensureCurrency({ code: "USD", name: "Dólar Estadounidense", exchangeRate: "1.0000" });
+    await ensureCurrency({ code: "EUR", name: "Euro", exchangeRate: "0.9200" });
+    await ensureCurrency({ code: "MXN", name: "Peso Mexicano", exchangeRate: "17.5000" });
+    await ensureCurrency({ code: "COP", name: "Peso Colombiano", exchangeRate: "4000.0000" });
+    await ensureCurrency({ code: "ARS", name: "Peso Argentino", exchangeRate: "875.0000" });
+    await ensureCurrency({ code: "PEN", name: "Sol Peruano", exchangeRate: "3.3100" });
+
+    // === WEEKS (S166 - S170) ===
+    await ensureWeek({ weekNumber: 166, startDate: "2026-02-01", endDate: "2026-02-07" });
+    await ensureWeek({ weekNumber: 167, startDate: "2026-02-08", endDate: "2026-02-14" });
+    await ensureWeek({ weekNumber: 168, startDate: "2026-02-15", endDate: "2026-02-21" });
+    await ensureWeek({ weekNumber: 169, startDate: "2026-02-22", endDate: "2026-02-28" });
+    await ensureWeek({ weekNumber: 170, startDate: "2026-03-01", endDate: "2026-03-07" });
+
+    // === AGENCY SETTINGS ===
+    const [existingSettings] = await db.select().from(agencySettings);
+    if (!existingSettings) {
+      await db.insert(agencySettings).values({
+        agencyPercent: "30.00",
+        tutorPercent: "70.00",
+        currentWeekNumber: 166,
+      });
+      console.log("Agency settings created (70/30 split)");
+    }
+
+    // === BLACKLIST ===
+    const [existingBl] = await db.select().from(blacklist).where(eq(blacklist.clientNumber, "+51935436864"));
+    if (!existingBl) {
+      await db.insert(blacklist).values({
+        clientNumber: "+51935436864",
+        reason: "Cliente reportado - número de ejemplo para pruebas",
+      });
+      console.log("Blacklist entry created");
+    }
+
+    // === CLIENTS ===
+    const clientNumbers = ["9878654321", "CLI-001", "CLI-002", "CLI-003", "CLI-004", "CLI-005"];
+    for (const cn of clientNumbers) {
+      const normalized = normalizePhone(cn);
+      const [existing] = await db.select().from(clients).where(eq(clients.normalizedPhone, normalized));
+      if (!existing) {
+        await db.insert(clients).values({ phoneNumber: cn, normalizedPhone: normalized });
+        console.log(`Client created: ${cn}`);
+      }
+    }
+
+    console.log("Database sync complete!");
   } catch (error) {
     console.error("Error seeding database:", error);
   }
