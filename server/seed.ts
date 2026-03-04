@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, currencies, payments } from "@shared/schema";
+import { users, currencies, payments, blacklist, clients, normalizePhone } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
@@ -96,6 +96,21 @@ export async function seedDatabase() {
     ];
 
     await db.insert(payments).values(paymentsData);
+
+    // Seed blacklist with example number
+    await db.insert(blacklist).values({
+      clientNumber: "+51935436864",
+      reason: "Cliente reportado - número de ejemplo para pruebas",
+    });
+
+    // Seed clients with example numbers
+    const clientNumbers = ["CLI-001", "CLI-002", "CLI-003", "CLI-004", "CLI-005"];
+    for (const cn of clientNumbers) {
+      await db.insert(clients).values({
+        phoneNumber: cn,
+        normalizedPhone: normalizePhone(cn),
+      });
+    }
 
     console.log("Database seeded successfully!");
     console.log("Admin credentials: admin / admin123");

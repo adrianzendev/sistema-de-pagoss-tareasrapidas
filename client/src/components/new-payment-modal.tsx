@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Currency, Week } from "@shared/schema";
+import { Currency, Week, Client } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, X, User, Image as ImageIcon, AlertTriangle, Calendar } from "lucide-react";
+import { Loader2, X, User, Image as ImageIcon, AlertTriangle, Calendar, Phone } from "lucide-react";
+import { normalizePhone } from "@shared/schema";
 
 const paymentSchema = z.object({
   amount: z.string().refine((val) => {
@@ -40,7 +41,10 @@ export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
   const [proofImage, setProofImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [blacklistWarning, setBlacklistWarning] = useState<BlacklistCheck | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
 
   const { data: currencies } = useQuery<Currency[]>({
     queryKey: ["/api/currencies"],
@@ -48,6 +52,15 @@ export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
 
   const { data: weeks } = useQuery<Week[]>({
     queryKey: ["/api/weeks"],
+  });
+
+  const { data: allClients } = useQuery<Client[]>({
+    queryKey: ["/api/clients/search"],
+    queryFn: async () => {
+      const res = await fetch("/api/clients/search?q=");
+      if (!res.ok) return [];
+      return res.json();
+    },
   });
 
   const today = new Date();
@@ -74,6 +87,20 @@ export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
   const selectedCurrency = currencies?.find(c => c.id === selectedCurrencyId);
 
   useEffect(() => {
+    if (!clientNumber || clientNumber.length < 1) {
+      setFilteredClients([]);
+      return;
+    }
+    const normalized = normalizePhone(clientNumber);
+    const matches = (allClients || []).filter(c =>
+      c.normalizedPhone.includes(normalized) ||
+      c.phoneNumber.toLowerCase().includes(clientNumber.toLowerCase()) ||
+      (c.name && c.name.toLowerCase().includes(clientNumber.toLowerCase()))
+    ).slice(0, 8);
+    setFilteredClients(matches);
+  }, [clientNumber, allClients]);
+
+  useEffect(() => {
     const checkBlacklist = async () => {
       if (!clientNumber || clientNumber.length < 2) {
         setBlacklistWarning(null);
@@ -86,12 +113,21 @@ export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
           setBlacklistWarning(data.blacklisted ? data : null);
         }
       } catch {
-        // Ignore errors
       }
     };
     const timeout = setTimeout(checkBlacklist, 500);
     return () => clearTimeout(timeout);
   }, [clientNumber]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const createMutation = useMutation({
     mutationFn: async (data: PaymentForm) => {
@@ -111,6 +147,7 @@ export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tutor/payments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clients/search"] });
       toast({ title: "Pago registrado", description: "Tu pago ha sido enviado para verificación" });
       handleClose();
     },
@@ -123,6 +160,7 @@ export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
     form.reset();
     setProofImage(null);
     setBlacklistWarning(null);
+    setShowSuggestions(false);
     onOpenChange(false);
   };
 
@@ -152,6 +190,11 @@ export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
       toast({ title: "Error", description: "No se pudo procesar la imagen", variant: "destructive" });
       setIsUploading(false);
     }
+  };
+
+  const selectClient = (client: Client) => {
+    form.setValue("clientNumber", client.phoneNumber);
+    setShowSuggestions(false);
   };
 
   return (
@@ -184,16 +227,41 @@ export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
               name="clientNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Número de Cliente</FormLabel>
+                  <FormLabel>WhatsApp / Teléfono del Cliente</FormLabel>
                   <FormControl>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <div className="relative" ref={suggestionsRef}>
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         {...field}
-                        placeholder="Ej: CLI-001"
+                        placeholder="Ej: +51 935 436 864"
                         className="pl-10"
                         data-testid="input-client-number"
+                        autoComplete="off"
+                        onFocus={() => setShowSuggestions(true)}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setShowSuggestions(true);
+                        }}
                       />
+                      {showSuggestions && filteredClients.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                          {filteredClients.map(client => (
+                            <button
+                              key={client.id}
+                              type="button"
+                              className="w-full text-left px-3 py-2 hover:bg-muted flex items-center gap-2 text-sm"
+                              onClick={() => selectClient(client)}
+                              data-testid={`suggestion-client-${client.id}`}
+                            >
+                              <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                              <span className="font-mono">{client.phoneNumber}</span>
+                              {client.name && (
+                                <span className="text-muted-foreground">- {client.name}</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </FormControl>
                   <FormMessage />

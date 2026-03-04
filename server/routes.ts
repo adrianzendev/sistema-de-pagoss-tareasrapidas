@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import session from "express-session";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
-import { insertUserSchema, insertCurrencySchema, insertPaymentSchema, createTutorSchema, insertBlacklistSchema, insertWeekSchema, insertAgencySettingsSchema } from "@shared/schema";
+import { insertUserSchema, insertCurrencySchema, insertPaymentSchema, createTutorSchema, insertBlacklistSchema, insertWeekSchema, insertAgencySettingsSchema, insertClientSchema, normalizePhone } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
 import { users, currencies, payments } from "@shared/schema";
@@ -331,10 +331,61 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.status(204).send();
   });
 
-  // Check if client is blacklisted (for tutors)
+  // Check if client is blacklisted (for tutors) - uses normalized phone comparison
   app.get("/api/blacklist/check/:clientNumber", requireAuth, async (req, res) => {
-    const entry = await storage.getBlacklistByClient(req.params.clientNumber);
+    const normalized = normalizePhone(req.params.clientNumber);
+    const entry = await storage.getBlacklistByNormalizedPhone(normalized);
     res.json({ blacklisted: !!entry, reason: entry?.reason });
+  });
+
+  // Admin: Clients
+  app.get("/api/admin/clients", requireAdmin, async (req, res) => {
+    const allClients = await storage.getClients();
+    res.json(allClients);
+  });
+
+  app.post("/api/admin/clients", requireAdmin, async (req, res) => {
+    try {
+      const { phoneNumber, name } = req.body;
+      const normalized = normalizePhone(phoneNumber);
+      const existing = await storage.getClientByNormalizedPhone(normalized);
+      if (existing) {
+        return res.status(400).json({ message: "Este número ya está registrado" });
+      }
+      const client = await storage.createClient({ phoneNumber, normalizedPhone: normalized, name });
+      res.status(201).json(client);
+    } catch (error) {
+      console.error("Error creating client:", error);
+      res.status(500).json({ message: "Error al crear cliente" });
+    }
+  });
+
+  app.patch("/api/admin/clients/:id", requireAdmin, async (req, res) => {
+    try {
+      const { phoneNumber, name } = req.body;
+      const updateData: any = {};
+      if (name !== undefined) updateData.name = name;
+      if (phoneNumber) {
+        updateData.phoneNumber = phoneNumber;
+        updateData.normalizedPhone = normalizePhone(phoneNumber);
+      }
+      const client = await storage.updateClient(req.params.id, updateData);
+      res.json(client);
+    } catch (error) {
+      res.status(500).json({ message: "Error al actualizar cliente" });
+    }
+  });
+
+  app.delete("/api/admin/clients/:id", requireAdmin, async (req, res) => {
+    await storage.deleteClient(req.params.id);
+    res.status(204).send();
+  });
+
+  // Clients search (for tutors - combobox)
+  app.get("/api/clients/search", requireAuth, async (req, res) => {
+    const query = (req.query.q as string) || "";
+    const results = await storage.searchClients(query);
+    res.json(results);
   });
 
   // Tutor: Payments
@@ -354,6 +405,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(403).json({ message: "Acceso denegado" });
       }
       const data = insertPaymentSchema.parse({ ...req.body, tutorId: user.id });
+      const normalized = normalizePhone(data.clientNumber);
+      if (normalized) {
+        const existingClient = await storage.getClientByNormalizedPhone(normalized);
+        if (!existingClient) {
+          await storage.createClient({
+            phoneNumber: data.clientNumber,
+            normalizedPhone: normalized,
+          });
+        }
+      }
       const payment = await storage.createPayment(data);
       res.status(201).json(payment);
     } catch (error) {

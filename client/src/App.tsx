@@ -21,6 +21,7 @@ import CurrenciesPage from "@/pages/admin/currencies";
 import BlacklistPage from "@/pages/admin/blacklist";
 import WeeksPage from "@/pages/admin/weeks";
 import VerifiersPage from "@/pages/admin/verifiers";
+import ClientsPage from "@/pages/admin/clients";
 import TutorPaymentsPage from "@/pages/tutor/payments";
 import TutorSettlementPage from "@/pages/tutor/settlement";
 import VerifierPaymentsPage from "@/pages/verifier/payments";
@@ -48,6 +49,7 @@ function AdminRoutes() {
       <Route path="/admin/currencies" component={CurrenciesPage} />
       <Route path="/admin/verifiers" component={VerifiersPage} />
       <Route path="/admin/blacklist" component={BlacklistPage} />
+      <Route path="/admin/clients" component={ClientsPage} />
       <Route>
         <Redirect to="/admin" />
       </Route>

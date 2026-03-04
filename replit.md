@@ -33,6 +33,7 @@ client/
         payments.tsx      # Payment verification
         currencies.tsx    # Currencies CRUD (with verifier linking)
         verifiers.tsx     # Verifiers CRUD
+        clients.tsx       # Clients management
       tutor/
         payments.tsx      # Tutor payment history
         new-payment.tsx   # Submit new payment
@@ -63,7 +64,8 @@ shared/
 - Tutors management (create with name, email, commission %)
 - Payment verification (pending → verified/rejected)
 - Currencies management with exchange rates
-- Blacklist management for problematic clients
+- **Clients Management**: View/manage all client phone numbers registered by tutors
+- Blacklist management for problematic clients (with normalized phone matching)
 - Excel/CSV export of payments
 - Time period filters (week, month, quarter, year, all-time)
 
@@ -74,7 +76,7 @@ shared/
   - Calculation formula displayed for transparency
 - Submit new payments with:
   - Amount and currency (with dynamic currency symbols)
-  - Client number (with blacklist warning)
+  - Client phone/WhatsApp combobox (autocomplete from client database + blacklist warning)
   - Proof image upload (optional, up to 10MB)
 
 ### Weekly Settlement System
@@ -117,6 +119,10 @@ shared/
 - `GET /api/admin/blacklist` - List blacklisted clients
 - `POST /api/admin/blacklist` - Add to blacklist
 - `DELETE /api/admin/blacklist/:id` - Remove from blacklist
+- `GET /api/admin/clients` - List all clients
+- `POST /api/admin/clients` - Add client
+- `PATCH /api/admin/clients/:id` - Update client
+- `DELETE /api/admin/clients/:id` - Delete client
 
 ### Tutor
 - `GET /api/tutor/payments` - List own payments
@@ -143,6 +149,9 @@ shared/
 
 ### blacklist
 - id, clientNumber, reason, createdAt
+
+### clients
+- id, phoneNumber, normalizedPhone (stripped of spaces/formatting), name, createdAt
 
 ### weeks
 - id, weekNumber (S166, S167...), startDate, endDate

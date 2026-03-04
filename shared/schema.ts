@@ -1,4 +1,8 @@
 import { sql } from "drizzle-orm";
+
+export function normalizePhone(phone: string): string {
+  return phone.replace(/[\s\-\(\)\.]/g, "").trim();
+}
 import { pgTable, text, varchar, integer, decimal, timestamp, pgEnum, date, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -45,6 +49,14 @@ export const blacklist = pgTable("blacklist", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   clientNumber: text("client_number").notNull().unique(),
   reason: text("reason").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const clients = pgTable("clients", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  phoneNumber: text("phone_number").notNull(),
+  normalizedPhone: text("normalized_phone").notNull().unique(),
+  name: text("name"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -99,6 +111,11 @@ export const insertBlacklistSchema = createInsertSchema(blacklist).omit({
   createdAt: true,
 });
 
+export const insertClientSchema = createInsertSchema(clients).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertWeekSchema = createInsertSchema(weeks).omit({
   id: true,
   createdAt: true,
@@ -120,6 +137,9 @@ export type Payment = typeof payments.$inferSelect;
 
 export type InsertBlacklist = z.infer<typeof insertBlacklistSchema>;
 export type Blacklist = typeof blacklist.$inferSelect;
+
+export type InsertClient = z.infer<typeof insertClientSchema>;
+export type Client = typeof clients.$inferSelect;
 
 export type InsertWeek = z.infer<typeof insertWeekSchema>;
 export type Week = typeof weeks.$inferSelect;

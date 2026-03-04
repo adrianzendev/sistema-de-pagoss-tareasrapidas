@@ -30,6 +30,7 @@ import {
   Calendar,
   Calculator,
   ShieldCheck,
+  Phone,
 } from "lucide-react";
 
 const adminItems = [
@@ -39,6 +40,7 @@ const adminItems = [
   { title: "Verificadores", url: "/admin/verifiers", icon: ShieldCheck },
   { title: "Pagos", url: "/admin/payments", icon: CreditCard },
   { title: "Divisas", url: "/admin/currencies", icon: DollarSign },
+  { title: "Clientes", url: "/admin/clients", icon: Phone },
   { title: "Lista Negra", url: "/admin/blacklist", icon: AlertTriangle },
 ];
 

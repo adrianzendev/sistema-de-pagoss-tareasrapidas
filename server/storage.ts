@@ -8,6 +8,8 @@ import {
   type PaymentWithDetails,
   type Blacklist,
   type InsertBlacklist,
+  type Client,
+  type InsertClient,
   type Week,
   type InsertWeek,
   type AgencySettings,
@@ -16,8 +18,10 @@ import {
   currencies,
   payments,
   blacklist,
+  clients,
   weeks,
   agencySettings,
+  normalizePhone,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
@@ -50,9 +54,18 @@ export interface IStorage {
   // Blacklist
   getBlacklist(): Promise<Blacklist[]>;
   getBlacklistByClient(clientNumber: string): Promise<Blacklist | undefined>;
+  getBlacklistByNormalizedPhone(normalizedPhone: string): Promise<Blacklist | undefined>;
   createBlacklistEntry(entry: InsertBlacklist): Promise<Blacklist>;
   updateBlacklistEntry(id: string, data: Partial<InsertBlacklist>): Promise<Blacklist | undefined>;
   deleteBlacklistEntry(id: string): Promise<void>;
+
+  // Clients
+  getClients(): Promise<Client[]>;
+  getClientByNormalizedPhone(normalizedPhone: string): Promise<Client | undefined>;
+  searchClients(query: string): Promise<Client[]>;
+  createClient(client: InsertClient): Promise<Client>;
+  updateClient(id: string, data: Partial<InsertClient>): Promise<Client | undefined>;
+  deleteClient(id: string): Promise<void>;
 
   // Stats
   getAdminStats(period?: string): Promise<{
@@ -260,6 +273,46 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBlacklistEntry(id: string): Promise<void> {
     await db.delete(blacklist).where(eq(blacklist.id, id));
+  }
+
+  async getBlacklistByNormalizedPhone(normalizedPhone: string): Promise<Blacklist | undefined> {
+    const all = await db.select().from(blacklist);
+    return all.find(entry => normalizePhone(entry.clientNumber) === normalizedPhone);
+  }
+
+  // Clients
+  async getClients(): Promise<Client[]> {
+    return db.select().from(clients).orderBy(desc(clients.createdAt));
+  }
+
+  async getClientByNormalizedPhone(normalizedPhone: string): Promise<Client | undefined> {
+    const [client] = await db.select().from(clients).where(eq(clients.normalizedPhone, normalizedPhone));
+    return client;
+  }
+
+  async searchClients(query: string): Promise<Client[]> {
+    const normalized = normalizePhone(query);
+    const all = await db.select().from(clients).orderBy(desc(clients.createdAt));
+    if (!query.trim()) return all;
+    return all.filter(c =>
+      c.normalizedPhone.includes(normalized) ||
+      c.phoneNumber.includes(query) ||
+      (c.name && c.name.toLowerCase().includes(query.toLowerCase()))
+    );
+  }
+
+  async createClient(client: InsertClient): Promise<Client> {
+    const [result] = await db.insert(clients).values(client).returning();
+    return result;
+  }
+
+  async updateClient(id: string, data: Partial<InsertClient>): Promise<Client | undefined> {
+    const [result] = await db.update(clients).set(data).where(eq(clients.id, id)).returning();
+    return result;
+  }
+
+  async deleteClient(id: string): Promise<void> {
+    await db.delete(clients).where(eq(clients.id, id));
   }
 
   // Stats
