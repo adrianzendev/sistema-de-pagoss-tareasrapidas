@@ -201,11 +201,9 @@ export default function TutorPaymentsPage() {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-muted-foreground">#{index + 1}</span>
-                    {paymentWeek && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0.5" data-testid={`badge-week-${payment.id}`}>
-                        S{paymentWeek.weekNumber}
-                      </Badge>
-                    )}
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5" data-testid={`badge-week-${payment.id}`}>
+                      S{selectedWeek?.weekNumber ?? paymentWeek?.weekNumber ?? "?"}
+                    </Badge>
                   </div>
                   <Badge className={`gap-1 text-[11px] px-2 py-0.5 ${status.className}`} data-testid={`badge-status-${payment.id}`}>
                     <StatusIcon className="h-3 w-3" />
