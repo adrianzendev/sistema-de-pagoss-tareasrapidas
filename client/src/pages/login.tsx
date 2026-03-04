@@ -77,13 +77,13 @@ export default function LoginPage() {
                   name="username"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Usuario</FormLabel>
+                      <FormLabel>Usuario o Correo</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             {...field}
-                            placeholder="Ingresa tu usuario"
+                            placeholder="Usuario o correo electrónico"
                             className="pl-10"
                             data-testid="input-username"
                           />
