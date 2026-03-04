@@ -85,9 +85,17 @@ shared/
 - Commission split: Configurable (default 70% tutor / 30% agency)
 - Settlement calculation: (Gross Income - Advertising Share) × Commission %
 
+### Push Notifications
+- Tutors receive push notifications when payments are verified or rejected
+- Admins and verifiers receive notifications when tutors submit new payments
+- Service worker handles push events with native mobile notifications
+- Auto-subscribes on login, unsubscribes on logout
+
 ### PWA
 - Installable on mobile devices
-- Manifest.json configured
+- Manifest.json configured with full PWA support
+- Service worker (sw.js) for offline caching and push notifications
+- Session persists for 30 days
 - Mobile-friendly responsive design
 
 ## API Endpoints

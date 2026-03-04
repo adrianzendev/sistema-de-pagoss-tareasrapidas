@@ -8,6 +8,7 @@ import { z } from "zod";
 import { db } from "./db";
 import { users, currencies, payments } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
+import { getVapidPublicKey, notifyPaymentStatusChange, notifyNewPaymentRequest } from "./push";
 
 declare module "express-session" {
   interface SessionData {
@@ -54,7 +55,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       cookie: {
         secure: process.env.NODE_ENV === "production",
         httpOnly: true,
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       },
     })
   );
@@ -210,6 +211,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return res.status(400).json({ message: "Estado inválido" });
     }
     const payment = await storage.updatePaymentStatus(req.params.id, status, req.session.userId!, notes);
+    if (payment && (status === "verified" || status === "rejected")) {
+      const currency = await storage.getCurrency(payment.currencyId);
+      notifyPaymentStatusChange(payment.tutorId, status, payment.amount, currency?.code || "").catch(console.error);
+    }
     res.json(payment);
   });
 
@@ -416,6 +421,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         }
       }
       const payment = await storage.createPayment(data);
+      const currency = await storage.getCurrency(data.currencyId);
+      notifyNewPaymentRequest(user.name, data.amount, currency?.code || "").catch(console.error);
       res.status(201).json(payment);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -731,6 +738,42 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json(week);
   });
 
+  // Push notification routes
+  app.get("/api/push/vapid-key", (req, res) => {
+    res.json({ publicKey: getVapidPublicKey() });
+  });
+
+  app.post("/api/push/subscribe", requireAuth, async (req, res) => {
+    try {
+      const { endpoint, keys } = req.body;
+      if (!endpoint || !keys?.p256dh || !keys?.auth) {
+        return res.status(400).json({ message: "Datos de suscripción inválidos" });
+      }
+      await storage.savePushSubscription({
+        userId: req.session.userId!,
+        endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+      });
+      res.json({ message: "Suscripción guardada" });
+    } catch (error) {
+      console.error("Error saving push subscription:", error);
+      res.status(500).json({ message: "Error al guardar suscripción" });
+    }
+  });
+
+  app.post("/api/push/unsubscribe", requireAuth, async (req, res) => {
+    try {
+      const { endpoint } = req.body;
+      if (endpoint) {
+        await storage.deletePushSubscription(endpoint);
+      }
+      res.json({ message: "Suscripción eliminada" });
+    } catch (error) {
+      res.status(500).json({ message: "Error al eliminar suscripción" });
+    }
+  });
+
   // Verifier routes
   app.get("/api/verifier/payments", requireVerifier, async (req, res) => {
     const verifierPayments = await storage.getPaymentsByVerifier(req.session.userId!);
@@ -748,6 +791,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return res.status(403).json({ message: "No tienes permiso para modificar este pago" });
     }
     const payment = await storage.updatePaymentStatus(req.params.id, status, req.session.userId!, notes);
+    if (payment && (status === "verified" || status === "rejected")) {
+      const currency = await storage.getCurrency(payment.currencyId);
+      notifyPaymentStatusChange(payment.tutorId, status, payment.amount, currency?.code || "").catch(console.error);
+    }
     res.json(payment);
   });
 

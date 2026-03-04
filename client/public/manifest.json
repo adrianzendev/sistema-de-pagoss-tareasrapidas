@@ -1,12 +1,14 @@
 {
-  "name": "Gestión de Tutores y Pagos",
+  "name": "TutorPay - Gestión de Tutores y Pagos",
   "short_name": "TutorPay",
   "description": "Aplicación para gestionar tutores y verificar pagos",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#3b82f6",
   "orientation": "portrait-primary",
+  "categories": ["business", "finance"],
   "icons": [
     {
       "src": "/favicon.png",

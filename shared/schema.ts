@@ -72,6 +72,15 @@ export const weeks = pgTable("weeks", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const agencySettings = pgTable("agency_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   agencyPercent: decimal("agency_percent", { precision: 5, scale: 2 }).notNull().default("30"),
@@ -116,6 +125,11 @@ export const insertClientSchema = createInsertSchema(clients).omit({
   createdAt: true,
 });
 
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertWeekSchema = createInsertSchema(weeks).omit({
   id: true,
   createdAt: true,
@@ -140,6 +154,9 @@ export type Blacklist = typeof blacklist.$inferSelect;
 
 export type InsertClient = z.infer<typeof insertClientSchema>;
 export type Client = typeof clients.$inferSelect;
+
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 
 export type InsertWeek = z.infer<typeof insertWeekSchema>;
 export type Week = typeof weeks.$inferSelect;

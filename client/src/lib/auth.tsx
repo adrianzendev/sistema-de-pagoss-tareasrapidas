@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User } from "@shared/schema";
+import { requestNotificationPermission, subscribeToPush, isPushSupported, unsubscribeFromPush } from "./pushNotifications";
 
 interface AuthContextType {
   user: User | null;
@@ -24,6 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         setUser(data);
+        setupPushNotifications();
       }
     } catch (error) {
       console.error("Auth check failed:", error);
@@ -44,9 +46,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const data = await res.json();
     setUser(data);
+    setupPushNotifications();
+  };
+
+  const setupPushNotifications = async () => {
+    if (isPushSupported()) {
+      const permission = await requestNotificationPermission();
+      if (permission === "granted") {
+        await subscribeToPush();
+      }
+    }
   };
 
   const logout = async () => {
+    await unsubscribeFromPush();
     await fetch("/api/auth/logout", { method: "POST" });
     setUser(null);
   };

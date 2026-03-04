@@ -14,6 +14,8 @@ import {
   type InsertWeek,
   type AgencySettings,
   type InsertAgencySettings,
+  type PushSubscription,
+  type InsertPushSubscription,
   users,
   currencies,
   payments,
@@ -21,6 +23,7 @@ import {
   clients,
   weeks,
   agencySettings,
+  pushSubscriptions,
   normalizePhone,
 } from "@shared/schema";
 import { db } from "./db";
@@ -96,6 +99,12 @@ export interface IStorage {
   // Agency Settings
   getAgencySettings(): Promise<AgencySettings | undefined>;
   updateAgencySettings(data: Partial<InsertAgencySettings>): Promise<AgencySettings>;
+
+  // Push Subscriptions
+  savePushSubscription(sub: InsertPushSubscription): Promise<PushSubscription>;
+  getPushSubscriptionsByUserId(userId: string): Promise<PushSubscription[]>;
+  getPushSubscriptionsByRole(role: string): Promise<PushSubscription[]>;
+  deletePushSubscription(endpoint: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -466,6 +475,36 @@ export class DatabaseStorage implements IStorage {
       }).returning();
       return settings;
     }
+  }
+  // Push Subscriptions
+  async savePushSubscription(sub: InsertPushSubscription): Promise<PushSubscription> {
+    const existingByEndpoint = await db.select().from(pushSubscriptions)
+      .where(eq(pushSubscriptions.endpoint, sub.endpoint));
+    if (existingByEndpoint.length > 0) {
+      const [updated] = await db.update(pushSubscriptions)
+        .set({ userId: sub.userId, p256dh: sub.p256dh, auth: sub.auth })
+        .where(eq(pushSubscriptions.id, existingByEndpoint[0].id))
+        .returning();
+      return updated;
+    }
+    const [result] = await db.insert(pushSubscriptions).values(sub).returning();
+    return result;
+  }
+
+  async getPushSubscriptionsByUserId(userId: string): Promise<PushSubscription[]> {
+    return db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+  }
+
+  async getPushSubscriptionsByRole(role: string): Promise<PushSubscription[]> {
+    const roleUsers = await db.select().from(users).where(eq(users.role, role as any));
+    const userIds = roleUsers.map(u => u.id);
+    if (userIds.length === 0) return [];
+    const allSubs = await db.select().from(pushSubscriptions);
+    return allSubs.filter(s => userIds.includes(s.userId));
+  }
+
+  async deletePushSubscription(endpoint: string): Promise<void> {
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
   }
 }
 
