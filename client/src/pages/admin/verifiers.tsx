@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -24,18 +24,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Loader2, ShieldCheck, Trash2 } from "lucide-react";
+import { Plus, Loader2, ShieldCheck, Trash2, Edit } from "lucide-react";
 
-const verifierSchema = z.object({
+const createVerifierSchema = z.object({
   name: z.string().min(2, "Nombre muy corto"),
   email: z.string().email("Email inválido"),
   password: z.string().min(6, "Mínimo 6 caracteres"),
 });
 
-type VerifierForm = z.infer<typeof verifierSchema>;
+const editVerifierSchema = z.object({
+  name: z.string().min(2, "Nombre muy corto"),
+  email: z.string().email("Email inválido"),
+  password: z.string().optional().refine(val => !val || val.length >= 6, "Mínimo 6 caracteres"),
+});
+
+type CreateVerifierForm = z.infer<typeof createVerifierSchema>;
+type EditVerifierForm = z.infer<typeof editVerifierSchema>;
 
 export default function VerifiersPage() {
   const [isOpen, setIsOpen] = useState(false);
+  const [editingVerifier, setEditingVerifier] = useState<User | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -51,8 +59,17 @@ export default function VerifiersPage() {
     return currencies?.filter(c => c.verifierId === verifierId) ?? [];
   };
 
-  const form = useForm<VerifierForm>({
-    resolver: zodResolver(verifierSchema),
+  const createForm = useForm<CreateVerifierForm>({
+    resolver: zodResolver(createVerifierSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+    },
+  });
+
+  const editForm = useForm<EditVerifierForm>({
+    resolver: zodResolver(editVerifierSchema),
     defaultValues: {
       name: "",
       email: "",
@@ -61,12 +78,29 @@ export default function VerifiersPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: VerifierForm) => apiRequest("POST", "/api/admin/verifiers", data),
+    mutationFn: (data: CreateVerifierForm) => apiRequest("POST", "/api/admin/verifiers", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/verifiers"] });
       setIsOpen(false);
-      form.reset();
+      createForm.reset();
       toast({ title: "Verificador creado", description: "El verificador ha sido creado correctamente" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: EditVerifierForm }) => {
+      const body: any = { name: data.name, email: data.email };
+      if (data.password) body.password = data.password;
+      return apiRequest("PATCH", `/api/admin/verifiers/${id}`, body);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/verifiers"] });
+      setEditingVerifier(null);
+      editForm.reset();
+      toast({ title: "Verificador actualizado", description: "Los datos han sido actualizados" });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -85,9 +119,26 @@ export default function VerifiersPage() {
     },
   });
 
-  const handleSubmit = (data: VerifierForm) => {
+  const openEdit = (verifier: User) => {
+    setEditingVerifier(verifier);
+    editForm.reset({
+      name: verifier.name,
+      email: verifier.email,
+      password: "",
+    });
+  };
+
+  const handleCreate = (data: CreateVerifierForm) => {
     createMutation.mutate(data);
   };
+
+  const handleEdit = (data: EditVerifierForm) => {
+    if (editingVerifier) {
+      updateMutation.mutate({ id: editingVerifier.id, data });
+    }
+  };
+
+  const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -102,7 +153,7 @@ export default function VerifiersPage() {
           onOpenChange={(open) => {
             if (!open) {
               setIsOpen(false);
-              form.reset();
+              createForm.reset();
             }
           }}
         >
@@ -122,10 +173,10 @@ export default function VerifiersPage() {
                 Crea una cuenta para un nuevo verificador de pagos
               </DialogDescription>
             </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <Form {...createForm}>
+              <form onSubmit={createForm.handleSubmit(handleCreate)} className="space-y-4">
                 <FormField
-                  control={form.control}
+                  control={createForm.control}
                   name="name"
                   render={({ field }) => (
                     <FormItem>
@@ -137,9 +188,8 @@ export default function VerifiersPage() {
                     </FormItem>
                   )}
                 />
-
                 <FormField
-                  control={form.control}
+                  control={createForm.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
@@ -151,9 +201,8 @@ export default function VerifiersPage() {
                     </FormItem>
                   )}
                 />
-
                 <FormField
-                  control={form.control}
+                  control={createForm.control}
                   name="password"
                   render={({ field }) => (
                     <FormItem>
@@ -165,27 +214,90 @@ export default function VerifiersPage() {
                     </FormItem>
                   )}
                 />
-
                 <div className="flex justify-end gap-2 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setIsOpen(false);
-                      form.reset();
-                    }}
-                  >
+                  <Button type="button" variant="outline" onClick={() => { setIsOpen(false); createForm.reset(); }}>
                     Cancelar
                   </Button>
                   <Button type="submit" disabled={createMutation.isPending} data-testid="button-submit-verifier">
                     {createMutation.isPending ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Creando...
-                      </>
-                    ) : (
-                      "Crear Verificador"
-                    )}
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creando...</>
+                    ) : "Crear Verificador"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={!!editingVerifier}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingVerifier(null);
+              editForm.reset();
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Edit className="h-5 w-5" />
+                Editar Verificador
+              </DialogTitle>
+              <DialogDescription>
+                Modifica los datos del verificador
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...editForm}>
+              <form onSubmit={editForm.handleSubmit(handleEdit)} className="space-y-4">
+                <FormField
+                  control={editForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Juan Pérez" data-testid="input-edit-verifier-name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" placeholder="juan@email.com" data-testid="input-edit-verifier-email" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nueva Contraseña</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="password" placeholder="••••••" data-testid="input-edit-verifier-password" />
+                      </FormControl>
+                      <FormDescription className="text-xs">Dejar vacío para mantener la contraseña actual</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => { setEditingVerifier(null); editForm.reset(); }}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={updateMutation.isPending} data-testid="button-update-verifier">
+                    {updateMutation.isPending ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Guardando...</>
+                    ) : "Actualizar"}
                   </Button>
                 </div>
               </form>
@@ -248,14 +360,24 @@ export default function VerifiersPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteId(verifier.id)}
-                          data-testid={`button-delete-verifier-${verifier.id}`}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEdit(verifier)}
+                            data-testid={`button-edit-verifier-${verifier.id}`}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeleteId(verifier.id)}
+                            data-testid={`button-delete-verifier-${verifier.id}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

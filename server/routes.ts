@@ -175,6 +175,23 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  app.patch("/api/admin/verifiers/:id", requireAdmin, async (req, res) => {
+    try {
+      const { name, email, password: rawPassword } = req.body;
+      const updateData: any = {};
+      if (name) updateData.name = name;
+      if (email) updateData.email = email;
+      if (rawPassword) updateData.password = await bcrypt.hash(rawPassword, 10);
+      const [updated] = await db.update(users).set(updateData).where(eq(users.id, req.params.id)).returning();
+      if (!updated) return res.status(404).json({ message: "Verificador no encontrado" });
+      const { password, ...safe } = updated;
+      res.json(safe);
+    } catch (error) {
+      console.error("Error updating verifier:", error);
+      res.status(500).json({ message: "Error al actualizar verificador" });
+    }
+  });
+
   app.delete("/api/admin/verifiers/:id", requireAdmin, async (req, res) => {
     await storage.deleteVerifier(req.params.id);
     res.status(204).send();
