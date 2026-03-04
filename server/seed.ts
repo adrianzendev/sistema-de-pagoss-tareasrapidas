@@ -70,6 +70,16 @@ export async function seedDatabase() {
     await ensureCurrency({ code: "ARS", name: "Peso Argentino", exchangeRate: "875.0000" });
     await ensureCurrency({ code: "PEN", name: "Sol Peruano", exchangeRate: "3.3100" });
 
+    // === LINK VERIFIERS TO CURRENCIES ===
+    const [adrianUser] = await db.select().from(users).where(eq(users.username, "adrian"));
+    if (adrianUser) {
+      const [penCurrency] = await db.select().from(currencies).where(eq(currencies.code, "PEN"));
+      if (penCurrency && !penCurrency.verifierId) {
+        await db.update(currencies).set({ verifierId: adrianUser.id }).where(eq(currencies.id, penCurrency.id));
+        console.log("PEN currency linked to verifier Adrian");
+      }
+    }
+
     // === WEEKS (S166 - S170) ===
     await ensureWeek({ weekNumber: 166, startDate: "2026-02-01", endDate: "2026-02-07" });
     await ensureWeek({ weekNumber: 167, startDate: "2026-02-08", endDate: "2026-02-14" });

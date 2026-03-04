@@ -71,7 +71,8 @@ export async function notifyPaymentStatusChange(
 export async function notifyNewPaymentRequest(
   tutorName: string,
   amount: string,
-  currencyCode: string
+  currencyCode: string,
+  verifierId?: string | null
 ): Promise<void> {
   await sendToRole("admin", {
     title: "📥 Nueva Solicitud de Pago",
@@ -80,10 +81,19 @@ export async function notifyNewPaymentRequest(
     url: "/admin/payments",
   });
 
-  await sendToRole("verifier", {
-    title: "📥 Solicitud de Verificación",
-    body: `${tutorName} ha registrado un pago de ${amount} ${currencyCode}.`,
-    tag: `verify-payment-${Date.now()}`,
-    url: "/verifier",
-  });
+  if (verifierId) {
+    await sendToUser(verifierId, {
+      title: "📥 Solicitud de Verificación",
+      body: `${tutorName} ha registrado un pago de ${amount} ${currencyCode}.`,
+      tag: `verify-payment-${Date.now()}`,
+      url: "/verifier",
+    });
+  } else {
+    await sendToRole("verifier", {
+      title: "📥 Solicitud de Verificación",
+      body: `${tutorName} ha registrado un pago de ${amount} ${currencyCode}.`,
+      tag: `verify-payment-${Date.now()}`,
+      url: "/verifier",
+    });
+  }
 }

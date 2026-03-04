@@ -434,7 +434,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
       const payment = await storage.createPayment(data);
       const currency = await storage.getCurrency(data.currencyId);
-      notifyNewPaymentRequest(user.name, data.amount, currency?.code || "").catch(console.error);
+      notifyNewPaymentRequest(user.name, data.amount, currency?.code || "", currency?.verifierId).catch(console.error);
       res.status(201).json(payment);
     } catch (error) {
       if (error instanceof z.ZodError) {
