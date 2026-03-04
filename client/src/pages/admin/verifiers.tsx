@@ -8,6 +8,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -45,6 +46,7 @@ export default function VerifiersPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [editingVerifier, setEditingVerifier] = useState<User | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [selectedCurrencyIds, setSelectedCurrencyIds] = useState<string[]>([]);
   const { toast } = useToast();
 
   const { data: verifiers, isLoading } = useQuery<User[]>({
@@ -61,28 +63,42 @@ export default function VerifiersPage() {
 
   const createForm = useForm<CreateVerifierForm>({
     resolver: zodResolver(createVerifierSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-    },
+    defaultValues: { name: "", email: "", password: "" },
   });
 
   const editForm = useForm<EditVerifierForm>({
     resolver: zodResolver(editVerifierSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-    },
+    defaultValues: { name: "", email: "", password: "" },
   });
 
+  const updateCurrencyLinks = async (verifierId: string, currencyIds: string[]) => {
+    const allCurrencies = currencies ?? [];
+    for (const c of allCurrencies) {
+      const shouldLink = currencyIds.includes(c.id);
+      const isLinked = c.verifierId === verifierId;
+      if (shouldLink && !isLinked) {
+        await apiRequest("PATCH", `/api/admin/currencies/${c.id}`, { verifierId });
+      } else if (!shouldLink && isLinked) {
+        await apiRequest("PATCH", `/api/admin/currencies/${c.id}`, { verifierId: null });
+      }
+    }
+    queryClient.invalidateQueries({ queryKey: ["/api/currencies"] });
+  };
+
   const createMutation = useMutation({
-    mutationFn: (data: CreateVerifierForm) => apiRequest("POST", "/api/admin/verifiers", data),
+    mutationFn: async (data: CreateVerifierForm) => {
+      const res = await apiRequest("POST", "/api/admin/verifiers", data);
+      const verifier = await res.json();
+      if (selectedCurrencyIds.length > 0) {
+        await updateCurrencyLinks(verifier.id, selectedCurrencyIds);
+      }
+      return verifier;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/verifiers"] });
       setIsOpen(false);
       createForm.reset();
+      setSelectedCurrencyIds([]);
       toast({ title: "Verificador creado", description: "El verificador ha sido creado correctamente" });
     },
     onError: (error: Error) => {
@@ -91,15 +107,18 @@ export default function VerifiersPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: EditVerifierForm }) => {
+    mutationFn: async ({ id, data }: { id: string; data: EditVerifierForm }) => {
       const body: any = { name: data.name, email: data.email };
       if (data.password) body.password = data.password;
-      return apiRequest("PATCH", `/api/admin/verifiers/${id}`, body);
+      await apiRequest("PATCH", `/api/admin/verifiers/${id}`, body);
+      await updateCurrencyLinks(id, selectedCurrencyIds);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/verifiers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/currencies"] });
       setEditingVerifier(null);
       editForm.reset();
+      setSelectedCurrencyIds([]);
       toast({ title: "Verificador actualizado", description: "Los datos han sido actualizados" });
     },
     onError: (error: Error) => {
@@ -111,6 +130,7 @@ export default function VerifiersPage() {
     mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/verifiers/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/verifiers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/currencies"] });
       setDeleteId(null);
       toast({ title: "Verificador eliminado", description: "El verificador ha sido eliminado" });
     },
@@ -119,6 +139,12 @@ export default function VerifiersPage() {
     },
   });
 
+  const openCreate = () => {
+    setSelectedCurrencyIds([]);
+    createForm.reset();
+    setIsOpen(true);
+  };
+
   const openEdit = (verifier: User) => {
     setEditingVerifier(verifier);
     editForm.reset({
@@ -126,6 +152,15 @@ export default function VerifiersPage() {
       email: verifier.email,
       password: "",
     });
+    setSelectedCurrencyIds(getCurrenciesForVerifier(verifier.id).map(c => c.id));
+  };
+
+  const toggleCurrency = (currencyId: string) => {
+    setSelectedCurrencyIds(prev =>
+      prev.includes(currencyId)
+        ? prev.filter(id => id !== currencyId)
+        : [...prev, currencyId]
+    );
   };
 
   const handleCreate = (data: CreateVerifierForm) => {
@@ -138,7 +173,44 @@ export default function VerifiersPage() {
     }
   };
 
-  const isSubmitting = createMutation.isPending || updateMutation.isPending;
+  const currencyCheckboxes = (editingId?: string) => (
+    <div className="space-y-2">
+      <FormLabel>Divisas Asignadas</FormLabel>
+      <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
+        {currencies && currencies.length > 0 ? (
+          currencies.map(c => {
+            const isOtherVerifier = c.verifierId && c.verifierId !== editingId;
+            const otherVerifierName = isOtherVerifier
+              ? verifiers?.find(v => v.id === c.verifierId)?.name
+              : null;
+            return (
+              <div key={c.id} className="flex items-center gap-2">
+                <Checkbox
+                  id={`currency-${c.id}`}
+                  checked={selectedCurrencyIds.includes(c.id)}
+                  onCheckedChange={() => toggleCurrency(c.id)}
+                  disabled={!!isOtherVerifier}
+                  data-testid={`checkbox-currency-${c.id}`}
+                />
+                <label htmlFor={`currency-${c.id}`} className="text-sm flex items-center gap-1.5 cursor-pointer">
+                  <span className="font-mono font-medium">{c.code}</span>
+                  <span className="text-muted-foreground">- {c.name}</span>
+                  {isOtherVerifier && (
+                    <span className="text-xs text-muted-foreground">(asignada a {otherVerifierName})</span>
+                  )}
+                </label>
+              </div>
+            );
+          })
+        ) : (
+          <p className="text-xs text-muted-foreground">No hay divisas creadas</p>
+        )}
+      </div>
+      <FormDescription className="text-xs">
+        Selecciona las divisas que este verificador podrá verificar
+      </FormDescription>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -154,11 +226,12 @@ export default function VerifiersPage() {
             if (!open) {
               setIsOpen(false);
               createForm.reset();
+              setSelectedCurrencyIds([]);
             }
           }}
         >
           <DialogTrigger asChild>
-            <Button onClick={() => setIsOpen(true)} data-testid="button-new-verifier">
+            <Button onClick={openCreate} data-testid="button-new-verifier">
               <Plus className="h-4 w-4 mr-2" />
               Nuevo Verificador
             </Button>
@@ -214,8 +287,9 @@ export default function VerifiersPage() {
                     </FormItem>
                   )}
                 />
+                {currencyCheckboxes()}
                 <div className="flex justify-end gap-2 pt-4">
-                  <Button type="button" variant="outline" onClick={() => { setIsOpen(false); createForm.reset(); }}>
+                  <Button type="button" variant="outline" onClick={() => { setIsOpen(false); createForm.reset(); setSelectedCurrencyIds([]); }}>
                     Cancelar
                   </Button>
                   <Button type="submit" disabled={createMutation.isPending} data-testid="button-submit-verifier">
@@ -235,6 +309,7 @@ export default function VerifiersPage() {
             if (!open) {
               setEditingVerifier(null);
               editForm.reset();
+              setSelectedCurrencyIds([]);
             }
           }}
         >
@@ -290,8 +365,9 @@ export default function VerifiersPage() {
                     </FormItem>
                   )}
                 />
+                {currencyCheckboxes(editingVerifier?.id)}
                 <div className="flex justify-end gap-2 pt-4">
-                  <Button type="button" variant="outline" onClick={() => { setEditingVerifier(null); editForm.reset(); }}>
+                  <Button type="button" variant="outline" onClick={() => { setEditingVerifier(null); editForm.reset(); setSelectedCurrencyIds([]); }}>
                     Cancelar
                   </Button>
                   <Button type="submit" disabled={updateMutation.isPending} data-testid="button-update-verifier">
