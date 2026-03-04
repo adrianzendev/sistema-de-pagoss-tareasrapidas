@@ -27,24 +27,8 @@ import {
 import { Plus, Loader2, DollarSign, Edit, Trash2 } from "lucide-react";
 
 const colorOptions = [
-  { value: "green", label: "Verde", preview: "bg-green-500" },
-  { value: "pink", label: "Rosa", preview: "bg-pink-500" },
-  { value: "blue", label: "Azul", preview: "bg-blue-500" },
-  { value: "indigo", label: "Índigo", preview: "bg-indigo-500" },
-  { value: "amber", label: "Ámbar", preview: "bg-amber-500" },
-  { value: "rose", label: "Rosado", preview: "bg-rose-500" },
-  { value: "teal", label: "Turquesa", preview: "bg-teal-500" },
-  { value: "purple", label: "Púrpura", preview: "bg-purple-500" },
-  { value: "cyan", label: "Cian", preview: "bg-cyan-500" },
-  { value: "orange", label: "Naranja", preview: "bg-orange-500" },
-  { value: "red", label: "Rojo", preview: "bg-red-500" },
-  { value: "yellow", label: "Amarillo", preview: "bg-yellow-500" },
-  { value: "lime", label: "Lima", preview: "bg-lime-500" },
-  { value: "emerald", label: "Esmeralda", preview: "bg-emerald-500" },
-  { value: "sky", label: "Cielo", preview: "bg-sky-500" },
-  { value: "violet", label: "Violeta", preview: "bg-violet-500" },
-  { value: "fuchsia", label: "Fucsia", preview: "bg-fuchsia-500" },
-  { value: "slate", label: "Gris", preview: "bg-slate-500" },
+  { value: "white", label: "Blanco", preview: "bg-white border border-gray-300" },
+  { value: "black", label: "Negro", preview: "bg-black" },
 ];
 
 const currencySchema = z.object({
@@ -61,27 +45,10 @@ type CurrencyForm = z.infer<typeof currencySchema>;
 
 const getColorPreview = (color: string) => {
   const colorMap: Record<string, string> = {
-    green: "bg-green-500",
-    pink: "bg-pink-500",
-    blue: "bg-blue-500",
-    indigo: "bg-indigo-500",
-    amber: "bg-amber-500",
-    rose: "bg-rose-500",
-    teal: "bg-teal-500",
-    purple: "bg-purple-500",
-    cyan: "bg-cyan-500",
-    orange: "bg-orange-500",
-    red: "bg-red-500",
-    yellow: "bg-yellow-500",
-    lime: "bg-lime-500",
-    emerald: "bg-emerald-500",
-    sky: "bg-sky-500",
-    violet: "bg-violet-500",
-    fuchsia: "bg-fuchsia-500",
-    slate: "bg-slate-500",
-    gray: "bg-gray-500",
+    white: "bg-white border border-gray-300",
+    black: "bg-black",
   };
-  return colorMap[color] ?? "bg-gray-500";
+  return colorMap[color] ?? "bg-gray-300";
 };
 
 export default function CurrenciesPage() {
@@ -100,7 +67,7 @@ export default function CurrenciesPage() {
       code: "",
       name: "",
       exchangeRate: "1",
-      color: "gray",
+      color: "white",
     },
   });
 
