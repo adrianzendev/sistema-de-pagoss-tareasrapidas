@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { User } from "@shared/schema";
+import { User, Currency } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -41,6 +42,14 @@ export default function VerifiersPage() {
   const { data: verifiers, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/verifiers"],
   });
+
+  const { data: currencies } = useQuery<Currency[]>({
+    queryKey: ["/api/currencies"],
+  });
+
+  const getCurrenciesForVerifier = (verifierId: string) => {
+    return currencies?.filter(c => c.verifierId === verifierId) ?? [];
+  };
 
   const form = useForm<VerifierForm>({
     resolver: zodResolver(verifierSchema),
@@ -215,6 +224,7 @@ export default function VerifiersPage() {
                     <TableHead>Nombre</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Usuario</TableHead>
+                    <TableHead>Divisas Asignadas</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -224,6 +234,19 @@ export default function VerifiersPage() {
                       <TableCell className="font-medium">{verifier.name}</TableCell>
                       <TableCell className="text-muted-foreground">{verifier.email}</TableCell>
                       <TableCell className="font-mono text-sm">{verifier.username}</TableCell>
+                      <TableCell>
+                        {getCurrenciesForVerifier(verifier.id).length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {getCurrenciesForVerifier(verifier.id).map(c => (
+                              <Badge key={c.id} variant="outline" className="text-xs">
+                                {c.code}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Sin divisas</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         <Button
                           variant="ghost"
