@@ -247,6 +247,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post("/api/admin/currencies", requireAdmin, async (req, res) => {
     try {
       const data = insertCurrencySchema.parse(req.body);
+      if (data.verifierId === "") data.verifierId = null;
       if (data.verifierId) {
         const verifier = await storage.getUser(data.verifierId);
         if (!verifier || verifier.role !== "verifier") {
@@ -259,6 +260,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: error.errors[0].message });
       }
+      console.error("Error creating currency:", error);
       res.status(500).json({ message: "Error al crear divisa" });
     }
   });
@@ -266,6 +268,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.patch("/api/admin/currencies/:id", requireAdmin, async (req, res) => {
     try {
       const data = insertCurrencySchema.partial().parse(req.body);
+      if (data.verifierId === "") data.verifierId = null;
       if (data.verifierId) {
         const verifier = await storage.getUser(data.verifierId);
         if (!verifier || verifier.role !== "verifier") {
