@@ -26,6 +26,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Loader2, ShieldCheck, Trash2, Edit } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 const createVerifierSchema = z.object({
   name: z.string().min(2, "Nombre muy corto"),
@@ -413,6 +415,7 @@ export default function VerifiersPage() {
                     <TableHead>Email</TableHead>
                     <TableHead>Usuario</TableHead>
                     <TableHead>Divisas Asignadas</TableHead>
+                    <TableHead>Registrado</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -434,6 +437,9 @@ export default function VerifiersPage() {
                         ) : (
                           <span className="text-xs text-muted-foreground">Sin divisas</span>
                         )}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground" data-testid={`text-created-verifier-${verifier.id}`}>
+                        {verifier.createdAt ? format(new Date(verifier.createdAt), "dd/MM/yyyy HH:mm", { locale: es }) : "—"}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
