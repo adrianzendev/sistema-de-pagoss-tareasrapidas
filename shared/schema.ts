@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 
 export function normalizePhone(phone: string): string {
-  return phone.replace(/[\s\-\(\)\.]/g, "").trim();
+  return phone.replace(/[\s\-\(\)\.+]/g, "").trim();
 }
 import { pgTable, text, varchar, integer, decimal, timestamp, pgEnum, date, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";

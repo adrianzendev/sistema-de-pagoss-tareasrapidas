@@ -393,8 +393,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       const clientStats = allClients.map((client) => {
         const clientPayments = allPayments.filter(
-          (p) => p.clientNumber === client.phoneNumber ||
-            (client.normalizedPhone && p.clientNumber.replace(/[\s\-\(\)\.+]/g, "") === client.normalizedPhone)
+          (p) => normalizePhone(p.clientNumber) === client.normalizedPhone ||
+            p.clientNumber === client.phoneNumber
         );
 
         const tutorMap = new Map<string, string>();

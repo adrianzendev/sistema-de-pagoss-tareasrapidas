@@ -64,7 +64,12 @@ app.use((req, res, next) => {
 (async () => {
   // Seed database with initial data
   await seedDatabase();
-  
+
+  // Sync clients from existing payments (backfill)
+  const { storage } = await import("./storage");
+  const synced = await storage.syncClientsFromPayments();
+  if (synced > 0) console.log(`[sync] Created ${synced} missing client(s) from payment history`);
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {

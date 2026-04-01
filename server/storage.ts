@@ -71,6 +71,7 @@ export interface IStorage {
   createClient(client: InsertClient): Promise<Client>;
   updateClient(id: string, data: Partial<InsertClient>): Promise<Client | undefined>;
   deleteClient(id: string): Promise<void>;
+  syncClientsFromPayments(): Promise<number>;
 
   // Stats
   getAdminStats(period?: string): Promise<{
@@ -333,6 +334,22 @@ export class DatabaseStorage implements IStorage {
 
   async deleteClient(id: string): Promise<void> {
     await db.delete(clients).where(eq(clients.id, id));
+  }
+
+  async syncClientsFromPayments(): Promise<number> {
+    const allPayments = await db.select({ clientNumber: payments.clientNumber }).from(payments);
+    const allClients = await db.select().from(clients);
+    const normalizedSet = new Set(allClients.map(c => c.normalizedPhone));
+    let created = 0;
+    for (const { clientNumber } of allPayments) {
+      const norm = normalizePhone(clientNumber);
+      if (norm && !normalizedSet.has(norm)) {
+        await db.insert(clients).values({ phoneNumber: clientNumber, normalizedPhone: norm }).onConflictDoNothing();
+        normalizedSet.add(norm);
+        created++;
+      }
+    }
+    return created;
   }
 
   // Stats
