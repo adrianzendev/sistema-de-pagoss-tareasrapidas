@@ -86,11 +86,9 @@ export function AppSidebar() {
       <Sidebar>
         <SidebarHeader className="p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold">
-              TP
-            </div>
+            <img src="/favicon.png" alt="TR PAGOS" className="h-10 w-10 rounded-md object-contain" />
             <div className="flex flex-col">
-              <span className="font-semibold text-sm">TutorPay</span>
+              <span className="font-semibold text-sm">TR PAGOS</span>
               <span className="text-xs text-muted-foreground">
                 {isAdmin ? "Administrador" : isVerifier ? "Verificador" : "Tutor"}
               </span>

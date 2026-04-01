@@ -1,6 +1,6 @@
 {
-  "name": "TutorPay - Gestión de Tutores y Pagos",
-  "short_name": "TutorPay",
+  "name": "TR PAGOS - Gestión de Tutores y Pagos",
+  "short_name": "TR PAGOS",
   "description": "Aplicación para gestionar tutores y verificar pagos",
   "start_url": "/",
   "scope": "/",
