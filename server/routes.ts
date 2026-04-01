@@ -374,6 +374,58 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json(allClients);
   });
 
+  app.get("/api/admin/clients-stats", requireAdmin, async (req, res) => {
+    try {
+      const [allClients, allPayments] = await Promise.all([
+        storage.getClients(),
+        storage.getPayments("all"),
+      ]);
+
+      const clientStats = allClients.map((client) => {
+        const clientPayments = allPayments.filter(
+          (p) => p.clientNumber === client.phoneNumber ||
+            (client.normalizedPhone && p.clientNumber.replace(/[\s\-\(\)\.+]/g, "") === client.normalizedPhone)
+        );
+
+        const tutorMap = new Map<string, string>();
+        clientPayments.forEach((p) => {
+          if (p.tutor) tutorMap.set(p.tutor.id, p.tutor.name);
+        });
+
+        const sorted = [...clientPayments].sort(
+          (a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime()
+        );
+
+        return {
+          client,
+          stats: {
+            total: clientPayments.length,
+            verified: clientPayments.filter((p) => p.status === "verified").length,
+            rejected: clientPayments.filter((p) => p.status === "rejected").length,
+            pending: clientPayments.filter((p) => p.status === "pending").length,
+            tutors: Array.from(tutorMap, ([id, name]) => ({ id, name })),
+            firstActivity: sorted[0]?.createdAt ?? null,
+            lastActivity: sorted[sorted.length - 1]?.createdAt ?? null,
+            payments: clientPayments.map((p) => ({
+              id: p.id,
+              amount: p.amount,
+              currencyCode: p.currency?.code ?? "",
+              status: p.status,
+              tutorName: p.tutor?.name ?? "—",
+              createdAt: p.createdAt,
+              notes: p.notes,
+            })),
+          },
+        };
+      });
+
+      res.json(clientStats);
+    } catch (error) {
+      console.error("Error getting client stats:", error);
+      res.status(500).json({ message: "Error al obtener estadísticas de clientes" });
+    }
+  });
+
   app.post("/api/admin/clients", requireAdmin, async (req, res) => {
     try {
       const { phoneNumber, name } = req.body;
