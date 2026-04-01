@@ -29,23 +29,25 @@ async function ensureWeek(data: { weekNumber: number; startDate: string; endDate
 
 async function autoGenerateWeeksUntilToday() {
   const today = new Date().toISOString().split('T')[0];
-  
-  // Get all weeks sorted by weekNumber ascending
+
   const allWeeks = await db.select().from(weeks).orderBy(sql`week_number ASC`);
   if (allWeeks.length === 0) return;
 
+  // If there's already a week covering today, do nothing — don't create future weeks
+  const covered = allWeeks.find(w => w.startDate <= today && w.endDate >= today);
+  if (covered) return;
+
+  // No week covers today → extend from the last week until today is covered
   let lastWeek = allWeeks[allWeeks.length - 1];
-  
-  // Keep generating weeks until today is covered
+
   while (lastWeek.endDate < today) {
     const nextNumber = lastWeek.weekNumber + 1;
-    
-    // Calculate next week: start = lastEndDate + 1 day, end = start + 6 days
+
     const startDate = new Date(lastWeek.endDate + 'T00:00:00');
     startDate.setDate(startDate.getDate() + 1);
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + 6);
-    
+
     const startStr = startDate.toISOString().split('T')[0];
     const endStr = endDate.toISOString().split('T')[0];
 

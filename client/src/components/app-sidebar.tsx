@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { NewPaymentModal } from "@/components/new-payment-modal";
+import { useToast } from "@/hooks/use-toast";
 import {
   LayoutDashboard,
   Users,
@@ -31,6 +32,7 @@ import {
   Calculator,
   ShieldCheck,
   Phone,
+  Lock,
 } from "lucide-react";
 
 const adminItems = [
@@ -57,9 +59,18 @@ type Stats = {
   pendingPayments: number;
 };
 
+type CurrentWeek = {
+  id: string;
+  weekNumber: number;
+  status: string;
+  startDate: string;
+  endDate: string;
+};
+
 export function AppSidebar() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
+  const { toast } = useToast();
   const [isNewPaymentOpen, setIsNewPaymentOpen] = useState(false);
 
   const isAdmin = user?.role === "admin";
@@ -71,6 +82,13 @@ export function AppSidebar() {
     queryKey: ["/api/admin/stats"],
     enabled: isAdmin,
   });
+
+  const { data: currentWeek } = useQuery<CurrentWeek | null>({
+    queryKey: ["/api/weeks/current"],
+    enabled: isTutor,
+  });
+
+  const hasOpenWeek = isTutor && !!currentWeek && currentWeek.status === "open";
 
   const getInitials = (name: string) => {
     return name
@@ -128,11 +146,21 @@ export function AppSidebar() {
                 {isTutor && (
                   <SidebarMenuItem>
                     <SidebarMenuButton
-                      onClick={() => setIsNewPaymentOpen(true)}
+                      onClick={() => {
+                        if (!hasOpenWeek) {
+                          toast({ title: "Semana cerrada", description: "No hay una semana abierta para registrar pagos.", variant: "destructive" });
+                          return;
+                        }
+                        setIsNewPaymentOpen(true);
+                      }}
                       data-testid="nav-nuevo-pago"
+                      className={!hasOpenWeek && currentWeek !== undefined ? "opacity-60" : ""}
                     >
-                      <PlusCircle className="h-4 w-4" />
+                      {hasOpenWeek ? <PlusCircle className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
                       <span className="flex-1">Nuevo Pago</span>
+                      {hasOpenWeek && currentWeek && (
+                        <span className="text-[10px] text-muted-foreground font-mono">S{currentWeek.weekNumber}</span>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}
