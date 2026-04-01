@@ -53,10 +53,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-2xl mb-4">
-            TP
-          </div>
-          <h1 className="text-2xl font-bold">TutorPay</h1>
+          <img src="/favicon.png" alt="TR Pagos" className="h-16 w-16 rounded-xl object-contain mb-4" />
+          <h1 className="text-2xl font-bold">TR Pagos</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Sistema de Gestión de Tutores y Pagos
           </p>
