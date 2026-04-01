@@ -53,6 +53,7 @@ export interface IStorage {
   getPaymentsByTutor(tutorId: string): Promise<PaymentWithDetails[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePaymentStatus(id: string, status: string, verifiedBy: string, notes?: string): Promise<Payment | undefined>;
+  deletePayment(id: string): Promise<void>;
   getPaymentsByVerifier(verifierId: string): Promise<PaymentWithDetails[]>;
 
   // Blacklist
@@ -245,6 +246,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(payments.id, id))
       .returning();
     return payment;
+  }
+
+  async deletePayment(id: string): Promise<void> {
+    await db.delete(payments).where(eq(payments.id, id));
   }
 
   async getPaymentsByVerifier(verifierId: string): Promise<PaymentWithDetails[]> {

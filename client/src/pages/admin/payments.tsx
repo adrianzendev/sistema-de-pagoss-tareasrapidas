@@ -22,7 +22,18 @@ import {
   FileSpreadsheet,
   Calendar,
   RotateCcw,
+  Trash2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const statusLabels = {
   pending: { label: "Pendiente", variant: "secondary" as const, icon: Clock },
@@ -35,6 +46,7 @@ export default function PaymentsPage() {
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState("all");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
@@ -53,6 +65,19 @@ export default function PaymentsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/payments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
       toast({ title: "Pago actualizado", description: "El estado del pago ha sido actualizado" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/payments/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/payments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      setDeleteId(null);
+      toast({ title: "Pago eliminado", description: "El pago ha sido eliminado permanentemente" });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -221,39 +246,49 @@ export default function PaymentsPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          {payment.status === "pending" && (
-                            <div className="flex justify-end gap-1">
+                          <div className="flex justify-end gap-1">
+                            {payment.status === "pending" && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => updateMutation.mutate({ id: payment.id, status: "verified" })}
+                                  disabled={updateMutation.isPending}
+                                  data-testid={`button-verify-${payment.id}`}
+                                >
+                                  <CheckCircle className="h-4 w-4 text-green-600" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => updateMutation.mutate({ id: payment.id, status: "rejected" })}
+                                  disabled={updateMutation.isPending}
+                                  data-testid={`button-reject-${payment.id}`}
+                                >
+                                  <XCircle className="h-4 w-4 text-red-600" />
+                                </Button>
+                              </>
+                            )}
+                            {payment.status === "verified" && (
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => updateMutation.mutate({ id: payment.id, status: "verified" })}
+                                onClick={() => updateMutation.mutate({ id: payment.id, status: "refunded" })}
                                 disabled={updateMutation.isPending}
-                                data-testid={`button-verify-${payment.id}`}
+                                data-testid={`button-refund-${payment.id}`}
                               >
-                                <CheckCircle className="h-4 w-4 text-green-600" />
+                                <RotateCcw className="h-4 w-4 text-orange-600" />
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => updateMutation.mutate({ id: payment.id, status: "rejected" })}
-                                disabled={updateMutation.isPending}
-                                data-testid={`button-reject-${payment.id}`}
-                              >
-                                <XCircle className="h-4 w-4 text-red-600" />
-                              </Button>
-                            </div>
-                          )}
-                          {payment.status === "verified" && (
+                            )}
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => updateMutation.mutate({ id: payment.id, status: "refunded" })}
-                              disabled={updateMutation.isPending}
-                              data-testid={`button-refund-${payment.id}`}
+                              onClick={() => setDeleteId(payment.id)}
+                              data-testid={`button-delete-payment-${payment.id}`}
                             >
-                              <RotateCcw className="h-4 w-4 text-orange-600" />
+                              <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
-                          )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -281,6 +316,26 @@ export default function PaymentsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar pago?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. El pago será eliminado permanentemente del sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteId && deleteMutation.mutate(deleteId)}
+              className="bg-destructive text-destructive-foreground"
+            >
+              {deleteMutation.isPending ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

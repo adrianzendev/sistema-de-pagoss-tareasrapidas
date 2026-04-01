@@ -243,6 +243,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json(payment);
   });
 
+  app.delete("/api/admin/payments/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deletePayment(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting payment:", error);
+      res.status(500).json({ message: "Error al eliminar pago" });
+    }
+  });
+
   app.get("/api/admin/payments/export", requireAdmin, async (req, res) => {
     const period = req.query.period as string || "all";
     const allPayments = await storage.getPayments(period);
