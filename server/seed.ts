@@ -27,6 +27,45 @@ async function ensureWeek(data: { weekNumber: number; startDate: string; endDate
   }
 }
 
+async function autoGenerateWeeksUntilToday() {
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Get all weeks sorted by weekNumber ascending
+  const allWeeks = await db.select().from(weeks).orderBy(sql`week_number ASC`);
+  if (allWeeks.length === 0) return;
+
+  let lastWeek = allWeeks[allWeeks.length - 1];
+  
+  // Keep generating weeks until today is covered
+  while (lastWeek.endDate < today) {
+    const nextNumber = lastWeek.weekNumber + 1;
+    
+    // Calculate next week: start = lastEndDate + 1 day, end = start + 6 days
+    const startDate = new Date(lastWeek.endDate + 'T00:00:00');
+    startDate.setDate(startDate.getDate() + 1);
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+    
+    const startStr = startDate.toISOString().split('T')[0];
+    const endStr = endDate.toISOString().split('T')[0];
+
+    const [existing] = await db.select().from(weeks).where(eq(weeks.weekNumber, nextNumber));
+    if (!existing) {
+      const [created] = await db.insert(weeks).values({
+        weekNumber: nextNumber,
+        startDate: startStr,
+        endDate: endStr,
+        status: "open",
+        advertisingCost: "0.00",
+      }).returning();
+      console.log(`Auto-generated week S${nextNumber} (${startStr} → ${endStr})`);
+      lastWeek = created;
+    } else {
+      lastWeek = existing;
+    }
+  }
+}
+
 export async function seedDatabase() {
   try {
     const standardPwd = await bcrypt.hash("123456", 10);
@@ -80,12 +119,15 @@ export async function seedDatabase() {
       }
     }
 
-    // === WEEKS (S166 - S170) ===
+    // === WEEKS: ensure base weeks and auto-generate up to current week ===
     await ensureWeek({ weekNumber: 166, startDate: "2026-02-01", endDate: "2026-02-07" });
     await ensureWeek({ weekNumber: 167, startDate: "2026-02-08", endDate: "2026-02-14" });
     await ensureWeek({ weekNumber: 168, startDate: "2026-02-15", endDate: "2026-02-21" });
     await ensureWeek({ weekNumber: 169, startDate: "2026-02-22", endDate: "2026-02-28" });
     await ensureWeek({ weekNumber: 170, startDate: "2026-03-01", endDate: "2026-03-07" });
+
+    // Auto-generate missing weeks until today is covered
+    await autoGenerateWeeksUntilToday();
 
     // === AGENCY SETTINGS ===
     const [existingSettings] = await db.select().from(agencySettings);
