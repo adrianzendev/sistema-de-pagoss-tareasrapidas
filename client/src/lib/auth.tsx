@@ -40,12 +40,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
+    const text = await res.text();
+    let body: any = null;
+    try { body = JSON.parse(text); } catch {}
     if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || "Error al iniciar sesión");
+      throw new Error(body?.message || text || "Error al iniciar sesión");
     }
-    const data = await res.json();
-    setUser(data);
+    setUser(body);
     setupPushNotifications();
   };
 
