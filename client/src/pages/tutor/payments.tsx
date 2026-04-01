@@ -1,5 +1,5 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { PaymentWithDetails, Currency, Week } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
+import { PaymentWithDetails, Week } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,9 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, Plus, ChevronLeft, ChevronRight, Calendar, Phone, Coins, RotateCcw } from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, ChevronLeft, ChevronRight, Calendar, Phone, RotateCcw } from "lucide-react";
 
 const statusConfig: Record<string, { label: string; variant: "secondary" | "default" | "destructive" | "outline"; icon: typeof Clock; className: string }> = {
   pending: { label: "Pendiente", variant: "secondary", icon: Clock, className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" },
@@ -22,7 +20,6 @@ const statusConfig: Record<string, { label: string; variant: "secondary" | "defa
 
 export default function TutorPaymentsPage() {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
   const [tabScrollPos, setTabScrollPos] = useState<number | null>(null);
@@ -31,23 +28,8 @@ export default function TutorPaymentsPage() {
     queryKey: ["/api/tutor/payments"],
   });
 
-  const { data: currencies } = useQuery<Currency[]>({
-    queryKey: ["/api/currencies"],
-  });
-
   const { data: weeks } = useQuery<Week[]>({
     queryKey: ["/api/weeks"],
-  });
-
-  const generateWeekMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/weeks/generate"),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/weeks"] });
-      toast({ title: "Nueva semana creada" });
-    },
-    onError: () => {
-      toast({ title: "Error al crear semana", variant: "destructive" });
-    },
   });
 
   const sortedWeeks = [...(weeks ?? [])].sort((a, b) => a.weekNumber - b.weekNumber);
@@ -139,14 +121,6 @@ export default function TutorPaymentsPage() {
                 );
               })}
 
-              <button
-                onClick={() => generateWeekMutation.mutate()}
-                disabled={generateWeekMutation.isPending}
-                className="px-2 py-1.5 text-xs font-medium rounded-md bg-muted/50 text-muted-foreground hover:bg-muted transition-colors"
-                data-testid="button-add-week"
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </button>
             </div>
 
             <Button
