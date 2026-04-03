@@ -1,11 +1,12 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
 import { insertUserSchema, insertCurrencySchema, insertPaymentSchema, createTutorSchema, insertBlacklistSchema, insertWeekSchema, insertAgencySettingsSchema, insertClientSchema, normalizePhone } from "@shared/schema";
 import { z } from "zod";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { users, currencies, payments } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { getVapidPublicKey, notifyPaymentStatusChange, notifyNewPaymentRequest } from "./push";
@@ -49,17 +50,24 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Trust proxy for production (Replit reverse proxy)
   app.set("trust proxy", 1);
 
-  // Session middleware
+  // Session middleware with PostgreSQL store (survives server restarts)
+  const PgSession = connectPgSimple(session);
   app.use(
     session({
+      store: new PgSession({
+        pool,
+        createTableIfMissing: true,
+        ttl: 30 * 24 * 60 * 60, // 30 days in seconds
+      }),
       secret: process.env.SESSION_SECRET || "fallback-secret-key",
       resave: false,
       saveUninitialized: false,
+      rolling: true, // Reset maxAge on every request
       cookie: {
         secure: process.env.NODE_ENV === "production",
         httpOnly: true,
         sameSite: "lax",
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in ms
       },
     })
   );
