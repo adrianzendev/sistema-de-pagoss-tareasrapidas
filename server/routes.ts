@@ -60,7 +60,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         ttl: 30 * 24 * 60 * 60, // 30 days in seconds
       }),
       secret: process.env.SESSION_SECRET || "fallback-secret-key",
-      resave: false,
+      resave: true,
       saveUninitialized: false,
       rolling: true, // Reset maxAge on every request
       cookie: {
@@ -100,7 +100,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
     req.session.userId = user.id;
     const { password: _, ...safeUser } = user;
-    res.json(safeUser);
+    req.session.save((err) => {
+      if (err) return res.status(500).json({ message: "Error al iniciar sesión" });
+      res.json(safeUser);
+    });
   });
 
   app.post("/api/auth/logout", (req, res) => {
