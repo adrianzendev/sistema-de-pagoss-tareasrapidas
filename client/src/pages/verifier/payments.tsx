@@ -177,10 +177,10 @@ export default function VerifierPaymentsPage() {
               {processedPayments.map((payment) => (
                 <div
                   key={payment.id}
-                  className="flex items-center justify-between border rounded-lg p-3"
+                  className="flex items-center justify-between border rounded-lg p-3 gap-2"
                   data-testid={`card-history-${payment.id}`}
                 >
-                  <div className="space-y-0.5">
+                  <div className="space-y-0.5 flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">{payment.tutor?.name}</span>
                       {getStatusBadge(payment.status)}
@@ -195,11 +195,26 @@ export default function VerifierPaymentsPage() {
                       </div>
                     )}
                   </div>
-                  <div className="text-right">
-                    <div className="font-medium">
-                      {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+                  <div className="flex items-center gap-3 shrink-0">
+                    {payment.proofImage ? (
+                      <button
+                        onClick={() => setPreviewImage(payment.proofImage!)}
+                        className="w-12 h-12 rounded overflow-hidden border bg-muted hover:opacity-80 transition-opacity"
+                        data-testid={`button-proof-history-${payment.id}`}
+                      >
+                        <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
+                      </button>
+                    ) : (
+                      <div className="w-12 h-12 rounded border bg-muted/30 flex items-center justify-center">
+                        <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
+                      </div>
+                    )}
+                    <div className="text-right">
+                      <div className="font-medium">
+                        {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+                      </div>
+                      <div className="text-xs text-muted-foreground font-mono">{payment.currency?.code}</div>
                     </div>
-                    <div className="text-xs text-muted-foreground font-mono">{payment.currency?.code}</div>
                   </div>
                 </div>
               ))}
