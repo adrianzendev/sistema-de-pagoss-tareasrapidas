@@ -208,17 +208,15 @@ export default function TutorPaymentsPage() {
                     {payment.proofImage ? (
                       <button
                         onClick={() => setPreviewImage(payment.proofImage!)}
-                        className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        className="w-14 h-14 rounded overflow-hidden border bg-muted hover:opacity-80 transition-opacity"
                         data-testid={`button-proof-${payment.id}`}
                       >
-                        <ImageIcon className="h-3.5 w-3.5" />
-                        Ver prueba
+                        <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
                       </button>
                     ) : (
-                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <ImageIcon className="h-3.5 w-3.5" />
-                        Sin prueba
-                      </span>
+                      <div className="w-14 h-14 rounded border bg-muted/30 flex items-center justify-center">
+                        <ImageIcon className="h-5 w-5 text-muted-foreground/40" />
+                      </div>
                     )}
                   </div>
                 </div>

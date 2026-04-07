@@ -219,14 +219,15 @@ export default function PaymentsPage() {
                           {payment.proofImage ? (
                             <button
                               onClick={() => setPreviewImage(payment.proofImage!)}
-                              className="flex items-center gap-1 text-sm text-primary hover:underline"
+                              className="w-10 h-10 rounded overflow-hidden border bg-muted hover:opacity-80 transition-opacity"
                               data-testid={`button-view-proof-${payment.id}`}
                             >
-                              <ImageIcon className="h-4 w-4" />
-                              Ver
+                              <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
                             </button>
                           ) : (
-                            <span className="text-muted-foreground text-sm">Sin imagen</span>
+                            <div className="w-10 h-10 rounded border bg-muted/30 flex items-center justify-center">
+                              <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
+                            </div>
                           )}
                         </TableCell>
                         <TableCell>
