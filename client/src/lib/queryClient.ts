@@ -1,9 +1,15 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+function dispatchSessionExpired() {
+  window.dispatchEvent(new Event("session-expired"));
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
+    if (res.status === 401) {
+      dispatchSessionExpired();
+    }
     const text = await res.text();
-    // Try to extract a clean message from JSON error responses
     try {
       const json = JSON.parse(text);
       throw new Error(json.message || text || res.statusText);
@@ -42,13 +48,13 @@ export const getQueryFn: <T>(options: {
       credentials: "include",
     });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+    if (res.status === 401) {
+      dispatchSessionExpired();
+      if (unauthorizedBehavior === "returnNull") return null;
     }
 
     await throwIfResNotOk(res);
 
-    // Safely parse JSON, fall back to null if not valid JSON
     const text = await res.text();
     try {
       return JSON.parse(text);
