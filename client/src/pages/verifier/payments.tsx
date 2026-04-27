@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
+
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CheckCircle, XCircle, Clock, ImageIcon, ShieldCheck, MessageSquare } from "lucide-react";
+import { CheckCircle, XCircle, Clock, ImageIcon, ShieldCheck } from "lucide-react";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: any }> = {
   pending: { label: "Pendiente", variant: "secondary", icon: Clock },
@@ -30,19 +30,17 @@ export default function VerifierPaymentsPage() {
   const { toast } = useToast();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [actionPayment, setActionPayment] = useState<{ payment: PaymentWithDetails; action: "verified" | "rejected" } | null>(null);
-  const [notes, setNotes] = useState("");
 
   const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
     queryKey: ["/api/verifier/payments"],
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, status, notes }: { id: string; status: string; notes?: string }) =>
-      apiRequest("PATCH", `/api/verifier/payments/${id}`, { status, notes }),
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      apiRequest("PATCH", `/api/verifier/payments/${id}`, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/verifier/payments"] });
       setActionPayment(null);
-      setNotes("");
       toast({ title: "Pago actualizado", description: "El estado del pago ha sido actualizado" });
     },
     onError: (error: Error) => {
@@ -55,7 +53,6 @@ export default function VerifierPaymentsPage() {
     updateMutation.mutate({
       id: actionPayment.payment.id,
       status: actionPayment.action,
-      notes: notes || undefined,
     });
   };
 
@@ -188,12 +185,6 @@ export default function VerifierPaymentsPage() {
                     <div className="text-xs text-muted-foreground">
                       Cliente: {payment.clientNumber} - {payment.createdAt && format(new Date(payment.createdAt), "dd/MM/yy", { locale: es })}
                     </div>
-                    {payment.notes && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <MessageSquare className="h-3 w-3" />
-                        {payment.notes}
-                      </div>
-                    )}
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     {payment.proofImage ? (
@@ -247,17 +238,6 @@ export default function VerifierPaymentsPage() {
                 <div className="text-xs text-muted-foreground mt-1">
                   Cliente: {actionPayment.payment.clientNumber}
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Nota (opcional)</label>
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Agrega una nota sobre este pago..."
-                  rows={3}
-                  data-testid="input-verifier-notes"
-                />
               </div>
 
               <div className="flex justify-end gap-2">
