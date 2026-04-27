@@ -232,11 +232,11 @@ export default function TutorPaymentsPage() {
             <DialogTitle>Comprobante de Pago</DialogTitle>
           </DialogHeader>
           {previewImage && (
-            <div className="relative aspect-video">
+            <div className="overflow-y-auto max-h-[80vh]">
               <img
                 src={previewImage}
                 alt="Comprobante"
-                className="w-full h-full object-contain rounded-lg"
+                className="w-full rounded-lg"
               />
             </div>
           )}

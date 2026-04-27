@@ -284,7 +284,9 @@ export default function VerifierPaymentsPage() {
             <DialogTitle>Prueba de Pago</DialogTitle>
           </DialogHeader>
           {previewImage && (
-            <img src={previewImage} alt="Prueba de pago" className="w-full rounded-lg" />
+            <div className="overflow-y-auto max-h-[80vh]">
+              <img src={previewImage} alt="Prueba de pago" className="w-full rounded-lg" />
+            </div>
           )}
         </DialogContent>
       </Dialog>
