@@ -138,7 +138,7 @@ export default function VerifierPaymentsPage() {
                     <Button
                       size="sm"
                       variant="default"
-                      onClick={() => { setActionPayment({ payment, action: "verified" }); setNotes(""); }}
+                      onClick={() => setActionPayment({ payment, action: "verified" })}
                       data-testid={`button-verify-${payment.id}`}
                     >
                       <CheckCircle className="h-4 w-4 mr-1" />
@@ -147,7 +147,7 @@ export default function VerifierPaymentsPage() {
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={() => { setActionPayment({ payment, action: "rejected" }); setNotes(""); }}
+                      onClick={() => setActionPayment({ payment, action: "rejected" })}
                       data-testid={`button-reject-${payment.id}`}
                     >
                       <XCircle className="h-4 w-4 mr-1" />
