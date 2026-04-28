@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { format, parseISO, isWithinInterval } from "date-fns";
+import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { PaymentWithDetails, Week } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -41,8 +41,8 @@ function groupPaymentsByWeek(payments: PaymentWithDetails[], weeks: Week[]): Wee
   const assigned = new Set<string>();
 
   for (const week of sortedWeeks) {
-    const start = parseISO(week.startDate);
-    const end = parseISO(week.endDate);
+    const start = startOfDay(parseISO(week.startDate));
+    const end = endOfDay(parseISO(week.endDate));
     const weekPayments = payments.filter(p => {
       if (assigned.has(p.id)) return false;
       const date = new Date(p.createdAt);
