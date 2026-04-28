@@ -92,6 +92,89 @@ function groupPaymentsByWeek(payments: PaymentWithDetails[], weeks: Week[]): Wee
   return groups;
 }
 
+type TutorRow = {
+  tutorId: string;
+  tutorName: string;
+  verifiedByCurrency: { code: string; total: number }[];
+  pendingByCurrency: { code: string; total: number }[];
+  pendingCount: number;
+};
+
+function buildTutorRows(payments: PaymentWithDetails[]): TutorRow[] {
+  const map = new Map<string, TutorRow>();
+  for (const p of payments) {
+    const id = p.tutorId;
+    if (!map.has(id)) {
+      map.set(id, { tutorId: id, tutorName: p.tutor?.name ?? "Tutor", verifiedByCurrency: [], pendingByCurrency: [], pendingCount: 0 });
+    }
+    const row = map.get(id)!;
+    if (p.status === "verified" && p.currency?.code) {
+      const existing = row.verifiedByCurrency.find(v => v.code === p.currency!.code);
+      if (existing) existing.total += Number(p.amount);
+      else row.verifiedByCurrency.push({ code: p.currency.code, total: Number(p.amount) });
+    }
+    if (p.status === "pending" && p.currency?.code) {
+      const existing = row.pendingByCurrency.find(v => v.code === p.currency!.code);
+      if (existing) existing.total += Number(p.amount);
+      else row.pendingByCurrency.push({ code: p.currency.code, total: Number(p.amount) });
+      row.pendingCount++;
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => a.tutorName.localeCompare(b.tutorName));
+}
+
+function formatCurrencyList(items: { code: string; total: number }[]) {
+  if (items.length === 0) return <span className="text-muted-foreground/50">—</span>;
+  return (
+    <span>
+      {items.map((v, i) => (
+        <span key={v.code}>
+          {i > 0 && <span className="text-muted-foreground"> · </span>}
+          <span className="font-mono">{v.code}</span>{" "}
+          {v.total.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function TutorSummaryTable({ payments }: { payments: PaymentWithDetails[] }) {
+  const rows = buildTutorRows(payments);
+  if (rows.length === 0) return null;
+  const hasVerified = rows.some(r => r.verifiedByCurrency.length > 0);
+  const hasPending = rows.some(r => r.pendingCount > 0);
+  return (
+    <div className="rounded-md border bg-muted/20 overflow-hidden mb-2">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b bg-muted/40">
+            <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Tutor</th>
+            {hasVerified && <th className="text-right px-3 py-1.5 font-medium text-muted-foreground">Verificado</th>}
+            {hasPending && <th className="text-right px-3 py-1.5 font-medium text-muted-foreground">Pendiente</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.tutorId} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+              <td className="px-3 py-1.5 font-medium">{row.tutorName}</td>
+              {hasVerified && (
+                <td className="px-3 py-1.5 text-right text-green-600 dark:text-green-400">
+                  {formatCurrencyList(row.verifiedByCurrency)}
+                </td>
+              )}
+              {hasPending && (
+                <td className="px-3 py-1.5 text-right text-amber-600 dark:text-amber-400">
+                  {formatCurrencyList(row.pendingByCurrency)}
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function WeekSeparator({ group, showPending }: { group: WeekGroup; showPending?: boolean }) {
   const hasVerified = group.verifiedTotals.length > 0;
   return (
@@ -204,6 +287,7 @@ export default function VerifierPaymentsPage() {
               {pendingGroups.map((group) => (
                 <div key={group.weekLabel} className="space-y-2">
                   <WeekSeparator group={group} showPending />
+                  <TutorSummaryTable payments={group.payments} />
                   <div className="space-y-3">
                     {group.payments.map((payment) => (
                       <div
@@ -287,6 +371,7 @@ export default function VerifierPaymentsPage() {
               {processedGroups.map((group) => (
                 <div key={group.weekLabel} className="space-y-2">
                   <WeekSeparator group={group} />
+                  <TutorSummaryTable payments={group.payments} />
                   <div className="space-y-2">
                     {group.payments.map((payment) => (
                       <div
