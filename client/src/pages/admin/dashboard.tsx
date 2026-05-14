@@ -3,7 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, CreditCard, Coins, CheckCircle, Clock, XCircle, Calendar } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Users, CreditCard, Coins, CheckCircle, Clock, XCircle, Calendar, TableIcon } from "lucide-react";
+import type { Week } from "@shared/schema";
 
 interface DashboardStats {
   totalTutors: number;
@@ -20,16 +22,38 @@ interface DashboardStats {
   }>;
 }
 
+type MatrixCell = {
+  grossIncome: number;
+  netIncome: number;
+  tutorEarnings: number;
+  tutorAdvertisingShare: number;
+  paymentCount: number;
+};
+
+type SettlementsMatrix = {
+  weeks: Week[];
+  tutors: Array<{ id: string; name: string; commissionPercent: string }>;
+  matrix: Record<string, Record<string, MatrixCell>>;
+};
+
 export default function AdminDashboard() {
   const [period, setPeriod] = useState("all");
+
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/admin/stats", period],
     queryFn: async () => {
       const res = await fetch(`/api/admin/stats?period=${period}`);
       if (!res.ok) throw new Error("Failed to fetch stats");
       return res.json();
-    }
+    },
   });
+
+  const { data: matrixData, isLoading: matrixLoading } = useQuery<SettlementsMatrix>({
+    queryKey: ["/api/admin/settlements/matrix"],
+  });
+
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
   const StatCard = ({
     title,
@@ -50,7 +74,6 @@ export default function AdminDashboard() {
       warning: "text-yellow-600 dark:text-yellow-400",
       destructive: "text-red-600 dark:text-red-400",
     };
-
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
@@ -71,16 +94,21 @@ export default function AdminDashboard() {
     );
   };
 
+  const weeks = matrixData?.weeks ?? [];
+  const tutors = matrixData?.tutors ?? [];
+  const matrix = matrixData?.matrix ?? {};
+
+  const tutorsWithAnyPayment = tutors.filter(t =>
+    weeks.some(w => (matrix[t.id]?.[w.id]?.paymentCount ?? 0) > 0)
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Resumen general del sistema de gestión de tutores
-          </p>
+          <p className="text-muted-foreground">Resumen general del sistema de gestión de tutores</p>
         </div>
-
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           <Select value={period} onValueChange={setPeriod}>
@@ -99,18 +127,8 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          title="Total Tutores"
-          value={stats?.totalTutors ?? 0}
-          description="Tutores registrados"
-          icon={Users}
-        />
-        <StatCard
-          title="Total Pagos"
-          value={stats?.totalPayments ?? 0}
-          description="En el periodo seleccionado"
-          icon={CreditCard}
-        />
+        <StatCard title="Total Tutores" value={stats?.totalTutors ?? 0} description="Tutores registrados" icon={Users} />
+        <StatCard title="Total Pagos" value={stats?.totalPayments ?? 0} description="En el periodo seleccionado" icon={CreditCard} />
         <StatCard
           title="Monto Total"
           value={`${(stats?.totalAmount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
@@ -128,9 +146,7 @@ export default function AdminDashboard() {
           <CardContent>
             {isLoading ? (
               <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
-                ))}
+                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
               </div>
             ) : (
               <div className="space-y-6">
@@ -143,11 +159,9 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-primary transition-all duration-500" 
-                        style={{ 
-                          width: `${Math.min(100, (tutor.verifiedAmount / (stats.totalAmount || 1)) * 100)}%` 
-                        }} 
+                      <div
+                        className="h-full bg-primary transition-all duration-500"
+                        style={{ width: `${Math.min(100, (tutor.verifiedAmount / (stats.totalAmount || 1)) * 100)}%` }}
                       />
                     </div>
                     <div className="flex justify-between items-center">
@@ -201,6 +215,157 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Settlements matrix table */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <TableIcon className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <CardTitle>Ganancias por Tutor y Semana</CardTitle>
+              <CardDescription>
+                Liquidación neta (bruto × comisión − publicidad) — últimas {weeks.length} semanas
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {matrixLoading ? (
+            <div className="p-6 space-y-3">
+              {[1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full" />)}
+            </div>
+          ) : tutorsWithAnyPayment.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <TableIcon className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p>No hay liquidaciones registradas aún</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <div style={{ minWidth: `${160 + weeks.length * 120}px` }}>
+                {/* Header */}
+                <div
+                  className="grid border-b-2 border-border text-xs font-bold uppercase bg-muted/60"
+                  style={{ gridTemplateColumns: `160px repeat(${weeks.length}, 120px) 130px` }}
+                >
+                  <div className="p-3 border-r border-border sticky left-0 bg-muted/80 z-10">
+                    Tutor
+                  </div>
+                  {weeks.map(w => (
+                    <div key={w.id} className="p-2 text-center border-r border-border last:border-r-0">
+                      <div className="text-foreground">S{w.weekNumber}</div>
+                      <div className="text-muted-foreground font-normal normal-case text-[10px]">
+                        {new Date(w.startDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
+                      </div>
+                      <div className="mt-1">
+                        {w.status === "paid" ? (
+                          <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600">Pagada</Badge>
+                        ) : w.status === "closed" ? (
+                          <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">Cerrada</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Abierta</Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="p-2 text-center text-primary">
+                    TOTAL
+                  </div>
+                </div>
+
+                {/* Tutor rows */}
+                {tutorsWithAnyPayment.map((tutor, rowIdx) => {
+                  const rowTotal = weeks.reduce((sum, w) => sum + (matrix[tutor.id]?.[w.id]?.tutorEarnings ?? 0), 0);
+                  return (
+                    <div
+                      key={tutor.id}
+                      className="grid border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors"
+                      style={{ gridTemplateColumns: `160px repeat(${weeks.length}, 120px) 130px` }}
+                      data-testid={`row-matrix-${tutor.id}`}
+                    >
+                      {/* Tutor name cell */}
+                      <div className={`p-3 border-r border-border sticky left-0 z-10 ${rowIdx % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>
+                        <div className="font-semibold text-sm truncate">{tutor.name}</div>
+                        <div className="text-[10px] text-muted-foreground">{tutor.commissionPercent}%</div>
+                      </div>
+
+                      {/* Week cells */}
+                      {weeks.map(w => {
+                        const cell = matrix[tutor.id]?.[w.id];
+                        const earnings = cell?.tutorEarnings ?? 0;
+                        const hasPayments = (cell?.paymentCount ?? 0) > 0;
+
+                        let cellClass = "text-muted-foreground/40 font-normal";
+                        if (hasPayments) {
+                          cellClass = earnings >= 0
+                            ? "text-green-700 dark:text-green-400 font-bold"
+                            : "text-red-600 dark:text-red-400 font-bold";
+                        }
+
+                        return (
+                          <div
+                            key={w.id}
+                            className="p-2 text-right border-r border-border last:border-r-0 text-xs"
+                            title={hasPayments ? `Bruto: ${fmt(cell!.grossIncome)} | ×${tutor.commissionPercent}% = ${fmt(cell!.netIncome)} | −pub = ${fmt(earnings)}` : "Sin pagos"}
+                            data-testid={`cell-${tutor.id}-${w.weekNumber}`}
+                          >
+                            {hasPayments ? (
+                              <>
+                                <div className={cellClass}>{fmt(earnings)}</div>
+                                <div className="text-[9px] text-muted-foreground">{cell!.paymentCount}p</div>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground/30">—</span>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {/* Total cell */}
+                      <div className={`p-2 text-right text-sm font-bold ${rowTotal >= 0 ? "text-green-700 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+                        data-testid={`total-${tutor.id}`}
+                      >
+                        {fmt(rowTotal)}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Totals row */}
+                <div
+                  className="grid border-t-2 border-border bg-muted/50 font-bold text-sm"
+                  style={{ gridTemplateColumns: `160px repeat(${weeks.length}, 120px) 130px` }}
+                >
+                  <div className="p-3 border-r border-border text-xs uppercase text-muted-foreground sticky left-0 bg-muted/70 z-10">
+                    Totales
+                  </div>
+                  {weeks.map(w => {
+                    const colTotal = tutorsWithAnyPayment.reduce(
+                      (sum, t) => sum + (matrix[t.id]?.[w.id]?.tutorEarnings ?? 0), 0
+                    );
+                    const anyPayments = tutorsWithAnyPayment.some(t => (matrix[t.id]?.[w.id]?.paymentCount ?? 0) > 0);
+                    return (
+                      <div
+                        key={w.id}
+                        className={`p-2 text-right text-xs border-r border-border last:border-r-0 ${anyPayments ? (colTotal >= 0 ? "text-green-700 dark:text-green-400" : "text-red-600 dark:text-red-400") : "text-muted-foreground/30"}`}
+                      >
+                        {anyPayments ? fmt(colTotal) : "—"}
+                      </div>
+                    );
+                  })}
+                  <div className="p-2 text-right text-sm text-primary">
+                    {fmt(
+                      tutorsWithAnyPayment.reduce(
+                        (sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.tutorEarnings ?? 0), 0),
+                        0
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

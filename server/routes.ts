@@ -727,6 +727,62 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // Admin: Settlements Matrix (all tutors × last 12 weeks)
+  app.get("/api/admin/settlements/matrix", requireAdmin, async (req, res) => {
+    try {
+      const allWeeks = (await storage.getWeeks()).slice(0, 12);
+      const tutors = await storage.getTutors();
+      const allCurrencies = await storage.getCurrencies();
+
+      const usdCurrency = allCurrencies.find(c => c.code === "USD");
+      const usdRate = Number(usdCurrency?.exchangeRate ?? 1);
+
+      const matrix: Record<string, Record<string, {
+        grossIncome: number; netIncome: number; tutorEarnings: number;
+        tutorAdvertisingShare: number; paymentCount: number;
+      }>> = {};
+
+      for (const week of allWeeks) {
+        const weekPayments = await storage.getPaymentsByWeek(week.id);
+        const verifiedPayments = weekPayments.filter(p => p.status === "verified");
+
+        const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
+        const advertisingInSoles = sharedAdvertisingUsd * usdRate;
+        const tutorsWithPayments = tutors.filter(t => verifiedPayments.some(p => p.tutorId === t.id));
+        const activeTutorCount = tutorsWithPayments.length || 1;
+        const weekTutorAdShare = (advertisingInSoles * 0.5) / activeTutorCount;
+
+        for (const tutor of tutors) {
+          const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
+
+          let grossIncome = 0;
+          tutorPayments.forEach(p => {
+            const currency = allCurrencies.find(c => c.id === p.currencyId);
+            grossIncome += Number(p.amount) * Number(currency?.exchangeRate ?? 1);
+          });
+
+          const commission = Number(tutor.commissionPercent) / 100;
+          const advShare = tutorPayments.length > 0 ? weekTutorAdShare : 0;
+          const netIncome = grossIncome * commission;
+          const tutorEarnings = netIncome - advShare;
+
+          if (!matrix[tutor.id]) matrix[tutor.id] = {};
+          matrix[tutor.id][week.id] = {
+            grossIncome, netIncome, tutorEarnings,
+            tutorAdvertisingShare: advShare,
+            paymentCount: tutorPayments.length,
+          };
+        }
+      }
+
+      const safeTutors = tutors.map(({ password: _pw, ...safe }) => safe);
+      res.json({ weeks: allWeeks, tutors: safeTutors, matrix });
+    } catch (error) {
+      console.error("Error getting settlements matrix:", error);
+      res.status(500).json({ message: "Error al obtener matriz" });
+    }
+  });
+
   // Admin: Agency Settings
   app.get("/api/admin/settings", requireAdmin, async (req, res) => {
     let settings = await storage.getAgencySettings();
