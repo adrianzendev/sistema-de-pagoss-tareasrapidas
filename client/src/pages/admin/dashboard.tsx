@@ -367,6 +367,7 @@ export default function AdminDashboard() {
                 >
                   <div className="p-2 border-r border-border sticky left-0 bg-muted/70 z-10 flex flex-col justify-center">
                     <div className="text-[9px] uppercase text-muted-foreground/70 font-normal leading-4">Total Bruto</div>
+                    <div className="text-[9px] uppercase text-muted-foreground/60 font-normal leading-4">P.C Total</div>
                     <div className="text-xs uppercase text-purple-600 dark:text-purple-400 leading-4">Tutores</div>
                     <div className="text-xs uppercase text-sky-500 dark:text-sky-400 leading-4">Agencia</div>
                   </div>
@@ -385,6 +386,9 @@ export default function AdminDashboard() {
                           <>
                             <div className="text-[9px] text-muted-foreground/70 font-normal tabular-nums leading-4">
                               {fmt(tutorsWithAnyPayment.reduce((sum, t) => sum + (matrix[t.id]?.[w.id]?.grossIncome ?? 0), 0))}
+                            </div>
+                            <div className="text-[9px] text-muted-foreground/60 font-normal tabular-nums leading-4">
+                              ${(Number(w.advertisingCost ?? 0) / 2).toFixed(2)}
                             </div>
                             <div className={`font-bold leading-4 ${colTutor >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>
                               {fmt(colTutor)}
