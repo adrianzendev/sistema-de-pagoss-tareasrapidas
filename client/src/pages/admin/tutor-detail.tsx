@@ -51,8 +51,8 @@ function WeekPayments({ tutorId, weekId }: { tutorId: string; weekId: string }) 
     },
   });
 
-  const fmtAmt = (amount: string, symbol: string) =>
-    `${symbol}${new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(amount))}`;
+  const fmtAmt = (amount: string, code: string) =>
+    `${code} ${new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(amount))}`;
 
   if (isLoading) {
     return (
@@ -87,11 +87,10 @@ function WeekPayments({ tutorId, weekId }: { tutorId: string; weekId: string }) 
             </td>
             <td className="px-3 py-2 text-muted-foreground">{p.clientNumber}</td>
             <td className="px-3 py-2 tabular-nums">
-              <span className="font-medium">{fmtAmt(p.amount, p.currency?.symbol ?? "$")}</span>
-              <span className="text-muted-foreground ml-1 text-[10px]">{p.currency?.code}</span>
+              <span className="font-medium">{fmtAmt(p.amount, p.currency?.code ?? "USD")}</span>
             </td>
             <td className="px-3 py-2 tabular-nums text-muted-foreground">
-              {rate !== 1 ? `S/. ${amountSoles.toFixed(2)}` : "—"}
+              {rate !== 1 ? `PEN ${amountSoles.toFixed(2)}` : "—"}
             </td>
             <td className="px-3 py-2 tabular-nums text-muted-foreground/70 text-[10px]">
               {rate !== 1 ? (
@@ -133,9 +132,9 @@ export default function TutorDetailPage() {
   });
 
   const fmt = (n: number) =>
-    "S/. " + new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+    "PEN " + new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
   const fmtUsd = (n: number) =>
-    "$" + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+    "USD " + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
   const markPaidMutation = useMutation({
     mutationFn: ({ weekId }: { weekId: string }) =>
@@ -291,7 +290,7 @@ export default function TutorDetailPage() {
                           const entry = cell?.currencies?.find(x => x.code === c.code);
                           return (
                             <td key={c.code} className="p-3 text-right tabular-nums text-xs text-amber-700 dark:text-amber-400">
-                              {entry ? `${c.symbol}${new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(entry.total)}` : "—"}
+                              {entry ? `${c.code} ${new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(entry.total)}` : "—"}
                             </td>
                           );
                         })}
@@ -339,7 +338,7 @@ export default function TutorDetailPage() {
                     const total = tutorRows.reduce((s, r) => s + (r.cell?.currencies?.find(x => x.code === c.code)?.total ?? 0), 0);
                     return (
                       <td key={c.code} className="p-3 text-right tabular-nums text-xs text-amber-700 dark:text-amber-400">
-                        {`${c.symbol}${new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(total)}`}
+                        {`${c.code} ${new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(total)}`}
                       </td>
                     );
                   })}

@@ -62,7 +62,7 @@ export default function AdminDashboard() {
   });
 
   const fmt = (n: number) =>
-    "S/. " + new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+    "PEN " + new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
   const StatCard = ({
     title,
@@ -301,7 +301,7 @@ export default function AdminDashboard() {
                         <div className="text-[10px] text-muted-foreground">{tutor.commissionPercent}%</div>
                         {Number((tutor as any).advertisingCostUsd ?? 0) > 0 && (
                           <div className="text-[9px] text-muted-foreground">
-                            P.C: ${(Number((tutor as any).advertisingCostUsd) / 2).toFixed(2)}
+                            P.C: USD {(Number((tutor as any).advertisingCostUsd) / 2).toFixed(2)}
                           </div>
                         )}
                       </div>
@@ -388,7 +388,7 @@ export default function AdminDashboard() {
                             <div className="text-[9px] text-muted-foreground/60 font-normal tabular-nums leading-4">
                               {(() => {
                                 const total = tutorsWithAnyPayment.reduce((sum, t) => sum + Number(t.advertisingCostUsd ?? 0), 0);
-                                return `$${total.toFixed(2)} ÷2 = $${(total / 2).toFixed(2)}`;
+                                return `USD ${total.toFixed(2)} ÷2 = USD ${(total / 2).toFixed(2)}`;
                               })()}
                             </div>
                             <div className={`font-bold leading-4 ${colTutor >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>
