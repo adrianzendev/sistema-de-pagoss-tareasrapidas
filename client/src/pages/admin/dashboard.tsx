@@ -42,7 +42,7 @@ type SettlementsMatrix = {
   weekPaidMap: Record<string, string[]>;
 };
 
-type TutorRow = { id: string; name: string; commissionPercent: string; advertisingCostUsd?: string };
+type TutorRow = { id: string; name: string; commissionPercent: string };
 
 export default function AdminDashboard() {
   const [period, setPeriod] = useState("all");

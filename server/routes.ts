@@ -181,14 +181,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.patch("/api/admin/tutors/:id", requireAdmin, async (req, res) => {
     try {
-      const { name, email, password: rawPassword, commissionPercent, advertisingCostUsd, isActive } = req.body;
+      const { name, email, password: rawPassword, commissionPercent, isActive } = req.body;
       const existing = await storage.getUser(req.params.id);
       if (!existing) return res.status(404).json({ message: "Tutor no encontrado" });
       const updateData: any = {};
       if (name) updateData.name = name;
       if (email) updateData.email = email;
       if (commissionPercent !== undefined) updateData.commissionPercent = commissionPercent;
-      if (advertisingCostUsd !== undefined) updateData.advertisingCostUsd = advertisingCostUsd;
       if (isActive !== undefined) {
         updateData.isActive = isActive;
         if (isActive === true && existing.isActive !== true) {

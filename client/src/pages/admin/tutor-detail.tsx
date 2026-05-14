@@ -24,7 +24,7 @@ type MatrixCell = {
 
 type SettlementsMatrix = {
   weeks: Week[];
-  tutors: Array<{ id: string; name: string; commissionPercent: string; advertisingCostUsd?: string }>;
+  tutors: Array<{ id: string; name: string; commissionPercent: string }>;
   matrix: Record<string, Record<string, MatrixCell>>;
   weekPaidMap: Record<string, string[]>;
   tutorWeekAdvMap: Record<string, Record<string, number>>;
