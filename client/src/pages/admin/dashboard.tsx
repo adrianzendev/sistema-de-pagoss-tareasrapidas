@@ -327,11 +327,6 @@ export default function AdminDashboard() {
                           >
                             {showCell ? (
                               <>
-                                {(cell?.currencies ?? []).map((ct: { code: string; symbol: string; total: number }) => (
-                                  <div key={ct.code} className="text-[9px] text-muted-foreground/70 tabular-nums">
-                                    {ct.symbol}{ct.total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                  </div>
-                                ))}
                                 <div className={`text-xs font-bold ${tutorE >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>
                                   {fmt(tutorE)}
                                 </div>
