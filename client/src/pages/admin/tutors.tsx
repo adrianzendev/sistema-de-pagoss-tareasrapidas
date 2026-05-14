@@ -474,7 +474,7 @@ export default function TutorsPage() {
                     <TableHead>Email</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead className="text-right">Comisión</TableHead>
-                    <TableHead className="text-right">P.C sem. actual</TableHead>
+                    <TableHead className="text-right">Publicidad/sem</TableHead>
                     <TableHead>Registrado</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
