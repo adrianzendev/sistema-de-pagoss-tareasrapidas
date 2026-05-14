@@ -227,12 +227,12 @@ export default function TutorPaymentsPage() {
       )}
 
       <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>Comprobante de Pago</DialogTitle>
           </DialogHeader>
           {previewImage && (
-            <div className="overflow-y-auto max-h-[80vh]">
+            <div className="overflow-y-auto flex-1">
               <img
                 src={previewImage}
                 alt="Comprobante"

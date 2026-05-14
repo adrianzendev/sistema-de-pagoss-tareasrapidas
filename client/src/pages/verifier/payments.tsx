@@ -464,12 +464,12 @@ export default function VerifierPaymentsPage() {
       </Dialog>
 
       <Dialog open={!!previewImage} onOpenChange={(open) => { if (!open) setPreviewImage(null); }}>
-        <DialogContent className="sm:max-w-lg p-2">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-lg p-2 max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0 px-2 pt-2">
             <DialogTitle>Prueba de Pago</DialogTitle>
           </DialogHeader>
           {previewImage && (
-            <div className="overflow-y-auto max-h-[80vh]">
+            <div className="overflow-y-auto flex-1 px-2 pb-2">
               <img src={previewImage} alt="Prueba de pago" className="w-full rounded-lg" />
             </div>
           )}
