@@ -137,21 +137,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Admin: Tutors
   app.get("/api/admin/tutors", requireAdmin, async (req, res) => {
     const tutors = await storage.getTutors();
-    const currentWeek = await storage.getCurrentWeek();
-    const currentWeekAdvMap: Record<string, number> = {};
-    if (currentWeek) {
-      const allAdv = await storage.getAllTutorWeekAdvertising();
-      for (const entry of allAdv) {
-        if (entry.weekId === currentWeek.id) {
-          currentWeekAdvMap[entry.tutorId] = Number(entry.advertisingCostUsd);
-        }
-      }
-    }
-    res.json(tutors.map(({ password, ...t }) => ({
-      ...t,
-      currentWeekAdv: currentWeekAdvMap[t.id] ?? 0,
-      currentWeekId: currentWeek?.id ?? null,
-    })));
+    res.json(tutors.map(({ password, ...t }) => t));
   });
 
   app.get("/api/admin/tutors/:id/payments", requireAdmin, async (req, res) => {
@@ -167,8 +153,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/admin/tutors", requireAdmin, async (req, res) => {
     try {
-      const { advertisingCostUsd: advCost, ...restBody } = req.body;
-      const validatedData = createTutorSchema.parse(restBody);
+      const validatedData = createTutorSchema.parse(req.body);
       const username = validatedData.email.split("@")[0].toLowerCase().replace(/[^a-z0-9.]/g, "");
       const existing = await storage.getUserByUsername(username);
       if (existing) {
@@ -182,12 +167,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         password: hashedPassword,
         activatedAt: validatedData.isActive !== false ? new Date() : null,
       });
-      if (advCost !== undefined && Number(advCost) >= 0) {
-        const currentWeek = await storage.getCurrentWeek();
-        if (currentWeek) {
-          await storage.setTutorWeekAdvertising(tutor.id, currentWeek.id, Number(advCost));
-        }
-      }
       const { password, ...safeTutor } = tutor;
       res.status(201).json(safeTutor);
     } catch (error) {
@@ -216,6 +195,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         }
       }
       if (rawPassword) updateData.password = await bcrypt.hash(rawPassword, 10);
+      if (advCost !== undefined) updateData.advertisingCostUsd = String(Number(advCost));
       const [updated] = await db.update(users).set(updateData).where(eq(users.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Tutor no encontrado" });
       if (commissionPercent !== undefined && Number(commissionPercent) !== Number(existing.commissionPercent)) {
@@ -227,12 +207,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           oldValue: String(existing.commissionPercent),
           newValue: String(commissionPercent),
         }).catch(console.error);
-      }
-      if (advCost !== undefined && Number(advCost) >= 0) {
-        const currentWeek = await storage.getCurrentWeek();
-        if (currentWeek) {
-          await storage.setTutorWeekAdvertising(req.params.id, currentWeek.id, Number(advCost));
-        }
       }
       const { password, ...safe } = updated;
       res.json(safe);
@@ -792,7 +766,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const commission = Number(tutor.commissionPercent) / 100;
         const isActiveForWeek = tutor.isActive !== false && (!tutor.activatedAt || new Date(tutor.activatedAt) <= weekEnd);
         const sharedAdvShare = isActiveForWeek ? tutorAdvertisingShare : 0;
-        const ownAdvUsd = weekAdvByTutor[tutor.id] ?? 0;
+        const ownAdvUsd = weekAdvByTutor[tutor.id] ?? Number(tutor.advertisingCostUsd ?? 0);
         const ownAdvShare = isActiveForWeek ? ownAdvUsd * usdRate * 0.5 : 0;
         const totalAdvShare = sharedAdvShare + ownAdvShare;
         const netIncome = grossIncome * commission;
@@ -903,8 +877,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const commission = Number(tutor.commissionPercent) / 100;
           const tutorIsActive = tutor.isActive !== false && (!tutor.activatedAt || new Date(tutor.activatedAt) <= weekEndDate);
           const sharedAdvShare = tutorIsActive ? weekTutorAdShare : 0;
-          // Use per-week advertising only — no global fallback
-          const weekOwnAdv = tutorWeekAdvMap[tutor.id]?.[week.id] ?? 0;
+          const weekOwnAdv = tutorWeekAdvMap[tutor.id]?.[week.id] ?? Number(tutor.advertisingCostUsd ?? 0);
           const ownAdvShare = tutorIsActive ? weekOwnAdv * usdRate * 0.5 : 0;
           const totalAdvShare = sharedAdvShare + ownAdvShare;
           const netIncome = grossIncome * commission;

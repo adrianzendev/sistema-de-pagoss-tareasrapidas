@@ -24,7 +24,7 @@ type MatrixCell = {
 
 type SettlementsMatrix = {
   weeks: Week[];
-  tutors: Array<{ id: string; name: string; commissionPercent: string }>;
+  tutors: Array<{ id: string; name: string; commissionPercent: string; advertisingCostUsd?: string }>;
   matrix: Record<string, Record<string, MatrixCell>>;
   weekPaidMap: Record<string, string[]>;
   tutorWeekAdvMap: Record<string, Record<string, number>>;
@@ -343,7 +343,7 @@ export default function TutorDetailPage() {
                               <button
                                 className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
                                 onClick={() => {
-                                  const current = tutorWeekAdvMap[tutor.id]?.[week.id] ?? 0;
+                                  const current = tutorWeekAdvMap[tutor.id]?.[week.id] ?? Number(tutor.advertisingCostUsd ?? 0);
                                   setAdvInput(String(current));
                                   setEditingAdv(week.id);
                                 }}

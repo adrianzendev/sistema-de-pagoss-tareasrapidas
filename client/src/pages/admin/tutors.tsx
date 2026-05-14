@@ -30,7 +30,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type TutorRow = User & { currentWeekAdv: number; currentWeekId: string | null };
+type TutorRow = User;
 
 const createTutorSchema = z.object({
   name: z.string().min(2, "Nombre debe tener al menos 2 caracteres"),
@@ -161,7 +161,7 @@ export default function TutorsPage() {
       email: tutor.email,
       password: "",
       commissionPercent: tutor.commissionPercent,
-      advertisingCostUsd: String(tutor.currentWeekAdv ?? 0),
+      advertisingCostUsd: String(tutor.advertisingCostUsd ?? 0),
       isActive: tutor.isActive !== false,
     });
   };
@@ -268,7 +268,7 @@ export default function TutorsPage() {
                         </div>
                       </FormControl>
                       <AdvertisingPreview value={createAdvWatch} />
-                      <FormDescription className="text-xs">Costo P.C para la semana actual. 0 = sin publicidad.</FormDescription>
+                      <FormDescription className="text-xs">Valor por defecto. Aplica a semanas sin P.C asignado. 0 = sin publicidad.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -392,8 +392,7 @@ export default function TutorsPage() {
                       </FormControl>
                       <AdvertisingPreview value={editAdvWatch} />
                       <FormDescription className="text-xs">
-                        Costo P.C para la semana actual. 0 = sin publicidad.
-                        {!editingTutor?.currentWeekId && " (Sin semana activa — no tendrá efecto)"}
+                        Valor por defecto. Aplica a semanas sin P.C asignado. 0 = sin publicidad.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -496,8 +495,8 @@ export default function TutorsPage() {
                         <Badge variant="outline">{tutor.commissionPercent}%</Badge>
                       </TableCell>
                       <TableCell className="text-right tabular-nums text-xs text-muted-foreground" data-testid={`text-adv-tutor-${tutor.id}`}>
-                        {(tutor.currentWeekAdv ?? 0) > 0
-                          ? `USD ${Number(tutor.currentWeekAdv).toFixed(2)}`
+                        {Number(tutor.advertisingCostUsd ?? 0) > 0
+                          ? `USD ${Number(tutor.advertisingCostUsd).toFixed(2)}`
                           : <span className="opacity-40">—</span>}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground" data-testid={`text-created-tutor-${tutor.id}`}>
