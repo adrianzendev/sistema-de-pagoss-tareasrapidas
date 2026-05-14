@@ -49,6 +49,7 @@ type WeekGroup = {
   payments: PaymentWithDetails[];
   verifiedTotals: { code: string; total: number }[];
   pendingCount: number;
+  tutorTotals: { name: string; totals: { code: string; total: number }[] }[];
 };
 
 function groupPaymentsByWeek(payments: PaymentWithDetails[], weeks: Week[]): WeekGroup[] {
@@ -72,12 +73,20 @@ function groupPaymentsByWeek(payments: PaymentWithDetails[], weeks: Week[]): Wee
     const endLabel = format(end, "d MMM", { locale: es });
 
     const verifiedMap: Record<string, number> = {};
+    const tutorMap: Record<string, Record<string, number>> = {};
     for (const p of weekPayments) {
       if (p.status === "verified" && p.currency?.code) {
         verifiedMap[p.currency.code] = (verifiedMap[p.currency.code] ?? 0) + Number(p.amount);
+        const name = p.tutor?.name ?? "—";
+        if (!tutorMap[name]) tutorMap[name] = {};
+        tutorMap[name][p.currency.code] = (tutorMap[name][p.currency.code] ?? 0) + Number(p.amount);
       }
     }
     const verifiedTotals = Object.entries(verifiedMap).map(([code, total]) => ({ code, total }));
+    const tutorTotals = Object.entries(tutorMap).map(([name, map]) => ({
+      name,
+      totals: Object.entries(map).map(([code, total]) => ({ code, total })),
+    }));
     const pendingCount = weekPayments.filter(p => p.status === "pending").length;
 
     groups.push({
@@ -85,6 +94,7 @@ function groupPaymentsByWeek(payments: PaymentWithDetails[], weeks: Week[]): Wee
       dateRange: `${startLabel} – ${endLabel}`,
       payments: weekPayments,
       verifiedTotals,
+      tutorTotals,
       pendingCount,
     });
   }
@@ -92,9 +102,13 @@ function groupPaymentsByWeek(payments: PaymentWithDetails[], weeks: Week[]): Wee
   const unassigned = payments.filter(p => !assigned.has(p.id));
   if (unassigned.length > 0) {
     const verifiedMap: Record<string, number> = {};
+    const tutorMap: Record<string, Record<string, number>> = {};
     for (const p of unassigned) {
       if (p.status === "verified" && p.currency?.code) {
         verifiedMap[p.currency.code] = (verifiedMap[p.currency.code] ?? 0) + Number(p.amount);
+        const name = p.tutor?.name ?? "—";
+        if (!tutorMap[name]) tutorMap[name] = {};
+        tutorMap[name][p.currency.code] = (tutorMap[name][p.currency.code] ?? 0) + Number(p.amount);
       }
     }
     groups.push({
@@ -102,6 +116,10 @@ function groupPaymentsByWeek(payments: PaymentWithDetails[], weeks: Week[]): Wee
       dateRange: "",
       payments: unassigned,
       verifiedTotals: Object.entries(verifiedMap).map(([code, total]) => ({ code, total })),
+      tutorTotals: Object.entries(tutorMap).map(([name, map]) => ({
+        name,
+        totals: Object.entries(map).map(([code, total]) => ({ code, total })),
+      })),
       pendingCount: unassigned.filter(p => p.status === "pending").length,
     });
   }
@@ -113,29 +131,30 @@ function WeekSeparatorRow({ group }: { group: WeekGroup }) {
   const hasVerified = group.verifiedTotals.length > 0;
   return (
     <TableRow className="hover:bg-transparent border-0" data-testid={`week-header-${group.weekLabel}`}>
-      <TableCell colSpan={8} className="py-1.5 px-1">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 min-w-0">
+      <TableCell colSpan={8} className="py-2 px-1">
+        <div className="flex items-start gap-2">
+          <div className="flex items-center gap-1.5 min-w-0 pt-0.5">
             <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <span className="text-sm font-semibold text-foreground">{group.weekLabel}</span>
             {group.dateRange && (
               <span className="text-xs text-muted-foreground">{group.dateRange}</span>
             )}
           </div>
-          <div className="flex-1 h-px bg-border" />
-          <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
+          <div className="flex-1 h-px bg-border mt-2.5" />
+          <div className="flex flex-col items-end gap-0.5 shrink-0 text-xs text-muted-foreground">
             {group.pendingCount > 0 && (
               <span className="font-medium text-amber-600 dark:text-amber-400">
                 {group.pendingCount} pendiente{group.pendingCount !== 1 ? "s" : ""}
               </span>
             )}
-            {hasVerified && (
-              <span className="font-medium text-green-600 dark:text-green-400">
-                ✓ {group.verifiedTotals.map(v =>
+            {hasVerified && group.tutorTotals.map(t => (
+              <span key={t.name} className="text-foreground/70">
+                <span className="font-medium text-foreground/90">{t.name}:</span>{" "}
+                {t.totals.map(v =>
                   `${v.code} ${v.total.toLocaleString("es-PE", { minimumFractionDigits: 2 })}`
                 ).join(" · ")}
               </span>
-            )}
+            ))}
             {!hasVerified && group.pendingCount === 0 && (
               <span className="italic">sin verificados</span>
             )}
