@@ -27,7 +27,7 @@ import {
   normalizePhone,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
+import { eq, desc, and, sql, gte, lte, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -50,11 +50,13 @@ export interface IStorage {
 
   // Payments
   getPayments(period?: string): Promise<PaymentWithDetails[]>;
+  getPaymentById(id: string): Promise<Payment | undefined>;
   getPaymentsByTutor(tutorId: string): Promise<PaymentWithDetails[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePaymentStatus(id: string, status: string, verifiedBy: string, notes?: string): Promise<Payment | undefined>;
   deletePayment(id: string): Promise<void>;
   getPaymentsByVerifier(verifierId: string): Promise<PaymentWithDetails[]>;
+  getCurrenciesByVerifier(verifierId: string): Promise<Currency[]>;
 
   // Blacklist
   getBlacklist(): Promise<Blacklist[]>;
@@ -232,6 +234,11 @@ export class DatabaseStorage implements IStorage {
     return payment;
   }
 
+  async getPaymentById(id: string): Promise<Payment | undefined> {
+    const [payment] = await db.select().from(payments).where(eq(payments.id, id));
+    return payment;
+  }
+
   async updatePaymentStatus(id: string, status: string, verifiedBy: string, notes?: string): Promise<Payment | undefined> {
     const updateData: any = {
       status: status as "pending" | "verified" | "rejected",
@@ -253,23 +260,24 @@ export class DatabaseStorage implements IStorage {
     await db.delete(payments).where(eq(payments.id, id));
   }
 
+  async getCurrenciesByVerifier(verifierId: string): Promise<Currency[]> {
+    return db.select().from(currencies).where(eq(currencies.verifierId, verifierId));
+  }
+
   async getPaymentsByVerifier(verifierId: string): Promise<PaymentWithDetails[]> {
-    const verifierCurrencies = await db.select().from(currencies).where(eq(currencies.verifierId, verifierId));
+    const verifierCurrencies = await this.getCurrenciesByVerifier(verifierId);
     const currencyIds = verifierCurrencies.map(c => c.id);
-    
     if (currencyIds.length === 0) return [];
-    
-    const result = await db.select().from(payments)
-      .where(sql`${payments.currencyId} IN (${sql.join(currencyIds.map(id => sql`${id}`), sql`, `)})`)
+
+    const rows = await db
+      .select({ payment: payments, tutor: users, currency: currencies })
+      .from(payments)
+      .leftJoin(users, eq(payments.tutorId, users.id))
+      .leftJoin(currencies, eq(payments.currencyId, currencies.id))
+      .where(inArray(payments.currencyId, currencyIds))
       .orderBy(desc(payments.createdAt));
-    
-    const paymentDetails: PaymentWithDetails[] = [];
-    for (const payment of result) {
-      const [tutor] = await db.select().from(users).where(eq(users.id, payment.tutorId));
-      const [currency] = await db.select().from(currencies).where(eq(currencies.id, payment.currencyId));
-      paymentDetails.push({ ...payment, tutor, currency });
-    }
-    return paymentDetails;
+
+    return rows.map(r => ({ ...r.payment, tutor: r.tutor ?? undefined, currency: r.currency ?? undefined }));
   }
 
   // Blacklist

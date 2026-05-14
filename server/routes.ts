@@ -884,19 +884,24 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.patch("/api/verifier/payments/:id", requireVerifier, async (req, res) => {
-    const { status, notes } = req.body;
+    const { status } = req.body;
     if (!["verified", "rejected"].includes(status)) {
       return res.status(400).json({ message: "Estado inválido" });
     }
-    const verifierPayments = await storage.getPaymentsByVerifier(req.session.userId!);
-    const ownsPayment = verifierPayments.some(p => p.id === req.params.id);
-    if (!ownsPayment) {
+    const [existing, verifierCurrencies] = await Promise.all([
+      storage.getPaymentById(req.params.id),
+      storage.getCurrenciesByVerifier(req.session.userId!),
+    ]);
+    if (!existing) {
+      return res.status(404).json({ message: "Pago no encontrado" });
+    }
+    const ownedCurrency = verifierCurrencies.find(c => c.id === existing.currencyId);
+    if (!ownedCurrency) {
       return res.status(403).json({ message: "No tienes permiso para modificar este pago" });
     }
-    const payment = await storage.updatePaymentStatus(req.params.id, status, req.session.userId!, notes);
-    if (payment && (status === "verified" || status === "rejected")) {
-      const currency = await storage.getCurrency(payment.currencyId);
-      notifyPaymentStatusChange(payment.tutorId, status, payment.amount, currency?.code || "").catch(console.error);
+    const payment = await storage.updatePaymentStatus(req.params.id, status, req.session.userId!);
+    if (payment) {
+      notifyPaymentStatusChange(payment.tutorId, status, payment.amount, ownedCurrency.code).catch(console.error);
     }
     res.json(payment);
   });
