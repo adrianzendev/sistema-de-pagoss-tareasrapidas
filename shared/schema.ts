@@ -43,6 +43,7 @@ export const payments = pgTable("payments", {
   proofImage: text("proof_image"),
   status: paymentStatusEnum("status").notNull().default("pending"),
   notes: text("notes"),
+  exchangeRateSnapshot: decimal("exchange_rate_snapshot", { precision: 12, scale: 4 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   verifiedAt: timestamp("verified_at"),
   verifiedBy: varchar("verified_by").references(() => users.id),

@@ -563,6 +563,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       const data = insertPaymentSchema.parse({ ...req.body, tutorId: user.id });
+      const currency = await storage.getCurrency(data.currencyId);
       const normalized = normalizePhone(data.clientNumber);
       if (normalized) {
         const existingClient = await storage.getClientByNormalizedPhone(normalized);
@@ -573,8 +574,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           });
         }
       }
-      const payment = await storage.createPayment(data);
-      const currency = await storage.getCurrency(data.currencyId);
+      const payment = await storage.createPayment({
+        ...data,
+        exchangeRateSnapshot: currency ? String(currency.exchangeRate) : null,
+      });
       notifyNewPaymentRequest(user.name, data.amount, currency?.code || "", currency?.verifierId).catch(console.error);
       res.status(201).json(payment);
     } catch (error) {
@@ -706,7 +709,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         let grossIncome = 0;
         tutorPayments.forEach(p => {
           const currency = allCurrencies.find(c => c.id === p.currencyId);
-          const rate = Number(currency?.exchangeRate ?? 1);
+          const rate = Number((p as any).exchangeRateSnapshot ?? currency?.exchangeRate ?? 1);
           grossIncome += Number(p.amount) * rate;
         });
 
@@ -804,7 +807,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const cellCurrencies: Record<string, { code: string; symbol: string; total: number }> = {};
           tutorPayments.forEach(p => {
             const currency = allCurrencies.find(c => c.id === p.currencyId);
-            const rate = Number(currency?.exchangeRate ?? 1);
+            const rate = Number((p as any).exchangeRateSnapshot ?? currency?.exchangeRate ?? 1);
             grossIncome += Number(p.amount) * rate;
             if (currency) {
               const sym = currency.code === "USD" ? "$" : currency.code === "PEN" ? "S/." : currency.code;
