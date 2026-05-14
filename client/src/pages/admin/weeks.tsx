@@ -284,7 +284,7 @@ export default function WeeksPage() {
                 <TableRow>
                   <TableHead>Semana</TableHead>
                   <TableHead>Período</TableHead>
-                  <TableHead>Publicidad Compartida</TableHead>
+                  <TableHead>Publicidad Total</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
@@ -401,7 +401,7 @@ export default function WeeksPage() {
             <div className="space-y-2">
               <Label className="flex items-center gap-1">
                 <DollarSign className="h-4 w-4 text-green-600" />
-                Publicidad Compartida (USD)
+                Publicidad (USD) — costo total
               </Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
@@ -412,25 +412,34 @@ export default function WeeksPage() {
                   value={sharedAdvertisingUsd}
                   onChange={(e) => setSharedAdvertisingUsd(e.target.value)}
                   className="pl-7"
+                  placeholder="0.00"
                   data-testid="input-advertising-cost"
                 />
               </div>
-              {Number(sharedAdvertisingUsd) > 0 && (
-                <div className="text-xs text-muted-foreground space-y-1 p-2 bg-muted rounded-md">
-                  <p>Tipo de cambio USD: <span className="font-mono font-medium">S/ {formatCurrency(usdRate)}</span></p>
-                  <p>Total en soles: <span className="font-mono font-medium text-foreground">S/ {formatCurrency(advertisingInSoles)}</span></p>
-                  <p className="text-blue-600 dark:text-blue-400 font-medium">
-                    Agencia paga: S/ {formatCurrency(advertisingInSoles * 0.5)} · Tutores pagan: S/ {formatCurrency(advertisingInSoles * 0.5)}
-                  </p>
-                  <p className="text-orange-600 dark:text-orange-400 font-medium">
-                    Aprox. por tutor: S/ {formatCurrency((advertisingInSoles * 0.5) / tutorCount)}
-                    <span className="text-muted-foreground font-normal ml-1">({tutorCount} tutores activos estimados)</span>
-                  </p>
+              {Number(sharedAdvertisingUsd) > 0 ? (
+                <div className="text-xs space-y-1 p-3 bg-muted rounded-md border">
+                  <p className="font-semibold text-foreground mb-2">Desglose del costo:</p>
+                  <div className="grid grid-cols-2 gap-1">
+                    <span className="text-muted-foreground">Total USD ingresado:</span>
+                    <span className="font-mono font-bold text-right">${formatCurrency(Number(sharedAdvertisingUsd))}</span>
+                    <span className="text-muted-foreground">Total en soles:</span>
+                    <span className="font-mono font-bold text-right">S/ {formatCurrency(advertisingInSoles)}</span>
+                    <span className="text-blue-600 dark:text-blue-400">Agencia paga (50%):</span>
+                    <span className="font-mono font-bold text-right text-blue-600 dark:text-blue-400">S/ {formatCurrency(advertisingInSoles * 0.5)}</span>
+                    <span className="text-destructive">Tutores pagan (50%):</span>
+                    <span className="font-mono font-bold text-right text-destructive">S/ {formatCurrency(advertisingInSoles * 0.5)}</span>
+                    <span className="text-orange-600 dark:text-orange-400">Aprox. por tutor:</span>
+                    <span className="font-mono font-bold text-right text-orange-600 dark:text-orange-400">
+                      S/ {formatCurrency((advertisingInSoles * 0.5) / tutorCount)}
+                      <span className="font-normal ml-1 text-[10px] text-muted-foreground">({tutorCount} tutores)</span>
+                    </span>
+                  </div>
                 </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Ingresa el costo total. El sistema divide en 2: 50% agencia · 50% tutores activos
+                </p>
               )}
-              <p className="text-xs text-muted-foreground">
-                El 50% lo asume la agencia y el 50% se distribuye entre los tutores activos de la semana
-              </p>
             </div>
             <div className="space-y-2">
               <Label>Estado</Label>
