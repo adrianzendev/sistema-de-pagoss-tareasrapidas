@@ -102,6 +102,7 @@ export default function AdminDashboard() {
   const tutors = matrixData?.tutors ?? [];
   const matrix = matrixData?.matrix ?? {};
   const currencyTotals = matrixData?.currencyTotals ?? [];
+  const weekCurrencyTotals: Record<string, Record<string, { code: string; symbol: string; total: number }>> = matrixData?.weekCurrencyTotals ?? {};
 
   const tutorsWithAnyPayment = tutors.filter(t => t.isActive !== false);
 
@@ -371,6 +372,7 @@ export default function AdminDashboard() {
                       (sum, t) => sum + (matrix[t.id]?.[w.id]?.agencyEarnings ?? 0), 0
                     );
                     const anyPayments = tutorsWithAnyPayment.some(t => (matrix[t.id]?.[w.id]?.paymentCount ?? 0) > 0);
+                    const wkCurrencies = Object.values(weekCurrencyTotals[w.id] ?? {});
                     return (
                       <div key={w.id} className="p-2 text-right text-xs border-r border-border last:border-r-0">
                         {anyPayments ? (
@@ -381,6 +383,11 @@ export default function AdminDashboard() {
                             <div className={`font-medium ${colAgency >= 0 ? "text-sky-500 dark:text-sky-400" : "text-red-500 dark:text-red-400"}`}>
                               {fmt(colAgency)}
                             </div>
+                            {wkCurrencies.map(ct => (
+                              <div key={ct.code} className="text-[9px] text-muted-foreground/70 font-normal tabular-nums">
+                                {ct.symbol}{ct.total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </div>
+                            ))}
                           </>
                         ) : (
                           <span className="text-muted-foreground/30">—</span>
