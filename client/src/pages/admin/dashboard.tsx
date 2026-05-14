@@ -296,7 +296,7 @@ export default function AdminDashboard() {
                       {/* Tutor name cell */}
                       <div className={`p-3 border-r border-border sticky left-0 z-10 ${rowIdx % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>
                         <Link href={`/admin/tutors/${tutor.id}/detail`}>
-                          <div className="font-semibold text-sm truncate text-purple-600 dark:text-purple-400 hover:underline cursor-pointer">{tutor.name}</div>
+                          <div className="font-semibold text-sm truncate text-purple-600 hover:underline cursor-pointer">{tutor.name}</div>
                         </Link>
                         <div className="text-[10px] text-muted-foreground">{tutor.commissionPercent}%</div>
                         {Number((tutor as any).advertisingCostUsd ?? 0) > 0 && (
