@@ -374,7 +374,7 @@ export default function AdminDashboard() {
                 >
                   <div className="p-2 border-r border-border sticky left-0 bg-muted/70 z-10 flex flex-col justify-center">
                     <div className="text-[9px] uppercase text-muted-foreground/70 font-normal leading-4">Total Bruto</div>
-                    <div className="text-[9px] uppercase text-muted-foreground/60 font-normal leading-4">P.C Total</div>
+                    <div className="text-[9px] uppercase text-muted-foreground/60 font-normal leading-4">Publicidad Total</div>
                     <div className="text-xs uppercase text-purple-600 dark:text-purple-400 leading-4">Tutores</div>
                     <div className="text-xs uppercase text-sky-500 dark:text-sky-400 leading-4">Agencia</div>
                   </div>
@@ -396,15 +396,13 @@ export default function AdminDashboard() {
                             </div>
                             <div className="text-[9px] text-muted-foreground/60 font-normal tabular-nums leading-4 flex items-center justify-end gap-1">
                               {(() => {
-                                const total = tutorsWithAnyPayment.reduce(
-                                  (sum, t) => sum + (matrix[t.id]?.[w.id]?.tutorAdvertisingShare ?? 0), 0
-                                );
-                                if (total <= 0) return "—";
-                                const usd = total / usdRate;
+                                const usd = Number(w.sharedAdvertisingUsd ?? 0);
+                                if (usd <= 0) return "—";
+                                const pen = usd * usdRate;
                                 return (
                                   <>
                                     <span className="text-muted-foreground/40">−USD {usd.toFixed(2)}</span>
-                                    <span>{`−${fmt(total)}`}</span>
+                                    <span>{`−${fmt(pen)}`}</span>
                                   </>
                                 );
                               })()}
