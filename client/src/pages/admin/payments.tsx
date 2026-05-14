@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { PaymentWithDetails } from "@shared/schema";
+import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { es } from "date-fns/locale";
+import { PaymentWithDetails, Week } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,8 +13,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import {
   Search,
   CheckCircle,
@@ -42,6 +42,109 @@ const statusLabels = {
   refunded: { label: "Reembolsado", variant: "outline" as const, icon: XCircle },
 };
 
+type WeekGroup = {
+  weekLabel: string;
+  dateRange: string;
+  payments: PaymentWithDetails[];
+  verifiedTotals: { code: string; total: number }[];
+  pendingCount: number;
+};
+
+function groupPaymentsByWeek(payments: PaymentWithDetails[], weeks: Week[]): WeekGroup[] {
+  const sortedWeeks = [...weeks].sort((a, b) => b.weekNumber - a.weekNumber);
+
+  const groups: WeekGroup[] = [];
+  const assigned = new Set<string>();
+
+  for (const week of sortedWeeks) {
+    const start = startOfDay(parseISO(week.startDate));
+    const end = endOfDay(parseISO(week.endDate));
+    const weekPayments = payments.filter(p => {
+      if (assigned.has(p.id)) return false;
+      const date = new Date(p.createdAt);
+      return isWithinInterval(date, { start, end });
+    });
+    if (weekPayments.length === 0) continue;
+    weekPayments.forEach(p => assigned.add(p.id));
+
+    const startLabel = format(start, "d MMM", { locale: es });
+    const endLabel = format(end, "d MMM", { locale: es });
+
+    const verifiedMap: Record<string, number> = {};
+    for (const p of weekPayments) {
+      if (p.status === "verified" && p.currency?.code) {
+        verifiedMap[p.currency.code] = (verifiedMap[p.currency.code] ?? 0) + Number(p.amount);
+      }
+    }
+    const verifiedTotals = Object.entries(verifiedMap).map(([code, total]) => ({ code, total }));
+    const pendingCount = weekPayments.filter(p => p.status === "pending").length;
+
+    groups.push({
+      weekLabel: `S${week.weekNumber}`,
+      dateRange: `${startLabel} – ${endLabel}`,
+      payments: weekPayments,
+      verifiedTotals,
+      pendingCount,
+    });
+  }
+
+  const unassigned = payments.filter(p => !assigned.has(p.id));
+  if (unassigned.length > 0) {
+    const verifiedMap: Record<string, number> = {};
+    for (const p of unassigned) {
+      if (p.status === "verified" && p.currency?.code) {
+        verifiedMap[p.currency.code] = (verifiedMap[p.currency.code] ?? 0) + Number(p.amount);
+      }
+    }
+    groups.push({
+      weekLabel: "Sin semana",
+      dateRange: "",
+      payments: unassigned,
+      verifiedTotals: Object.entries(verifiedMap).map(([code, total]) => ({ code, total })),
+      pendingCount: unassigned.filter(p => p.status === "pending").length,
+    });
+  }
+
+  return groups;
+}
+
+function WeekSeparatorRow({ group }: { group: WeekGroup }) {
+  const hasVerified = group.verifiedTotals.length > 0;
+  return (
+    <TableRow className="hover:bg-transparent border-0" data-testid={`week-header-${group.weekLabel}`}>
+      <TableCell colSpan={8} className="py-1.5 px-1">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="text-sm font-semibold text-foreground">{group.weekLabel}</span>
+            {group.dateRange && (
+              <span className="text-xs text-muted-foreground">{group.dateRange}</span>
+            )}
+          </div>
+          <div className="flex-1 h-px bg-border" />
+          <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
+            {group.pendingCount > 0 && (
+              <span className="font-medium text-amber-600 dark:text-amber-400">
+                {group.pendingCount} pendiente{group.pendingCount !== 1 ? "s" : ""}
+              </span>
+            )}
+            {hasVerified && (
+              <span className="font-medium text-green-600 dark:text-green-400">
+                ✓ {group.verifiedTotals.map(v =>
+                  `${v.code} ${v.total.toLocaleString("es-PE", { minimumFractionDigits: 2 })}`
+                ).join(" · ")}
+              </span>
+            )}
+            {!hasVerified && group.pendingCount === 0 && (
+              <span className="italic">sin verificados</span>
+            )}
+          </div>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
 export default function PaymentsPage() {
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState("all");
@@ -56,6 +159,10 @@ export default function PaymentsPage() {
       if (!res.ok) throw new Error("Failed to fetch payments");
       return res.json();
     }
+  });
+
+  const { data: weeks = [] } = useQuery<Week[]>({
+    queryKey: ["/api/weeks"],
   });
 
   const updateMutation = useMutation({
@@ -106,7 +213,9 @@ export default function PaymentsPage() {
     (p) =>
       p.tutor?.name.toLowerCase().includes(search.toLowerCase()) ||
       p.clientNumber.toLowerCase().includes(search.toLowerCase())
-  );
+  ) ?? [];
+
+  const weekGroups = groupPaymentsByWeek(filteredPayments, weeks);
 
   return (
     <div className="space-y-6">
@@ -168,7 +277,7 @@ export default function PaymentsPage() {
                 <Skeleton key={i} className="h-16 w-full" />
               ))}
             </div>
-          ) : filteredPayments?.length === 0 ? (
+          ) : filteredPayments.length === 0 ? (
             <div className="text-center py-12">
               <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
                 <Clock className="h-8 w-8 text-muted-foreground" />
@@ -194,106 +303,111 @@ export default function PaymentsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPayments?.map((payment) => {
-                    const status = statusLabels[payment.status];
-                    const StatusIcon = status.icon;
-                    return (
-                      <TableRow key={payment.id} data-testid={`row-payment-${payment.id}`}>
-                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {payment.createdAt && (
-                            <div>
-                              <div>{format(new Date(payment.createdAt), "dd MMM yyyy", { locale: es })}</div>
-                              <div className="text-xs">{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="font-medium">{payment.tutor?.name ?? "—"}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{payment.clientNumber}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-mono">
-                          <span className="text-xs text-muted-foreground mr-1">{payment.currency?.code}</span>
-                          {Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </TableCell>
-                        <TableCell>
-                          {payment.proofImage ? (
-                            <button
-                              onClick={() => setPreviewImage(payment.proofImage!)}
-                              className="w-10 h-10 rounded overflow-hidden border bg-muted hover:opacity-80 transition-opacity"
-                              data-testid={`button-view-proof-${payment.id}`}
-                            >
-                              <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
-                            </button>
-                          ) : (
-                            <div className="w-10 h-10 rounded border bg-muted/30 flex items-center justify-center">
-                              <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={status.variant} className="gap-1">
-                            <StatusIcon className="h-3 w-3" />
-                            {status.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {payment.verifiedAt ? (
-                            <div>
-                              <div>{format(new Date(payment.verifiedAt), "dd MMM yyyy", { locale: es })}</div>
-                              <div className="text-xs">{format(new Date(payment.verifiedAt), "HH:mm", { locale: es })}</div>
-                            </div>
-                          ) : (
-                            <span className="text-xs">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            {payment.status === "pending" && (
-                              <>
+                  {weekGroups.map((group) => (
+                    <Fragment key={group.weekLabel}>
+                      <WeekSeparatorRow group={group} />
+                      {group.payments.map((payment) => {
+                        const status = statusLabels[payment.status];
+                        const StatusIcon = status.icon;
+                        return (
+                          <TableRow key={payment.id} data-testid={`row-payment-${payment.id}`}>
+                            <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                              {payment.createdAt && (
+                                <div>
+                                  <div>{format(new Date(payment.createdAt), "dd MMM yyyy", { locale: es })}</div>
+                                  <div className="text-xs">{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell className="font-medium">{payment.tutor?.name ?? "—"}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{payment.clientNumber}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-mono">
+                              <span className="text-xs text-muted-foreground mr-1">{payment.currency?.code}</span>
+                              {Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell>
+                              {payment.proofImage ? (
+                                <button
+                                  onClick={() => setPreviewImage(payment.proofImage!)}
+                                  className="w-10 h-10 rounded overflow-hidden border bg-muted hover:opacity-80 transition-opacity"
+                                  data-testid={`button-view-proof-${payment.id}`}
+                                >
+                                  <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
+                                </button>
+                              ) : (
+                                <div className="w-10 h-10 rounded border bg-muted/30 flex items-center justify-center">
+                                  <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={status.variant} className="gap-1">
+                                <StatusIcon className="h-3 w-3" />
+                                {status.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                              {payment.verifiedAt ? (
+                                <div>
+                                  <div>{format(new Date(payment.verifiedAt), "dd MMM yyyy", { locale: es })}</div>
+                                  <div className="text-xs">{format(new Date(payment.verifiedAt), "HH:mm", { locale: es })}</div>
+                                </div>
+                              ) : (
+                                <span className="text-xs">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                {payment.status === "pending" && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => updateMutation.mutate({ id: payment.id, status: "verified" })}
+                                      disabled={updateMutation.isPending}
+                                      data-testid={`button-verify-${payment.id}`}
+                                    >
+                                      <CheckCircle className="h-4 w-4 text-green-600" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => updateMutation.mutate({ id: payment.id, status: "rejected" })}
+                                      disabled={updateMutation.isPending}
+                                      data-testid={`button-reject-${payment.id}`}
+                                    >
+                                      <XCircle className="h-4 w-4 text-red-600" />
+                                    </Button>
+                                  </>
+                                )}
+                                {payment.status === "verified" && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => updateMutation.mutate({ id: payment.id, status: "refunded" })}
+                                    disabled={updateMutation.isPending}
+                                    data-testid={`button-refund-${payment.id}`}
+                                  >
+                                    <RotateCcw className="h-4 w-4 text-orange-600" />
+                                  </Button>
+                                )}
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => updateMutation.mutate({ id: payment.id, status: "verified" })}
-                                  disabled={updateMutation.isPending}
-                                  data-testid={`button-verify-${payment.id}`}
+                                  onClick={() => setDeleteId(payment.id)}
+                                  data-testid={`button-delete-payment-${payment.id}`}
                                 >
-                                  <CheckCircle className="h-4 w-4 text-green-600" />
+                                  <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => updateMutation.mutate({ id: payment.id, status: "rejected" })}
-                                  disabled={updateMutation.isPending}
-                                  data-testid={`button-reject-${payment.id}`}
-                                >
-                                  <XCircle className="h-4 w-4 text-red-600" />
-                                </Button>
-                              </>
-                            )}
-                            {payment.status === "verified" && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => updateMutation.mutate({ id: payment.id, status: "refunded" })}
-                                disabled={updateMutation.isPending}
-                                data-testid={`button-refund-${payment.id}`}
-                              >
-                                <RotateCcw className="h-4 w-4 text-orange-600" />
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setDeleteId(payment.id)}
-                              data-testid={`button-delete-payment-${payment.id}`}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </Fragment>
+                  ))}
                 </TableBody>
               </Table>
             </div>
