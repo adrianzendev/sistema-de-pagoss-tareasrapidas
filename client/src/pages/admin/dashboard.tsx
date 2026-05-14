@@ -361,6 +361,7 @@ export default function AdminDashboard() {
                   style={{ gridTemplateColumns: `160px repeat(${weeks.length}, 120px) 130px` }}
                 >
                   <div className="p-3 border-r border-border sticky left-0 bg-muted/70 z-10">
+                    <div className="text-[9px] uppercase text-muted-foreground/70 font-normal">Total Bruto</div>
                     <div className="text-xs uppercase text-blue-600 dark:text-blue-400">Tutores</div>
                     <div className="text-xs uppercase text-sky-500 dark:text-sky-400">Agencia</div>
                   </div>
