@@ -528,17 +528,18 @@ export default function WeeksPage() {
                 </div>
               </div>
 
+              <p className="text-xs text-muted-foreground">Todos los valores en soles (S/). La publicidad ingresada en USD se convierte al tipo de cambio vigente.</p>
               {settlement.settlements.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Tutor</TableHead>
                       <TableHead className="text-right">Comisión</TableHead>
-                      <TableHead className="text-right">Bruto</TableHead>
+                      <TableHead className="text-right">Bruto S/</TableHead>
                       <TableHead className="text-right">× %</TableHead>
-                      <TableHead className="text-right text-destructive">− Publicidad</TableHead>
-                      <TableHead className="text-right text-primary">Gan. Tutor</TableHead>
-                      <TableHead className="text-right text-amber-600 dark:text-amber-400">Gan. Agencia</TableHead>
+                      <TableHead className="text-right">− Pub. S/</TableHead>
+                      <TableHead className="text-right font-semibold">Gan. Tutor S/</TableHead>
+                      <TableHead className="text-right font-semibold">Gan. Agencia S/</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -549,12 +550,12 @@ export default function WeeksPage() {
                           <Badge variant="outline">{s.commissionPercent}%</Badge>
                         </TableCell>
                         <TableCell className="text-right">{formatCurrency(s.grossIncome)}</TableCell>
-                        <TableCell className="text-right text-blue-600 dark:text-blue-400">{formatCurrency(s.netIncome)}</TableCell>
-                        <TableCell className="text-right text-destructive font-medium">
+                        <TableCell className="text-right">{formatCurrency(s.netIncome)}</TableCell>
+                        <TableCell className="text-right">
                           {s.tutorAdvertisingShare > 0 ? `-${formatCurrency(s.tutorAdvertisingShare)}` : "—"}
                         </TableCell>
-                        <TableCell className="text-right font-bold text-primary">{formatCurrency(s.tutorEarnings)}</TableCell>
-                        <TableCell className="text-right font-bold text-amber-600 dark:text-amber-400">{formatCurrency(s.agencyEarnings)}</TableCell>
+                        <TableCell className="text-right font-bold">{formatCurrency(s.tutorEarnings)}</TableCell>
+                        <TableCell className="text-right font-bold">{formatCurrency(s.agencyEarnings)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
