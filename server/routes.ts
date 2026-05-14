@@ -157,13 +157,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.patch("/api/admin/tutors/:id", requireAdmin, async (req, res) => {
     try {
-      const { name, email, password: rawPassword, commissionPercent } = req.body;
+      const { name, email, password: rawPassword, commissionPercent, advertisingCostUsd } = req.body;
       const existing = await storage.getUser(req.params.id);
       if (!existing) return res.status(404).json({ message: "Tutor no encontrado" });
       const updateData: any = {};
       if (name) updateData.name = name;
       if (email) updateData.email = email;
       if (commissionPercent !== undefined) updateData.commissionPercent = commissionPercent;
+      if (advertisingCostUsd !== undefined) updateData.advertisingCostUsd = advertisingCostUsd;
       if (rawPassword) updateData.password = await bcrypt.hash(rawPassword, 10);
       const [updated] = await db.update(users).set(updateData).where(eq(users.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Tutor no encontrado" });
@@ -676,10 +677,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         });
 
         const commission = Number(tutor.commissionPercent) / 100;
-        const advShare = tutorPayments.length > 0 ? tutorAdvertisingShare : 0;
+        const sharedAdvShare = tutorPayments.length > 0 ? tutorAdvertisingShare : 0;
+        const ownAdvUsd = Number(tutor.advertisingCostUsd ?? 0);
+        const ownAdvShare = tutorPayments.length > 0 ? ownAdvUsd * usdRate * 0.5 : 0;
+        const totalAdvShare = sharedAdvShare + ownAdvShare;
         const netIncome = grossIncome * commission;
-        const tutorEarnings = netIncome - advShare;
-        const agencyEarnings = grossIncome * (1 - commission) - advShare;
+        const tutorEarnings = netIncome - totalAdvShare;
+        const agencyEarnings = grossIncome * (1 - commission) - totalAdvShare;
 
         return {
           week,
@@ -687,9 +691,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           tutorName: tutor.name,
           commissionPercent: Number(tutor.commissionPercent),
           grossIncome,
-          advertisingCost: advShare,
-          tutorAdvertisingShare: advShare,
-          agencyAdvertisingShare: advShare,
+          advertisingCost: totalAdvShare,
+          tutorAdvertisingShare: totalAdvShare,
+          sharedAdvertisingShare: sharedAdvShare,
+          ownAdvertisingShare: ownAdvShare,
+          agencyAdvertisingShare: totalAdvShare,
           netIncome,
           tutorEarnings,
           agencyEarnings,
@@ -762,14 +768,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           });
 
           const commission = Number(tutor.commissionPercent) / 100;
-          const advShare = tutorPayments.length > 0 ? weekTutorAdShare : 0;
+          const hasPayments = tutorPayments.length > 0;
+          const sharedAdvShare = hasPayments ? weekTutorAdShare : 0;
+          const ownAdvShare = hasPayments ? Number(tutor.advertisingCostUsd ?? 0) * usdRate * 0.5 : 0;
+          const totalAdvShare = sharedAdvShare + ownAdvShare;
           const netIncome = grossIncome * commission;
-          const tutorEarnings = netIncome - advShare;
+          const tutorEarnings = netIncome - totalAdvShare;
 
           if (!matrix[tutor.id]) matrix[tutor.id] = {};
           matrix[tutor.id][week.id] = {
             grossIncome, netIncome, tutorEarnings,
-            tutorAdvertisingShare: advShare,
+            tutorAdvertisingShare: totalAdvShare,
             paymentCount: tutorPayments.length,
           };
         }

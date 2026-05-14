@@ -16,7 +16,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Loader2, UserPlus, Mail, Percent, Trash2, Edit } from "lucide-react";
+import { Plus, Search, Loader2, UserPlus, Mail, Percent, Trash2, Edit, DollarSign } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +36,10 @@ const createTutorSchema = z.object({
     const num = parseFloat(val);
     return !isNaN(num) && num >= 0 && num <= 100;
   }, "Comisión debe ser entre 0 y 100"),
+  advertisingCostUsd: z.string().refine((val) => {
+    const num = parseFloat(val);
+    return !isNaN(num) && num >= 0;
+  }, "Debe ser un valor mayor o igual a 0"),
 });
 
 const editTutorSchema = z.object({
@@ -46,10 +50,35 @@ const editTutorSchema = z.object({
     const num = parseFloat(val);
     return !isNaN(num) && num >= 0 && num <= 100;
   }, "Comisión debe ser entre 0 y 100"),
+  advertisingCostUsd: z.string().refine((val) => {
+    const num = parseFloat(val);
+    return !isNaN(num) && num >= 0;
+  }, "Debe ser un valor mayor o igual a 0"),
 });
 
 type CreateTutorForm = z.infer<typeof createTutorSchema>;
 type EditTutorForm = z.infer<typeof editTutorSchema>;
+
+const AdvertisingPreview = ({ value }: { value: string }) => {
+  const amount = parseFloat(value || "0");
+  if (amount <= 0) return null;
+  return (
+    <div className="text-xs p-2 bg-muted rounded-md border space-y-1">
+      <div className="flex justify-between">
+        <span className="text-muted-foreground">Total publicidad:</span>
+        <span className="font-mono font-bold">${amount.toFixed(2)} USD</span>
+      </div>
+      <div className="flex justify-between text-blue-600 dark:text-blue-400">
+        <span>Agencia paga (50%):</span>
+        <span className="font-mono font-bold">${(amount * 0.5).toFixed(2)} USD</span>
+      </div>
+      <div className="flex justify-between text-destructive">
+        <span>Tutor paga (50%):</span>
+        <span className="font-mono font-bold">${(amount * 0.5).toFixed(2)} USD</span>
+      </div>
+    </div>
+  );
+};
 
 export default function TutorsPage() {
   const [isOpen, setIsOpen] = useState(false);
@@ -64,12 +93,12 @@ export default function TutorsPage() {
 
   const createForm = useForm<CreateTutorForm>({
     resolver: zodResolver(createTutorSchema),
-    defaultValues: { name: "", email: "", password: "", commissionPercent: "10" },
+    defaultValues: { name: "", email: "", password: "", commissionPercent: "10", advertisingCostUsd: "0" },
   });
 
   const editForm = useForm<EditTutorForm>({
     resolver: zodResolver(editTutorSchema),
-    defaultValues: { name: "", email: "", password: "", commissionPercent: "10" },
+    defaultValues: { name: "", email: "", password: "", commissionPercent: "10", advertisingCostUsd: "0" },
   });
 
   const createMutation = useMutation({
@@ -89,12 +118,18 @@ export default function TutorsPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: EditTutorForm }) => {
-      const body: any = { name: data.name, email: data.email, commissionPercent: data.commissionPercent };
+      const body: any = {
+        name: data.name,
+        email: data.email,
+        commissionPercent: data.commissionPercent,
+        advertisingCostUsd: data.advertisingCostUsd,
+      };
       if (data.password) body.password = data.password;
       await apiRequest("PATCH", `/api/admin/tutors/${id}`, body);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/tutors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settlements/matrix"] });
       setEditingTutor(null);
       editForm.reset();
       toast({ title: "Tutor actualizado", description: "Los datos han sido actualizados" });
@@ -124,6 +159,7 @@ export default function TutorsPage() {
       email: tutor.email,
       password: "",
       commissionPercent: tutor.commissionPercent,
+      advertisingCostUsd: tutor.advertisingCostUsd ?? "0",
     });
   };
 
@@ -132,6 +168,9 @@ export default function TutorsPage() {
       t.name.toLowerCase().includes(search.toLowerCase()) ||
       t.email.toLowerCase().includes(search.toLowerCase())
   );
+
+  const createAdValue = createForm.watch("advertisingCostUsd");
+  const editAdValue = editForm.watch("advertisingCostUsd");
 
   return (
     <div className="space-y-6">
@@ -212,6 +251,29 @@ export default function TutorsPage() {
                           <Input {...field} type="number" step="0.01" min="0" max="100" placeholder="10" className="pl-10" data-testid="input-tutor-commission" />
                         </div>
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={createForm.control}
+                  name="advertisingCostUsd"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1">
+                        <DollarSign className="h-4 w-4 text-green-600" />
+                        Publicidad (USD) — costo total
+                      </FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium text-sm">$</span>
+                          <Input {...field} type="number" step="0.01" min="0" placeholder="0.00" className="pl-7" data-testid="input-tutor-advertising" />
+                        </div>
+                      </FormControl>
+                      <AdvertisingPreview value={createAdValue} />
+                      <FormDescription className="text-xs">
+                        Ingresa el total. El sistema divide en 2: 50% agencia · 50% tutor
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -300,6 +362,29 @@ export default function TutorsPage() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={editForm.control}
+                  name="advertisingCostUsd"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1">
+                        <DollarSign className="h-4 w-4 text-green-600" />
+                        Publicidad (USD) — costo total
+                      </FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium text-sm">$</span>
+                          <Input {...field} type="number" step="0.01" min="0" placeholder="0.00" className="pl-7" data-testid="input-edit-tutor-advertising" />
+                        </div>
+                      </FormControl>
+                      <AdvertisingPreview value={editAdValue} />
+                      <FormDescription className="text-xs">
+                        Ingresa el total. El sistema divide en 2: 50% agencia · 50% tutor
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <div className="flex justify-end gap-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => { setEditingTutor(null); editForm.reset(); }}>Cancelar</Button>
                   <Button type="submit" disabled={updateMutation.isPending} data-testid="button-update-tutor">
@@ -354,6 +439,7 @@ export default function TutorsPage() {
                     <TableHead>Nombre</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead className="text-right">Comisión</TableHead>
+                    <TableHead className="text-right">Publicidad/sem</TableHead>
                     <TableHead>Registrado</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
@@ -365,6 +451,15 @@ export default function TutorsPage() {
                       <TableCell>{tutor.email}</TableCell>
                       <TableCell className="text-right">
                         <Badge variant="outline">{tutor.commissionPercent}%</Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm">
+                        {Number(tutor.advertisingCostUsd ?? 0) > 0 ? (
+                          <span className="text-green-700 dark:text-green-400">
+                            ${Number(tutor.advertisingCostUsd).toFixed(2)}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground/50">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground" data-testid={`text-created-tutor-${tutor.id}`}>
                         {tutor.createdAt ? format(new Date(tutor.createdAt), "dd/MM/yyyy HH:mm", { locale: es }) : "—"}
