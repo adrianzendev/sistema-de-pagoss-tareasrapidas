@@ -44,3 +44,7 @@ waitForPort = 5000
 VAPID_PUBLIC_KEY = "BFkKSs8dA_cEJqJrErItKxS-WpynJmgHrG5YpPmeXXqwBRUTTScSqG5iqM17xttydH1RL458MG3Xcu9dl4EkZm4"
 VAPID_PRIVATE_KEY = "AArUub6z5pt3WD28Z4CLKFPgu2x0hccsApTEkiPqak0"
 VAPID_SUBJECT = "mailto:admin@tutorpay.app"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
