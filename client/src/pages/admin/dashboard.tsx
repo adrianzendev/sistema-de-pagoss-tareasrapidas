@@ -57,7 +57,7 @@ export default function AdminDashboard() {
   });
 
   const fmt = (n: number) =>
-    new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+    "S/. " + new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
   const StatCard = ({
     title,
