@@ -799,8 +799,24 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         }
       }
 
+      // Build currency totals (native amounts) across all displayed weeks
+      const currencyTotals: Record<string, { code: string; name: string; symbol: string; total: number }> = {};
+      for (const week of allWeeks) {
+        const weekPayments = await storage.getPaymentsByWeek(week.id);
+        const verifiedPayments = weekPayments.filter(p => p.status === "verified");
+        for (const p of verifiedPayments) {
+          const currency = allCurrencies.find(c => c.id === p.currencyId);
+          if (!currency) continue;
+          if (!currencyTotals[currency.id]) {
+            const sym = currency.code === "USD" ? "$" : currency.code === "PEN" ? "S/." : currency.code;
+            currencyTotals[currency.id] = { code: currency.code, name: currency.name, symbol: sym, total: 0 };
+          }
+          currencyTotals[currency.id].total += Number(p.amount);
+        }
+      }
+
       const safeTutors = tutors.map(({ password: _pw, ...safe }) => safe);
-      res.json({ weeks: allWeeks, tutors: safeTutors, matrix });
+      res.json({ weeks: allWeeks, tutors: safeTutors, matrix, currencyTotals: Object.values(currencyTotals) });
     } catch (error) {
       console.error("Error getting settlements matrix:", error);
       res.status(500).json({ message: "Error al obtener matriz" });

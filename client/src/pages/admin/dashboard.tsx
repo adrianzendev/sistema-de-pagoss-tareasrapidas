@@ -31,10 +31,13 @@ type MatrixCell = {
   paymentCount: number;
 };
 
+type CurrencyTotal = { code: string; name: string; symbol: string; total: number };
+
 type SettlementsMatrix = {
   weeks: Week[];
   tutors: Array<{ id: string; name: string; commissionPercent: string }>;
   matrix: Record<string, Record<string, MatrixCell>>;
+  currencyTotals: CurrencyTotal[];
 };
 
 export default function AdminDashboard() {
@@ -98,6 +101,7 @@ export default function AdminDashboard() {
   const weeks = matrixData?.weeks ?? [];
   const tutors = matrixData?.tutors ?? [];
   const matrix = matrixData?.matrix ?? {};
+  const currencyTotals = matrixData?.currencyTotals ?? [];
 
   const tutorsWithAnyPayment = tutors.filter(t =>
     weeks.some(w => (matrix[t.id]?.[w.id]?.paymentCount ?? 0) > 0)
@@ -220,14 +224,28 @@ export default function AdminDashboard() {
       {/* Settlements matrix table */}
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <TableIcon className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <CardTitle>Ganancias por Tutor y Semana</CardTitle>
-              <CardDescription>
-                Liquidación neta (bruto × comisión − publicidad) — últimas {weeks.length} semanas
-              </CardDescription>
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <TableIcon className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <CardTitle>Ganancias por Tutor y Semana</CardTitle>
+                <CardDescription>
+                  Liquidación neta (bruto × comisión − publicidad) — últimas {weeks.length} semanas
+                </CardDescription>
+              </div>
             </div>
+            {currencyTotals.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {currencyTotals.map(ct => (
+                  <div key={ct.code} className="flex flex-col items-end rounded-lg border border-border bg-muted/40 px-3 py-1.5">
+                    <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">{ct.code}</span>
+                    <span className="text-sm font-bold text-foreground tabular-nums">
+                      {ct.symbol} {ct.total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">
