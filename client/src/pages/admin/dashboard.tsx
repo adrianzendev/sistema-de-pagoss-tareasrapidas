@@ -60,6 +60,7 @@ export default function AdminDashboard() {
 
   const { data: matrixData, isLoading: matrixLoading } = useQuery<SettlementsMatrix>({
     queryKey: ["/api/admin/settlements/matrix"],
+    staleTime: 5 * 60 * 1000,
   });
 
   const fmt = (n: number) =>

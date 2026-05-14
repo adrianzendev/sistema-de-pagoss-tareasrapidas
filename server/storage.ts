@@ -126,6 +126,7 @@ export interface IStorage {
 
   // Week Tutor Paid
   getWeekPaidTutors(weekId: string): Promise<WeekTutorPaid[]>;
+  getAllWeekPaidTutors(): Promise<WeekTutorPaid[]>;
   markTutorPaid(weekId: string, tutorId: string): Promise<WeekTutorPaid>;
   unmarkTutorPaid(weekId: string, tutorId: string): Promise<void>;
 
@@ -636,6 +637,10 @@ export class DatabaseStorage implements IStorage {
   // Week Tutor Paid
   async getWeekPaidTutors(weekId: string): Promise<WeekTutorPaid[]> {
     return db.select().from(weekTutorPaid).where(eq(weekTutorPaid.weekId, weekId));
+  }
+
+  async getAllWeekPaidTutors(): Promise<WeekTutorPaid[]> {
+    return db.select().from(weekTutorPaid);
   }
 
   async markTutorPaid(weekId: string, tutorId: string): Promise<WeekTutorPaid> {

@@ -855,9 +855,23 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         tutorWeekAdvMap[r.tutorId][r.weekId] = Number(r.advertisingCostUsd);
       }
 
+      // Fetch all payments for the relevant weeks in one pass
+      const allWeekPaymentsMap: Record<string, typeof allCurrencies[0] extends never ? any : any[]> = {};
+      await Promise.all(allWeeks.map(async (week) => {
+        allWeekPaymentsMap[week.id] = await storage.getPaymentsByWeek(week.id);
+      }));
+
+      // Fetch all paid-tutor records in one query
+      const allPaidRecords = await storage.getAllWeekPaidTutors();
+      const weekPaidMap: Record<string, string[]> = {};
+      for (const r of allPaidRecords) {
+        if (!weekPaidMap[r.weekId]) weekPaidMap[r.weekId] = [];
+        weekPaidMap[r.weekId].push(r.tutorId);
+      }
+
       for (const week of allWeeks) {
-        const weekPayments = await storage.getPaymentsByWeek(week.id);
-        const verifiedPayments = weekPayments.filter(p => p.status === "verified");
+        const weekPayments = allWeekPaymentsMap[week.id] ?? [];
+        const verifiedPayments = weekPayments.filter((p: any) => p.status === "verified");
 
         const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
         const advertisingInSoles = sharedAdvertisingUsd * usdRate;
@@ -906,12 +920,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         }
       }
 
-      // Build currency totals (native amounts) — global and per-week
+      // Build currency totals reusing already-fetched payments
       const currencyTotals: Record<string, { code: string; name: string; symbol: string; total: number }> = {};
       const weekCurrencyTotals: Record<string, Record<string, { code: string; symbol: string; total: number }>> = {};
       for (const week of allWeeks) {
-        const weekPayments = await storage.getPaymentsByWeek(week.id);
-        const verifiedPayments = weekPayments.filter(p => p.status === "verified");
+        const verifiedPayments = (allWeekPaymentsMap[week.id] ?? []).filter((p: any) => p.status === "verified");
         weekCurrencyTotals[week.id] = {};
         for (const p of verifiedPayments) {
           const currency = allCurrencies.find(c => c.id === p.currencyId);
@@ -926,13 +939,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           }
           weekCurrencyTotals[week.id][currency.id].total += Number(p.amount);
         }
-      }
-
-      // Build per-week paid tutor sets
-      const weekPaidMap: Record<string, string[]> = {};
-      for (const week of allWeeks) {
-        const paid = await storage.getWeekPaidTutors(week.id);
-        weekPaidMap[week.id] = paid.map(p => p.tutorId);
       }
 
       const safeTutors = tutors.map(({ password: _pw, ...safe }) => safe);
