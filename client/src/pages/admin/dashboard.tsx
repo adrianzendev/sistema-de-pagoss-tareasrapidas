@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Link } from "wouter";
 import { Users, CreditCard, Coins, CheckCircle, Clock, XCircle, Calendar, TableIcon } from "lucide-react";
 import type { Week } from "@shared/schema";
 
@@ -309,7 +309,9 @@ export default function AdminDashboard() {
                     >
                       {/* Tutor name cell */}
                       <div className={`p-3 border-r border-border sticky left-0 z-10 ${rowIdx % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>
-                        <div className="font-semibold text-sm truncate">{tutor.name}</div>
+                        <Link href={`/admin/tutors/${tutor.id}/detail`}>
+                          <div className="font-semibold text-sm truncate text-primary hover:underline cursor-pointer">{tutor.name}</div>
+                        </Link>
                         <div className="text-[10px] text-muted-foreground">{tutor.commissionPercent}%</div>
                         {Number((tutor as any).advertisingCostUsd ?? 0) > 0 && (
                           <div className="text-[9px] text-muted-foreground">
