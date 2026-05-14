@@ -390,10 +390,7 @@ export default function AdminDashboard() {
                             <div className="text-[9px] text-muted-foreground/60 font-normal tabular-nums leading-4">
                               {(() => {
                                 const total = tutorsWithAnyPayment.reduce((sum, t) => sum + Number(t.advertisingCostUsd ?? 0), 0);
-                                const n = tutorsWithAnyPayment.filter(t => Number(t.advertisingCostUsd ?? 0) > 0).length;
-                                return n > 0
-                                  ? `$${total.toFixed(2)} ÷${n} = $${(total / n).toFixed(2)}`
-                                  : `$${total.toFixed(2)}`;
+                                return `$${total.toFixed(2)} ÷2 = $${(total / 2).toFixed(2)}`;
                               })()}
                             </div>
                             <div className={`font-bold leading-4 ${colTutor >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>
