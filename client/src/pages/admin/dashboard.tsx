@@ -329,11 +329,6 @@ export default function AdminDashboard() {
                                 <div className={`text-xs font-medium ${agencyE >= 0 ? "text-sky-500 dark:text-sky-400" : "text-red-500 dark:text-red-400"}`}>
                                   {fmt(agencyE)}
                                 </div>
-                                {hasAdvCharge && (
-                                  <div className="text-[9px] text-orange-500/80 tabular-nums leading-4">
-                                    −{fmt(cell!.tutorAdvertisingShare)}
-                                  </div>
-                                )}
                                 <div className="flex items-center justify-end gap-1 mt-0.5">
                                   <span className="text-[9px] text-muted-foreground/60">{cell?.paymentCount ?? 0} pg</span>
                                   {isTutorPaid && (
