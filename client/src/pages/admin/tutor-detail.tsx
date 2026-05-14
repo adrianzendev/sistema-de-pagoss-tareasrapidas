@@ -174,6 +174,8 @@ export default function TutorDetailPage() {
   const totalTutor = tutorRows.reduce((s, r) => s + (r.cell?.tutorEarnings ?? 0), 0);
   const totalAgency = tutorRows.reduce((s, r) => s + (r.cell?.agencyEarnings ?? 0), 0);
   const totalPayments = tutorRows.reduce((s, r) => s + (r.cell?.paymentCount ?? 0), 0);
+  const totalPaid = tutorRows.filter(r => r.week.status === "paid").reduce((s, r) => s + (r.cell?.tutorEarnings ?? 0), 0);
+  const totalPending = totalTutor - totalPaid;
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -188,7 +190,7 @@ export default function TutorDetailPage() {
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between flex-wrap gap-3">
             <div>
               <CardTitle className="text-xl">{tutor.name}</CardTitle>
               <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
@@ -196,7 +198,17 @@ export default function TutorDetailPage() {
                 {advUsd > 0 && <span>P.C: <strong>{fmtUsd(advUsd / 2)}</strong>/sem</span>}
               </div>
             </div>
-            <Badge variant="outline" className="text-xs">{totalPayments} pagos totales</Badge>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="text-right">
+                <div className="text-[10px] text-muted-foreground uppercase">Cobrado</div>
+                <div className="text-sm font-bold text-green-600 dark:text-green-400">{fmt(totalPaid)}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] text-muted-foreground uppercase">Pendiente</div>
+                <div className="text-sm font-bold text-amber-600 dark:text-amber-400">{fmt(totalPending)}</div>
+              </div>
+              <Badge variant="outline" className="text-xs">{totalPayments} pagos</Badge>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -215,6 +227,7 @@ export default function TutorDetailPage() {
                   <th className="text-right p-3 font-semibold">Neto</th>
                   <th className="text-right p-3 font-semibold text-purple-600 dark:text-purple-400">Tutor</th>
                   <th className="text-right p-3 font-semibold text-sky-500 dark:text-sky-400">Agencia</th>
+                  <th className="text-center p-3 font-semibold text-[10px] text-muted-foreground">Pago tutor</th>
                   <th className="text-right p-3 font-semibold text-muted-foreground text-[10px]">Pgs</th>
                 </tr>
               </thead>
@@ -273,6 +286,15 @@ export default function TutorDetailPage() {
                         <td className="p-3 text-right tabular-nums font-medium text-sky-500 dark:text-sky-400">
                           {hasActivity ? fmt(cell?.agencyEarnings ?? 0) : "—"}
                         </td>
+                        <td className="p-3 text-center">
+                          {hasActivity ? (
+                            week.status === "paid"
+                              ? <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600">Pagado</Badge>
+                              : week.status === "closed"
+                                ? <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">Por pagar</Badge>
+                                : <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Abierta</Badge>
+                          ) : null}
+                        </td>
                         <td className="p-3 text-right tabular-nums text-muted-foreground text-xs">
                           {(cell?.paymentCount ?? 0) > 0 ? cell!.paymentCount : "—"}
                         </td>
@@ -301,6 +323,10 @@ export default function TutorDetailPage() {
                   <td className="p-3 text-right tabular-nums">{fmt(totalNet)}</td>
                   <td className="p-3 text-right tabular-nums text-purple-600 dark:text-purple-400">{fmt(totalTutor)}</td>
                   <td className="p-3 text-right tabular-nums text-sky-500 dark:text-sky-400">{fmt(totalAgency)}</td>
+                  <td className="p-3 text-center">
+                    <div className="text-[10px] text-green-600 dark:text-green-400">{fmt(totalPaid)} cobrado</div>
+                    <div className="text-[10px] text-amber-600 dark:text-amber-400">{fmt(totalPending)} pendiente</div>
+                  </td>
                   <td className="p-3 text-right tabular-nums text-muted-foreground text-xs">{totalPayments}</td>
                 </tr>
               </tfoot>
