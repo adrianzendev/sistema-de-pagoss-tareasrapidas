@@ -744,6 +744,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }).length || 1;
       const tutorAdvertisingShare = (advertisingInSoles * 0.5) / activeTutorCountForWeek;
 
+      // Load per-week advertising overrides for this week
+      const weekAdvRecords = await storage.getAllTutorWeekAdvertising();
+      const weekAdvByTutor: Record<string, number> = {};
+      for (const r of weekAdvRecords) {
+        if (r.weekId === week.id) {
+          weekAdvByTutor[r.tutorId] = Number(r.advertisingCostUsd);
+        }
+      }
+
       const settlements = tutors.map(tutor => {
         const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
 
@@ -757,7 +766,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const commission = Number(tutor.commissionPercent) / 100;
         const isActiveForWeek = tutor.isActive !== false && (!tutor.activatedAt || new Date(tutor.activatedAt) <= weekEnd);
         const sharedAdvShare = isActiveForWeek ? tutorAdvertisingShare : 0;
-        const ownAdvUsd = Number(tutor.advertisingCostUsd ?? 0);
+        const ownAdvUsd = weekAdvByTutor[tutor.id] ?? 0;
         const ownAdvShare = isActiveForWeek ? ownAdvUsd * usdRate * 0.5 : 0;
         const totalAdvShare = sharedAdvShare + ownAdvShare;
         const netIncome = grossIncome * commission;
