@@ -687,6 +687,25 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.status(204).send();
   });
 
+  // Per-tutor payment tracking per week
+  app.post("/api/admin/weeks/:weekId/tutor-paid/:tutorId", requireAdmin, async (req, res) => {
+    try {
+      const record = await storage.markTutorPaid(req.params.weekId, req.params.tutorId);
+      res.json(record);
+    } catch (e) {
+      res.status(500).json({ message: "Error" });
+    }
+  });
+
+  app.delete("/api/admin/weeks/:weekId/tutor-paid/:tutorId", requireAdmin, async (req, res) => {
+    try {
+      await storage.unmarkTutorPaid(req.params.weekId, req.params.tutorId);
+      res.status(204).send();
+    } catch (e) {
+      res.status(500).json({ message: "Error" });
+    }
+  });
+
   // Admin: Week Settlement (liquidation)
   app.get("/api/admin/weeks/:id/settlement", requireAdmin, async (req, res) => {
     try {
@@ -870,8 +889,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         }
       }
 
+      // Build per-week paid tutor sets
+      const weekPaidMap: Record<string, string[]> = {};
+      for (const week of allWeeks) {
+        const paid = await storage.getWeekPaidTutors(week.id);
+        weekPaidMap[week.id] = paid.map(p => p.tutorId);
+      }
+
       const safeTutors = tutors.map(({ password: _pw, ...safe }) => safe);
-      res.json({ weeks: allWeeks, tutors: safeTutors, matrix, currencyTotals: Object.values(currencyTotals), weekCurrencyTotals });
+      res.json({ weeks: allWeeks, tutors: safeTutors, matrix, currencyTotals: Object.values(currencyTotals), weekCurrencyTotals, weekPaidMap });
     } catch (error) {
       console.error("Error getting settlements matrix:", error);
       res.status(500).json({ message: "Error al obtener matriz" });

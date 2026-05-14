@@ -18,6 +18,7 @@ import {
   type InsertPushSubscription,
   type ActivityLog,
   type InsertActivityLog,
+  type WeekTutorPaid,
   users,
   currencies,
   payments,
@@ -27,6 +28,7 @@ import {
   agencySettings,
   pushSubscriptions,
   activityLog,
+  weekTutorPaid,
   normalizePhone,
 } from "@shared/schema";
 import { db } from "./db";
@@ -119,6 +121,11 @@ export interface IStorage {
   // Activity Log
   createActivityLog(entry: InsertActivityLog): Promise<ActivityLog>;
   getActivityLog(): Promise<(ActivityLog & { tutor?: User; performer?: User })[]>;
+
+  // Week Tutor Paid
+  getWeekPaidTutors(weekId: string): Promise<WeekTutorPaid[]>;
+  markTutorPaid(weekId: string, tutorId: string): Promise<WeekTutorPaid>;
+  unmarkTutorPaid(weekId: string, tutorId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -617,6 +624,24 @@ export class DatabaseStorage implements IStorage {
       result.push({ ...entry, tutor, performer });
     }
     return result;
+  }
+
+  // Week Tutor Paid
+  async getWeekPaidTutors(weekId: string): Promise<WeekTutorPaid[]> {
+    return db.select().from(weekTutorPaid).where(eq(weekTutorPaid.weekId, weekId));
+  }
+
+  async markTutorPaid(weekId: string, tutorId: string): Promise<WeekTutorPaid> {
+    const existing = await db.select().from(weekTutorPaid)
+      .where(and(eq(weekTutorPaid.weekId, weekId), eq(weekTutorPaid.tutorId, tutorId)));
+    if (existing.length > 0) return existing[0];
+    const [record] = await db.insert(weekTutorPaid).values({ weekId, tutorId }).returning();
+    return record;
+  }
+
+  async unmarkTutorPaid(weekId: string, tutorId: string): Promise<void> {
+    await db.delete(weekTutorPaid)
+      .where(and(eq(weekTutorPaid.weekId, weekId), eq(weekTutorPaid.tutorId, tutorId)));
   }
 }
 

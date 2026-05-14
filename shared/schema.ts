@@ -98,6 +98,17 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const weekTutorPaid = pgTable("week_tutor_paid", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  weekId: varchar("week_id").notNull().references(() => weeks.id, { onDelete: "cascade" }),
+  tutorId: varchar("tutor_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  paidAt: timestamp("paid_at").defaultNow().notNull(),
+});
+
+export const insertWeekTutorPaidSchema = createInsertSchema(weekTutorPaid).omit({ id: true, paidAt: true });
+export type WeekTutorPaid = typeof weekTutorPaid.$inferSelect;
+export type InsertWeekTutorPaid = typeof insertWeekTutorPaidSchema._type;
+
 export const agencySettings = pgTable("agency_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   agencyPercent: decimal("agency_percent", { precision: 5, scale: 2 }).notNull().default("30"),

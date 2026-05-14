@@ -25,6 +25,7 @@ type SettlementsMatrix = {
   weeks: Week[];
   tutors: Array<{ id: string; name: string; commissionPercent: string; advertisingCostUsd?: string }>;
   matrix: Record<string, Record<string, MatrixCell>>;
+  weekPaidMap: Record<string, string[]>;
 };
 
 type Payment = {
@@ -136,6 +137,18 @@ export default function TutorDetailPage() {
   const fmtUsd = (n: number) =>
     "$" + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
+  const markPaidMutation = useMutation({
+    mutationFn: ({ weekId }: { weekId: string }) =>
+      apiRequest("POST", `/api/admin/weeks/${weekId}/tutor-paid/${id}`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/settlements/matrix"] }),
+  });
+
+  const unmarkPaidMutation = useMutation({
+    mutationFn: ({ weekId }: { weekId: string }) =>
+      apiRequest("DELETE", `/api/admin/weeks/${weekId}/tutor-paid/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/settlements/matrix"] }),
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-4 p-4">
@@ -148,6 +161,7 @@ export default function TutorDetailPage() {
   const tutor = matrixData?.tutors.find(t => t.id === id);
   const weeks = matrixData?.weeks ?? [];
   const matrix = matrixData?.matrix ?? {};
+  const weekPaidMap = matrixData?.weekPaidMap ?? {};
 
   if (!tutor) {
     return (
@@ -161,7 +175,6 @@ export default function TutorDetailPage() {
   const advUsd = Number(tutor.advertisingCostUsd ?? 0);
   const tutorRows = weeks.map(w => ({ week: w, cell: matrix[tutor.id]?.[w.id] }));
 
-  // Collect all distinct currencies this tutor has used
   const currencyMap = new Map<string, { code: string; symbol: string }>();
   for (const { cell } of tutorRows) {
     for (const c of (cell?.currencies ?? [])) {
@@ -176,17 +189,11 @@ export default function TutorDetailPage() {
   const totalTutor = tutorRows.reduce((s, r) => s + (r.cell?.tutorEarnings ?? 0), 0);
   const totalAgency = tutorRows.reduce((s, r) => s + (r.cell?.agencyEarnings ?? 0), 0);
   const totalPayments = tutorRows.reduce((s, r) => s + (r.cell?.paymentCount ?? 0), 0);
-  const totalPaid = tutorRows.filter(r => r.week.status === "paid").reduce((s, r) => s + (r.cell?.tutorEarnings ?? 0), 0);
+
+  const totalPaid = tutorRows
+    .filter(r => weekPaidMap[r.week.id]?.includes(tutor.id))
+    .reduce((s, r) => s + (r.cell?.tutorEarnings ?? 0), 0);
   const totalPending = totalTutor - totalPaid;
-
-  const nextStatus = (s: string) => s === "open" ? "closed" : s === "closed" ? "paid" : "open";
-  const nextLabel = (s: string) => s === "open" ? "Cerrar" : s === "closed" ? "Marcar pagado" : "Reabrir";
-
-  const weekStatusMutation = useMutation({
-    mutationFn: ({ weekId, status }: { weekId: string; status: string }) =>
-      apiRequest("PATCH", `/api/admin/weeks/${weekId}`, { status }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/settlements/matrix"] }),
-  });
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -246,6 +253,8 @@ export default function TutorDetailPage() {
                 {tutorRows.map(({ week, cell }) => {
                   const hasActivity = (cell?.paymentCount ?? 0) > 0 || (cell?.tutorAdvertisingShare ?? 0) > 0;
                   const isExpanded = expandedWeek === week.id;
+                  const isPaid = weekPaidMap[week.id]?.includes(tutor.id) ?? false;
+                  const isMutating = markPaidMutation.isPending || unmarkPaidMutation.isPending;
                   return (
                     <>
                       <tr
@@ -271,7 +280,7 @@ export default function TutorDetailPage() {
                         </td>
                         <td className="p-3">
                           {week.status === "paid" ? (
-                            <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600">Pagada</Badge>
+                            <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600">Cerrada</Badge>
                           ) : week.status === "closed" ? (
                             <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">Cerrada</Badge>
                           ) : (
@@ -300,19 +309,21 @@ export default function TutorDetailPage() {
                         <td className="p-3 text-center" onClick={e => e.stopPropagation()}>
                           {hasActivity ? (
                             <div className="flex flex-col items-center gap-1">
-                              {week.status === "paid"
+                              {isPaid
                                 ? <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600">Pagado</Badge>
-                                : week.status === "closed"
-                                  ? <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">Por pagar</Badge>
-                                  : <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Abierta</Badge>}
+                                : <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Por pagar</Badge>}
                               <Button
                                 size="sm"
-                                variant={week.status === "closed" ? "default" : "ghost"}
+                                variant={isPaid ? "ghost" : "default"}
                                 className="h-5 text-[9px] px-2 py-0"
-                                disabled={weekStatusMutation.isPending}
-                                onClick={() => weekStatusMutation.mutate({ weekId: week.id, status: nextStatus(week.status) })}
+                                disabled={isMutating}
+                                onClick={() =>
+                                  isPaid
+                                    ? unmarkPaidMutation.mutate({ weekId: week.id })
+                                    : markPaidMutation.mutate({ weekId: week.id })
+                                }
                               >
-                                {nextLabel(week.status)}
+                                {isPaid ? "Desmarcar" : "Marcar pagado"}
                               </Button>
                             </div>
                           ) : null}

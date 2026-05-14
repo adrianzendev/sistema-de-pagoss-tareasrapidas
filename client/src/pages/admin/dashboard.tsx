@@ -39,6 +39,7 @@ type SettlementsMatrix = {
   tutors: Array<{ id: string; name: string; commissionPercent: string }>;
   matrix: Record<string, Record<string, MatrixCell>>;
   currencyTotals: CurrencyTotal[];
+  weekPaidMap: Record<string, string[]>;
 };
 
 type TutorRow = { id: string; name: string; commissionPercent: string; advertisingCostUsd?: string };
@@ -107,6 +108,7 @@ export default function AdminDashboard() {
   const matrix = matrixData?.matrix ?? {};
   const currencyTotals = matrixData?.currencyTotals ?? [];
   const weekCurrencyTotals: Record<string, Record<string, { code: string; symbol: string; total: number }>> = matrixData?.weekCurrencyTotals ?? {};
+  const weekPaidMap: Record<string, string[]> = matrixData?.weekPaidMap ?? {};
 
   const tutorsWithAnyPayment = tutors.filter(t => t.isActive !== false);
 
@@ -329,6 +331,7 @@ export default function AdminDashboard() {
                         const hasAdvCharge = (cell?.tutorAdvertisingShare ?? 0) > 0;
                         const showCell = hasPayments || hasAdvCharge;
 
+                        const isTutorPaid = weekPaidMap[w.id]?.includes(tutor.id) ?? false;
                         return (
                           <div
                             key={w.id}
@@ -344,7 +347,12 @@ export default function AdminDashboard() {
                                 <div className={`text-xs font-medium ${agencyE >= 0 ? "text-sky-500 dark:text-sky-400" : "text-red-500 dark:text-red-400"}`}>
                                   {fmt(agencyE)}
                                 </div>
-                                <div className="text-[9px] text-muted-foreground/60">{cell?.paymentCount ?? 0} pg</div>
+                                <div className="flex items-center justify-end gap-1 mt-0.5">
+                                  <span className="text-[9px] text-muted-foreground/60">{cell?.paymentCount ?? 0} pg</span>
+                                  {isTutorPaid && (
+                                    <span className="text-[9px] font-semibold text-green-600 dark:text-green-400">✓</span>
+                                  )}
+                                </div>
                               </>
                             ) : (
                               <span className="text-muted-foreground/30">—</span>
