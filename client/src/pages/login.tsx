@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,10 +18,21 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
+type DevUser = { id: string; username: string; name: string; role: string };
+
+const ROLE_LABEL: Record<string, string> = { admin: "Admin", tutor: "Tutor", verifier: "Verificador" };
+
 export default function LoginPage() {
   const { login } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [quickLoading, setQuickLoading] = useState<string | null>(null);
+
+  const { data: devUsers } = useQuery<DevUser[]>({
+    queryKey: ["/api/dev/users"],
+    enabled: import.meta.env.DEV,
+    retry: false,
+  });
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -139,50 +151,39 @@ export default function LoginPage() {
           Contacta al administrador si no tienes credenciales
         </p>
 
-        {import.meta.env.DEV && (
+        {import.meta.env.DEV && devUsers && devUsers.length > 0 && (
           <Card className="mt-4 border-dashed border-yellow-500/50 bg-yellow-500/5">
             <CardHeader className="py-3">
               <CardTitle className="text-sm text-yellow-600 dark:text-yellow-400">
                 Accesos Rápidos (Solo Desarrollo)
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-0 pb-3 flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={() => {
-                  form.setValue("username", "admin");
-                  form.setValue("password", "admin123");
-                }}
-                data-testid="button-quick-admin"
-              >
-                Admin
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={() => {
-                  form.setValue("username", "maria.garcia");
-                  form.setValue("password", "tutor123");
-                }}
-                data-testid="button-quick-tutor"
-              >
-                Tutor
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={() => {
-                  form.setValue("username", "testverifier");
-                  form.setValue("password", "verifier123");
-                }}
-                data-testid="button-quick-verifier"
-              >
-                Verificador
-              </Button>
+            <CardContent className="pt-0 pb-3 flex flex-wrap gap-2">
+              {devUsers.map(u => (
+                <Button
+                  key={u.id}
+                  variant="outline"
+                  size="sm"
+                  disabled={quickLoading === u.id}
+                  onClick={async () => {
+                    setQuickLoading(u.id);
+                    try {
+                      await login(u.username, "123456");
+                    } catch {
+                      toast({ title: "Error", description: "No se pudo iniciar sesión", variant: "destructive" });
+                    } finally {
+                      setQuickLoading(null);
+                    }
+                  }}
+                  data-testid={`button-quick-${u.username}`}
+                >
+                  {quickLoading === u.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                  ) : null}
+                  <span className="font-medium">{u.name}</span>
+                  <span className="ml-1 text-[10px] text-muted-foreground">({ROLE_LABEL[u.role] ?? u.role})</span>
+                </Button>
+              ))}
             </CardContent>
           </Card>
         )}

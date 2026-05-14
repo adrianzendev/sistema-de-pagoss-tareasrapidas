@@ -115,6 +115,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     });
   });
 
+  // Dev-only: list all users for quick-access login
+  if (process.env.NODE_ENV !== "production") {
+    app.get("/api/dev/users", async (req, res) => {
+      const allUsers = await storage.getTutors();
+      const adminsAndVerifiers = await db.select({
+        id: users.id, username: users.username, name: users.name, role: users.role,
+      }).from(users).where(sql`role IN ('admin','verifier')`);
+      const tutorRows = allUsers.map(({ id, username, name, role }) => ({ id, username, name, role }));
+      res.json([...adminsAndVerifiers, ...tutorRows]);
+    });
+  }
+
   // Admin: Stats
   app.get("/api/admin/stats", requireAdmin, async (req, res) => {
     const period = req.query.period as string || "all";
