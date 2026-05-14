@@ -334,6 +334,9 @@ export default function AdminDashboard() {
                                   {fmt(agencyE)}
                                 </div>
                                 <div className="text-[9px] text-muted-foreground/60">{cell?.paymentCount ?? 0} pg</div>
+                                {(cell?.tutorAdvertisingShare ?? 0) > 0 && (
+                                  <div className="text-[9px] text-orange-500/80 dark:text-orange-400/80">pub: {fmt(cell!.tutorAdvertisingShare / 2)}</div>
+                                )}
                               </>
                             ) : (
                               <span className="text-muted-foreground/30">—</span>
