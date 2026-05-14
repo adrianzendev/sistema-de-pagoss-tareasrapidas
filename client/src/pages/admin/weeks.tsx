@@ -220,10 +220,6 @@ export default function WeeksPage() {
           <p className="text-muted-foreground">Gestiona las semanas y liquidaciones</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={openSettingsDialog} data-testid="button-settings">
-            <Settings className="h-4 w-4 mr-2" />
-            Configuración
-          </Button>
           <Button
             onClick={() => generateWeekMutation.mutate()}
             disabled={generateWeekMutation.isPending}
