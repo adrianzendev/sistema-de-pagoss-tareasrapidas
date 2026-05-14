@@ -111,6 +111,7 @@ export default function AdminDashboard() {
   const currencyTotals = matrixData?.currencyTotals ?? [];
   const weekCurrencyTotals: Record<string, Record<string, { code: string; symbol: string; total: number }>> = matrixData?.weekCurrencyTotals ?? {};
   const weekPaidMap: Record<string, string[]> = matrixData?.weekPaidMap ?? {};
+  const tutorWeekAdvMap: Record<string, Record<string, number>> = matrixData?.tutorWeekAdvMap ?? {};
   const usdRate = matrixData?.usdRate ?? 1;
 
   const tutorsWithAnyPayment = tutors.filter(t => t.isActive !== false);
@@ -396,13 +397,18 @@ export default function AdminDashboard() {
                             </div>
                             <div className="text-[9px] text-muted-foreground/60 font-normal tabular-nums leading-4 flex items-center justify-end gap-1">
                               {(() => {
-                                const usd = Number(w.sharedAdvertisingUsd ?? 0);
-                                if (usd <= 0) return "—";
-                                const pen = usd * usdRate;
+                                const sharedUsd = Number(w.sharedAdvertisingUsd ?? 0);
+                                const ownUsd = tutorsWithAnyPayment.reduce((sum, t) => {
+                                  const v = tutorWeekAdvMap[t.id]?.[w.id] ?? Number((t as any).advertisingCostUsd ?? 0);
+                                  return sum + v;
+                                }, 0);
+                                const totalUsd = sharedUsd + ownUsd;
+                                if (totalUsd <= 0) return "—";
+                                const totalPen = totalUsd * usdRate;
                                 return (
                                   <>
-                                    <span className="text-muted-foreground/40">−USD {usd.toFixed(2)}</span>
-                                    <span>{`−${fmt(pen)}`}</span>
+                                    <span className="text-muted-foreground/40">−USD {totalUsd.toFixed(2)}</span>
+                                    <span>{`−${fmt(totalPen)}`}</span>
                                   </>
                                 );
                               })()}
