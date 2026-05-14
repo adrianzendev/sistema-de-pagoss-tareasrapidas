@@ -23,6 +23,7 @@ import {
   Calendar,
   RotateCcw,
   Trash2,
+  ArrowLeftRight,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -150,6 +151,7 @@ export default function PaymentsPage() {
   const [period, setPeriod] = useState("all");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [movePayment, setMovePayment] = useState<{ id: string; weekId: string } | null>(null);
   const { toast } = useToast();
 
   const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
@@ -172,6 +174,19 @@ export default function PaymentsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/payments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
       toast({ title: "Pago actualizado", description: "El estado del pago ha sido actualizado" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const moveMutation = useMutation({
+    mutationFn: ({ id, weekId }: { id: string; weekId: string }) =>
+      apiRequest("PATCH", `/api/admin/payments/${id}/move`, { weekId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/payments"] });
+      setMovePayment(null);
+      toast({ title: "Pago movido", description: "El pago fue reasignado a la semana seleccionada" });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -396,6 +411,15 @@ export default function PaymentsPage() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
+                                  onClick={() => setMovePayment({ id: payment.id, weekId: "" })}
+                                  title="Mover a otra semana"
+                                  data-testid={`button-move-payment-${payment.id}`}
+                                >
+                                  <ArrowLeftRight className="h-4 w-4 text-blue-500" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
                                   onClick={() => setDeleteId(payment.id)}
                                   data-testid={`button-delete-payment-${payment.id}`}
                                 >
@@ -431,6 +455,43 @@ export default function PaymentsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!movePayment} onOpenChange={() => setMovePayment(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mover pago a otra semana</AlertDialogTitle>
+            <AlertDialogDescription>
+              Selecciona la semana a la que quieres reasignar este pago.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <Select
+              value={movePayment?.weekId ?? ""}
+              onValueChange={(v) => setMovePayment(p => p ? { ...p, weekId: v } : null)}
+            >
+              <SelectTrigger data-testid="select-move-week">
+                <SelectValue placeholder="Seleccionar semana..." />
+              </SelectTrigger>
+              <SelectContent>
+                {[...weeks].sort((a, b) => b.weekNumber - a.weekNumber).map(w => (
+                  <SelectItem key={w.id} value={w.id}>
+                    S{w.weekNumber} — {w.startDate} al {w.endDate}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => movePayment?.weekId && moveMutation.mutate({ id: movePayment.id, weekId: movePayment.weekId })}
+              disabled={!movePayment?.weekId || moveMutation.isPending}
+            >
+              {moveMutation.isPending ? "Moviendo..." : "Mover"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>

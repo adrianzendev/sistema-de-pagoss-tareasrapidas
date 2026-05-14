@@ -272,6 +272,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json(payment);
   });
 
+  app.patch("/api/admin/payments/:id/move", requireAdmin, async (req, res) => {
+    try {
+      const { weekId } = req.body;
+      if (!weekId) return res.status(400).json({ message: "weekId requerido" });
+      const payment = await storage.movePaymentToWeek(req.params.id, weekId);
+      if (!payment) return res.status(404).json({ message: "Pago no encontrado" });
+      res.json(payment);
+    } catch (error) {
+      console.error("Error moving payment:", error);
+      res.status(500).json({ message: "Error al mover pago" });
+    }
+  });
+
   app.delete("/api/admin/payments/:id", requireAdmin, async (req, res) => {
     try {
       await storage.deletePayment(req.params.id);

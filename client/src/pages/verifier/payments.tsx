@@ -385,7 +385,15 @@ export default function VerifierPaymentsPage() {
                             {getStatusBadge(payment.status)}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            Cliente: {payment.clientNumber} - {payment.createdAt && format(new Date(payment.createdAt), "dd/MM/yy", { locale: es })}
+                            Cliente: {payment.clientNumber}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Enviado: {payment.createdAt && format(new Date(payment.createdAt), "dd/MM/yy HH:mm", { locale: es })}
+                            {payment.verifiedAt && (
+                              <span className="ml-2 text-green-600 dark:text-green-400">
+                                · Verif: {format(new Date(payment.verifiedAt), "dd/MM/yy HH:mm", { locale: es })}
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">

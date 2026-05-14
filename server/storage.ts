@@ -57,6 +57,7 @@ export interface IStorage {
   getPaymentsByTutor(tutorId: string): Promise<PaymentWithDetails[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePaymentStatus(id: string, status: string, verifiedBy: string, notes?: string): Promise<Payment | undefined>;
+  movePaymentToWeek(id: string, weekId: string): Promise<Payment | undefined>;
   deletePayment(id: string): Promise<void>;
   getPaymentsByVerifier(verifierId: string): Promise<PaymentWithDetails[]>;
   getCurrenciesByVerifier(verifierId: string): Promise<Currency[]>;
@@ -243,6 +244,23 @@ export class DatabaseStorage implements IStorage {
 
   async getPaymentById(id: string): Promise<Payment | undefined> {
     const [payment] = await db.select().from(payments).where(eq(payments.id, id));
+    return payment;
+  }
+
+  async movePaymentToWeek(id: string, weekId: string): Promise<Payment | undefined> {
+    const week = await this.getWeek(weekId);
+    if (!week) return undefined;
+    // Set created_at to Wednesday noon Lima time (UTC-5 → +5h = 17:00 UTC)
+    const startMs = new Date(week.startDate + 'T00:00:00Z').getTime();
+    const endMs = new Date(week.endDate + 'T00:00:00Z').getTime();
+    const midMs = Math.floor((startMs + endMs) / 2);
+    const midDate = new Date(midMs);
+    midDate.setUTCHours(17, 0, 0, 0); // noon Lima (UTC-5)
+    const [payment] = await db
+      .update(payments)
+      .set({ createdAt: midDate })
+      .where(eq(payments.id, id))
+      .returning();
     return payment;
   }
 
@@ -478,7 +496,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(payments)
       .where(
-        sql`DATE(${payments.createdAt} AT TIME ZONE 'America/Lima') BETWEEN ${week.startDate}::date AND ${week.endDate}::date`
+        sql`DATE(${payments.createdAt}::timestamptz AT TIME ZONE 'America/Lima') BETWEEN ${week.startDate}::date AND ${week.endDate}::date`
       )
       .orderBy(desc(payments.createdAt));
 
