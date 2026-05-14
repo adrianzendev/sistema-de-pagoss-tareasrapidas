@@ -110,6 +110,7 @@ export default function TutorsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/tutors"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settlements/matrix"] });
       setIsOpen(false);
       createForm.reset();
       toast({ title: "Tutor creado", description: "El tutor ha sido creado correctamente" });
@@ -148,6 +149,7 @@ export default function TutorsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/tutors"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settlements/matrix"] });
       setDeleteId(null);
       toast({ title: "Tutor eliminado", description: "El tutor ha sido eliminado" });
     },
