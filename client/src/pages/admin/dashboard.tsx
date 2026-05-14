@@ -308,7 +308,7 @@ export default function AdminDashboard() {
                         <div className="font-semibold text-sm truncate">{tutor.name}</div>
                         <div className="text-[10px] text-muted-foreground">{tutor.commissionPercent}%</div>
                         {Number((tutor as any).advertisingCostUsd ?? 0) > 0 && (
-                          <div className="text-[9px] text-orange-500/80 dark:text-orange-400/80">
+                          <div className="text-[9px] text-muted-foreground">
                             pub: ${(Number((tutor as any).advertisingCostUsd) / 2).toFixed(2)}
                           </div>
                         )}
