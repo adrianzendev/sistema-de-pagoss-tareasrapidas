@@ -177,7 +177,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (email) updateData.email = email;
       if (commissionPercent !== undefined) updateData.commissionPercent = commissionPercent;
       if (advertisingCostUsd !== undefined) updateData.advertisingCostUsd = advertisingCostUsd;
-      if (isActive !== undefined) updateData.isActive = isActive;
+      if (isActive !== undefined) {
+        updateData.isActive = isActive;
+        if (isActive === true && existing.isActive !== true) {
+          updateData.activatedAt = new Date();
+        }
+      }
       if (rawPassword) updateData.password = await bcrypt.hash(rawPassword, 10);
       const [updated] = await db.update(users).set(updateData).where(eq(users.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Tutor no encontrado" });
@@ -686,8 +691,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
       const advertisingInSoles = sharedAdvertisingUsd * usdRate;
 
-      const activeTutorCount = tutors.filter(t => t.isActive !== false).length || 1;
-      const tutorAdvertisingShare = (advertisingInSoles * 0.5) / activeTutorCount;
+      const weekEnd = new Date(week.endDate);
+      const activeTutorCountForWeek = tutors.filter(t => {
+        if (!t.isActive) return false;
+        if (!t.activatedAt) return true;
+        return new Date(t.activatedAt) <= weekEnd;
+      }).length || 1;
+      const tutorAdvertisingShare = (advertisingInSoles * 0.5) / activeTutorCountForWeek;
 
       const settlements = tutors.map(tutor => {
         const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
@@ -700,10 +710,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         });
 
         const commission = Number(tutor.commissionPercent) / 100;
-        const isActive = tutor.isActive !== false;
-        const sharedAdvShare = isActive ? tutorAdvertisingShare : 0;
+        const isActiveForWeek = tutor.isActive !== false && (!tutor.activatedAt || new Date(tutor.activatedAt) <= weekEnd);
+        const sharedAdvShare = isActiveForWeek ? tutorAdvertisingShare : 0;
         const ownAdvUsd = Number(tutor.advertisingCostUsd ?? 0);
-        const ownAdvShare = isActive ? ownAdvUsd * usdRate * 0.5 : 0;
+        const ownAdvShare = isActiveForWeek ? ownAdvUsd * usdRate * 0.5 : 0;
         const totalAdvShare = sharedAdvShare + ownAdvShare;
         const netIncome = grossIncome * commission;
         const tutorEarnings = netIncome - totalAdvShare;
@@ -725,7 +735,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           agencyEarnings,
           payments: tutorPayments,
         };
-      }).filter(s => s.payments.length > 0 || s.grossIncome > 0);
+      }).filter(s => s.payments.length > 0 || s.grossIncome > 0 || s.tutorAdvertisingShare > 0);
 
       const totals = {
         grossIncome: settlements.reduce((sum, s) => sum + s.grossIncome, 0),
@@ -778,8 +788,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
         const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
         const advertisingInSoles = sharedAdvertisingUsd * usdRate;
-        const activeTutors = tutors.filter(t => t.isActive !== false);
-        const activeTutorCount = activeTutors.length || 1;
+        const weekEndDate = new Date(week.endDate);
+        const activeTutorCount = tutors.filter(t => {
+          if (!t.isActive) return false;
+          if (!t.activatedAt) return true;
+          return new Date(t.activatedAt) <= weekEndDate;
+        }).length || 1;
         const weekTutorAdShare = (advertisingInSoles * 0.5) / activeTutorCount;
 
         for (const tutor of tutors) {
@@ -792,7 +806,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           });
 
           const commission = Number(tutor.commissionPercent) / 100;
-          const tutorIsActive = tutor.isActive !== false;
+          const tutorIsActive = tutor.isActive !== false && (!tutor.activatedAt || new Date(tutor.activatedAt) <= weekEndDate);
           const hasPayments = tutorPayments.length > 0;
           const sharedAdvShare = tutorIsActive ? weekTutorAdShare : 0;
           const ownAdvShare = tutorIsActive ? Number(tutor.advertisingCostUsd ?? 0) * usdRate * 0.5 : 0;
