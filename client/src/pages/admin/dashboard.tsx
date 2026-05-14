@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Users, CreditCard, Coins, CheckCircle, Clock, XCircle, Calendar, TableIcon } from "lucide-react";
 import type { Week } from "@shared/schema";
 
@@ -40,8 +41,11 @@ type SettlementsMatrix = {
   currencyTotals: CurrencyTotal[];
 };
 
+type TutorRow = { id: string; name: string; commissionPercent: string; advertisingCostUsd?: string };
+
 export default function AdminDashboard() {
   const [period, setPeriod] = useState("all");
+  const [selectedTutor, setSelectedTutor] = useState<TutorRow | null>(null);
 
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/admin/stats", period],
