@@ -153,7 +153,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         ...validatedData, 
         username, 
         role: "tutor", 
-        password: hashedPassword 
+        password: hashedPassword,
+        activatedAt: validatedData.isActive !== false ? new Date() : null,
       });
       const { password, ...safeTutor } = tutor;
       res.status(201).json(safeTutor);
