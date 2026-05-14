@@ -299,11 +299,6 @@ export default function AdminDashboard() {
                           <div className="font-semibold text-sm truncate text-purple-600 hover:underline cursor-pointer">{tutor.name}</div>
                         </Link>
                         <div className="text-[10px] text-muted-foreground">{tutor.commissionPercent}%</div>
-                        {Number((tutor as any).advertisingCostUsd ?? 0) > 0 && (
-                          <div className="text-[9px] text-muted-foreground">
-                            P.C: USD {(Number((tutor as any).advertisingCostUsd) / 2).toFixed(2)}
-                          </div>
-                        )}
                       </div>
 
                       {/* Week cells */}
@@ -387,8 +382,10 @@ export default function AdminDashboard() {
                             </div>
                             <div className="text-[9px] text-muted-foreground/60 font-normal tabular-nums leading-4">
                               {(() => {
-                                const total = tutorsWithAnyPayment.reduce((sum, t) => sum + Number(t.advertisingCostUsd ?? 0), 0);
-                                return `USD ${total.toFixed(2)} ÷2 = USD ${(total / 2).toFixed(2)}`;
+                                const total = tutorsWithAnyPayment.reduce(
+                                  (sum, t) => sum + (matrix[t.id]?.[w.id]?.tutorAdvertisingShare ?? 0), 0
+                                );
+                                return total > 0 ? `−${fmt(total)}` : "—";
                               })()}
                             </div>
                             <div className={`font-bold leading-4 ${colTutor >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>

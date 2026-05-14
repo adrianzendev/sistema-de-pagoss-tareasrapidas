@@ -868,8 +868,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const commission = Number(tutor.commissionPercent) / 100;
           const tutorIsActive = tutor.isActive !== false && (!tutor.activatedAt || new Date(tutor.activatedAt) <= weekEndDate);
           const sharedAdvShare = tutorIsActive ? weekTutorAdShare : 0;
-          // Use per-week advertising override if set, otherwise fall back to global tutor value
-          const weekOwnAdv = tutorWeekAdvMap[tutor.id]?.[week.id] ?? Number(tutor.advertisingCostUsd ?? 0);
+          // Use per-week advertising only — no global fallback
+          const weekOwnAdv = tutorWeekAdvMap[tutor.id]?.[week.id] ?? 0;
           const ownAdvShare = tutorIsActive ? weekOwnAdv * usdRate * 0.5 : 0;
           const totalAdvShare = sharedAdvShare + ownAdvShare;
           const netIncome = grossIncome * commission;
