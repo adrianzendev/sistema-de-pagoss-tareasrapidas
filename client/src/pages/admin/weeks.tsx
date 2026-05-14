@@ -87,8 +87,13 @@ export default function WeeksPage() {
     queryKey: ["/api/currencies"],
   });
 
+  const { data: tutors } = useQuery<{ id: string }[]>({
+    queryKey: ["/api/admin/tutors"],
+  });
+
   const usdRate = Number(currencies?.find(c => c.code === "USD")?.exchangeRate ?? 1);
   const advertisingInSoles = Number(sharedAdvertisingUsd || 0) * usdRate;
+  const tutorCount = tutors?.length || 1;
 
   const { data: settlement, isLoading: settlementLoading } = useQuery<WeekSettlement>({
     queryKey: ["/api/admin/weeks", selectedWeek?.id, "settlement"],
@@ -416,6 +421,10 @@ export default function WeeksPage() {
                   <p>Total en soles: <span className="font-mono font-medium text-foreground">S/ {formatCurrency(advertisingInSoles)}</span></p>
                   <p className="text-blue-600 dark:text-blue-400 font-medium">
                     Agencia paga: S/ {formatCurrency(advertisingInSoles * 0.5)} · Tutores pagan: S/ {formatCurrency(advertisingInSoles * 0.5)}
+                  </p>
+                  <p className="text-orange-600 dark:text-orange-400 font-medium">
+                    Aprox. por tutor: S/ {formatCurrency((advertisingInSoles * 0.5) / tutorCount)}
+                    <span className="text-muted-foreground font-normal ml-1">({tutorCount} tutores activos estimados)</span>
                   </p>
                 </div>
               )}
