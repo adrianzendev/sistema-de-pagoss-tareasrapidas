@@ -801,9 +801,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
 
           let grossIncome = 0;
+          const cellCurrencies: Record<string, { code: string; symbol: string; total: number }> = {};
           tutorPayments.forEach(p => {
             const currency = allCurrencies.find(c => c.id === p.currencyId);
-            grossIncome += Number(p.amount) * Number(currency?.exchangeRate ?? 1);
+            const rate = Number(currency?.exchangeRate ?? 1);
+            grossIncome += Number(p.amount) * rate;
+            if (currency) {
+              const sym = currency.code === "USD" ? "$" : currency.code === "PEN" ? "S/." : currency.code;
+              if (!cellCurrencies[currency.id]) cellCurrencies[currency.id] = { code: currency.code, symbol: sym, total: 0 };
+              cellCurrencies[currency.id].total += Number(p.amount);
+            }
           });
 
           const commission = Number(tutor.commissionPercent) / 100;
@@ -822,6 +829,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             grossIncome, netIncome, tutorEarnings, agencyEarnings,
             tutorAdvertisingShare: totalAdvShare,
             paymentCount: tutorPayments.length,
+            currencies: Object.values(cellCurrencies),
           };
         }
       }
