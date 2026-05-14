@@ -278,6 +278,7 @@ export default function AdminDashboard() {
                 {/* Tutor rows */}
                 {tutorsWithAnyPayment.map((tutor, rowIdx) => {
                   const rowTotal = weeks.reduce((sum, w) => sum + (matrix[tutor.id]?.[w.id]?.tutorEarnings ?? 0), 0);
+                  const rowAgencyTotal = weeks.reduce((sum, w) => sum + (matrix[tutor.id]?.[w.id]?.agencyEarnings ?? 0), 0);
                   return (
                     <div
                       key={tutor.id}
@@ -307,10 +308,10 @@ export default function AdminDashboard() {
                           >
                             {hasPayments ? (
                               <>
-                                <div className={`font-bold ${tutorE >= 0 ? "text-green-700 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                                <div className={`text-xs font-bold ${tutorE >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"}`}>
                                   {fmt(tutorE)}
                                 </div>
-                                <div className="text-[10px] text-muted-foreground font-medium">
+                                <div className={`text-xs font-medium ${agencyE >= 0 ? "text-sky-500 dark:text-sky-400" : "text-red-500 dark:text-red-400"}`}>
                                   {fmt(agencyE)}
                                 </div>
                                 <div className="text-[9px] text-muted-foreground/60">{cell!.paymentCount} pg</div>
@@ -323,10 +324,13 @@ export default function AdminDashboard() {
                       })}
 
                       {/* Total cell */}
-                      <div className={`p-2 text-right text-sm font-bold ${rowTotal >= 0 ? "text-green-700 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
-                        data-testid={`total-${tutor.id}`}
-                      >
-                        {fmt(rowTotal)}
+                      <div className="p-2 text-right" data-testid={`total-${tutor.id}`}>
+                        <div className={`text-xs font-bold ${rowTotal >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"}`}>
+                          {fmt(rowTotal)}
+                        </div>
+                        <div className={`text-xs font-medium ${rowAgencyTotal >= 0 ? "text-sky-500 dark:text-sky-400" : "text-red-500 dark:text-red-400"}`}>
+                          {fmt(rowAgencyTotal)}
+                        </div>
                       </div>
                     </div>
                   );
@@ -337,30 +341,48 @@ export default function AdminDashboard() {
                   className="grid border-t-2 border-border bg-muted/50 font-bold text-sm"
                   style={{ gridTemplateColumns: `160px repeat(${weeks.length}, 120px) 130px` }}
                 >
-                  <div className="p-3 border-r border-border text-xs uppercase text-muted-foreground sticky left-0 bg-muted/70 z-10">
-                    Totales
+                  <div className="p-3 border-r border-border sticky left-0 bg-muted/70 z-10">
+                    <div className="text-xs uppercase text-blue-600 dark:text-blue-400">Tutores</div>
+                    <div className="text-xs uppercase text-sky-500 dark:text-sky-400">Agencia</div>
                   </div>
                   {weeks.map(w => {
-                    const colTotal = tutorsWithAnyPayment.reduce(
+                    const colTutor = tutorsWithAnyPayment.reduce(
                       (sum, t) => sum + (matrix[t.id]?.[w.id]?.tutorEarnings ?? 0), 0
+                    );
+                    const colAgency = tutorsWithAnyPayment.reduce(
+                      (sum, t) => sum + (matrix[t.id]?.[w.id]?.agencyEarnings ?? 0), 0
                     );
                     const anyPayments = tutorsWithAnyPayment.some(t => (matrix[t.id]?.[w.id]?.paymentCount ?? 0) > 0);
                     return (
-                      <div
-                        key={w.id}
-                        className={`p-2 text-right text-xs border-r border-border last:border-r-0 ${anyPayments ? (colTotal >= 0 ? "text-green-700 dark:text-green-400" : "text-red-600 dark:text-red-400") : "text-muted-foreground/30"}`}
-                      >
-                        {anyPayments ? fmt(colTotal) : "—"}
+                      <div key={w.id} className="p-2 text-right text-xs border-r border-border last:border-r-0">
+                        {anyPayments ? (
+                          <>
+                            <div className={`font-bold ${colTutor >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"}`}>
+                              {fmt(colTutor)}
+                            </div>
+                            <div className={`font-medium ${colAgency >= 0 ? "text-sky-500 dark:text-sky-400" : "text-red-500 dark:text-red-400"}`}>
+                              {fmt(colAgency)}
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground/30">—</span>
+                        )}
                       </div>
                     );
                   })}
-                  <div className="p-2 text-right text-sm text-primary">
-                    {fmt(
-                      tutorsWithAnyPayment.reduce(
-                        (sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.tutorEarnings ?? 0), 0),
-                        0
-                      )
-                    )}
+                  <div className="p-2 text-right">
+                    <div className={`text-xs font-bold ${
+                      tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.tutorEarnings ?? 0), 0), 0) >= 0
+                        ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"
+                    }`}>
+                      {fmt(tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.tutorEarnings ?? 0), 0), 0))}
+                    </div>
+                    <div className={`text-xs font-medium ${
+                      tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.agencyEarnings ?? 0), 0), 0) >= 0
+                        ? "text-sky-500 dark:text-sky-400" : "text-red-500 dark:text-red-400"
+                    }`}>
+                      {fmt(tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.agencyEarnings ?? 0), 0), 0))}
+                    </div>
                   </div>
                 </div>
               </div>
