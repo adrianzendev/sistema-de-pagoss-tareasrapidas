@@ -334,7 +334,7 @@ export default function AdminDashboard() {
                                 <div className="flex items-center justify-end gap-1 mt-0.5">
                                   <span className="text-[9px] text-muted-foreground/60">{cell?.paymentCount ?? 0} pg</span>
                                   {isTutorPaid && (
-                                    <span className="text-[9px] font-semibold text-green-600 dark:text-green-400">✓</span>
+                                    <Badge className="text-[8px] px-1 py-0 h-3.5 bg-green-600 leading-none">Pagado</Badge>
                                   )}
                                 </div>
                               </>
