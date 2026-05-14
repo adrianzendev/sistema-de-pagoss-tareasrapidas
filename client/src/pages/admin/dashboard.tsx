@@ -378,11 +378,6 @@ export default function AdminDashboard() {
                       <div key={w.id} className="p-2 text-right text-xs border-r border-border last:border-r-0">
                         {anyPayments ? (
                           <>
-                            {wkCurrencies.map(ct => (
-                              <div key={ct.code} className="text-[9px] text-muted-foreground/70 font-normal tabular-nums">
-                                {ct.symbol}{ct.total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                              </div>
-                            ))}
                             <div className={`font-bold ${colTutor >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>
                               {fmt(colTutor)}
                             </div>
