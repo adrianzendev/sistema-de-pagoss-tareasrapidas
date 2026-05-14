@@ -25,6 +25,7 @@ import ClientsPage from "@/pages/admin/clients";
 import TutorPaymentsPage from "@/pages/tutor/payments";
 import TutorSettlementPage from "@/pages/tutor/settlement";
 import VerifierPaymentsPage from "@/pages/verifier/payments";
+import ActivityPage from "@/pages/admin/activity";
 import NotFound from "@/pages/not-found";
 
 function LoadingScreen() {
@@ -50,6 +51,7 @@ function AdminRoutes() {
       <Route path="/admin/verifiers" component={VerifiersPage} />
       <Route path="/admin/blacklist" component={BlacklistPage} />
       <Route path="/admin/clients" component={ClientsPage} />
+      <Route path="/admin/activity" component={ActivityPage} />
       <Route>
         <Redirect to="/admin" />
       </Route>

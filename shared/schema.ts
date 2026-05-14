@@ -69,6 +69,18 @@ export const weeks = pgTable("weeks", {
   endDate: date("end_date").notNull(),
   status: weekStatusEnum("status").notNull().default("open"),
   advertisingCost: decimal("advertising_cost", { precision: 12, scale: 2 }).notNull().default("0"),
+  sharedAdvertisingUsd: decimal("shared_advertising_usd", { precision: 12, scale: 2 }).notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const activityLog = pgTable("activity_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: text("type").notNull(),
+  description: text("description").notNull(),
+  tutorId: varchar("tutor_id").references(() => users.id, { onDelete: "set null" }),
+  performedBy: varchar("performed_by").references(() => users.id, { onDelete: "set null" }),
+  oldValue: text("old_value"),
+  newValue: text("new_value"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -139,6 +151,11 @@ export const insertAgencySettingsSchema = createInsertSchema(agencySettings).omi
   id: true,
 });
 
+export const insertActivityLogSchema = createInsertSchema(activityLog).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -163,6 +180,9 @@ export type Week = typeof weeks.$inferSelect;
 
 export type InsertAgencySettings = z.infer<typeof insertAgencySettingsSchema>;
 export type AgencySettings = typeof agencySettings.$inferSelect;
+
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
+export type ActivityLog = typeof activityLog.$inferSelect;
 
 // Extended types for frontend
 export type CurrencyWithVerifier = Currency & {

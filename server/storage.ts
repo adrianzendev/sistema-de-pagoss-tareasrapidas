@@ -16,6 +16,8 @@ import {
   type InsertAgencySettings,
   type PushSubscription,
   type InsertPushSubscription,
+  type ActivityLog,
+  type InsertActivityLog,
   users,
   currencies,
   payments,
@@ -24,6 +26,7 @@ import {
   weeks,
   agencySettings,
   pushSubscriptions,
+  activityLog,
   normalizePhone,
 } from "@shared/schema";
 import { db } from "./db";
@@ -110,6 +113,10 @@ export interface IStorage {
   getPushSubscriptionsByUserId(userId: string): Promise<PushSubscription[]>;
   getPushSubscriptionsByRole(role: string): Promise<PushSubscription[]>;
   deletePushSubscription(endpoint: string): Promise<void>;
+
+  // Activity Log
+  createActivityLog(entry: InsertActivityLog): Promise<ActivityLog>;
+  getActivityLog(): Promise<(ActivityLog & { tutor?: User; performer?: User })[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -541,6 +548,31 @@ export class DatabaseStorage implements IStorage {
 
   async deletePushSubscription(endpoint: string): Promise<void> {
     await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
+  }
+
+  // Activity Log
+  async createActivityLog(entry: InsertActivityLog): Promise<ActivityLog> {
+    const [result] = await db.insert(activityLog).values(entry).returning();
+    return result;
+  }
+
+  async getActivityLog(): Promise<(ActivityLog & { tutor?: User; performer?: User })[]> {
+    const entries = await db.select().from(activityLog).orderBy(desc(activityLog.createdAt));
+    const result = [];
+    for (const entry of entries) {
+      let tutor: User | undefined;
+      let performer: User | undefined;
+      if (entry.tutorId) {
+        const [t] = await db.select().from(users).where(eq(users.id, entry.tutorId));
+        tutor = t;
+      }
+      if (entry.performedBy) {
+        const [p] = await db.select().from(users).where(eq(users.id, entry.performedBy));
+        performer = p;
+      }
+      result.push({ ...entry, tutor, performer });
+    }
+    return result;
   }
 }
 

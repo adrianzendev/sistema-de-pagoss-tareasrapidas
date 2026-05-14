@@ -2,16 +2,19 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calculator, TrendingUp, Calendar, Coins } from "lucide-react";
+import { Calculator, TrendingUp, Calendar, Coins, DollarSign } from "lucide-react";
 import type { Week, PaymentWithDetails } from "@shared/schema";
 
 type TutorSettlement = {
   week: Week;
   tutorId: string;
   tutorName: string;
+  commissionPercent: number;
   grossIncome: number;
   advertisingCost: number;
   tutorAdvertisingShare: number;
+  sharedAdvertisingUsd: number;
+  usdRate: number;
   netIncome: number;
   tutorEarnings: number;
   agencyEarnings: number;
@@ -24,6 +27,7 @@ type SettlementResponse = {
     agencyPercent: number;
     tutorPercent: number;
   };
+  commissionPercent: number;
 };
 
 export default function TutorSettlementPage() {
@@ -73,7 +77,7 @@ export default function TutorSettlementPage() {
   }
 
   const settlements = data?.settlements ?? [];
-  const settings = data?.settings ?? { agencyPercent: 30, tutorPercent: 70 };
+  const commissionPercent = data?.commissionPercent ?? 0;
 
   const totals = settlements.reduce(
     (acc, s) => ({
@@ -93,7 +97,7 @@ export default function TutorSettlementPage() {
           Mi Liquidación
         </h1>
         <p className="text-muted-foreground">
-          Resumen de tus ganancias por semana ({settings.tutorPercent}% tutor / {settings.agencyPercent}% agencia)
+          Mi comisión: <span className="font-bold text-foreground">{commissionPercent}%</span>
         </p>
       </div>
 
@@ -116,7 +120,7 @@ export default function TutorSettlementPage() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <div className="p-3 rounded-lg bg-destructive/10">
-                <TrendingUp className="h-6 w-6 text-destructive" />
+                <DollarSign className="h-6 w-6 text-destructive" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Publicidad Compartida</p>
@@ -154,23 +158,23 @@ export default function TutorSettlementPage() {
         <CardContent className="p-0">
           {settlements.length > 0 ? (
             <div className="overflow-x-auto">
-              <div className="min-w-[800px]">
-                <div className="grid grid-cols-[40px_100px_140px_80px_100px_120px_120px_120px_120px] border-b-2 border-gray-400 dark:border-gray-600 font-bold text-xs uppercase">
+              <div className="min-w-[860px]">
+                <div className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-b-2 border-gray-400 dark:border-gray-600 font-bold text-xs uppercase">
                   <div className="bg-gray-300 dark:bg-gray-700 p-2 text-center border-r border-gray-400 dark:border-gray-600">#</div>
                   <div className="bg-blue-200 dark:bg-blue-900 p-2 text-center border-r border-blue-300 dark:border-blue-700 text-blue-900 dark:text-blue-100">SEMANA</div>
                   <div className="bg-purple-200 dark:bg-purple-900 p-2 text-center border-r border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-100">PERÍODO</div>
                   <div className="bg-slate-200 dark:bg-slate-800 p-2 text-center border-r border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100">ESTADO</div>
                   <div className="bg-cyan-200 dark:bg-cyan-900 p-2 text-center border-r border-cyan-300 dark:border-cyan-700 text-cyan-900 dark:text-cyan-100">PAGOS</div>
                   <div className="bg-green-300 dark:bg-green-800 p-2 text-center border-r border-green-400 dark:border-green-700 text-green-900 dark:text-green-100">BRUTO</div>
-                  <div className="bg-pink-300 dark:bg-pink-900 p-2 text-center border-r border-pink-400 dark:border-pink-700 text-pink-900 dark:text-pink-100">PUBLICIDAD</div>
-                  <div className="bg-amber-200 dark:bg-amber-900 p-2 text-center border-r border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100">NETO</div>
-                  <div className="bg-emerald-400 dark:bg-emerald-800 p-2 text-center text-emerald-900 dark:text-emerald-100">MI {settings.tutorPercent}%</div>
+                  <div className="bg-blue-300 dark:bg-blue-900 p-2 text-center border-r border-blue-400 dark:border-blue-800 text-blue-900 dark:text-blue-100">× {commissionPercent}%</div>
+                  <div className="bg-pink-300 dark:bg-pink-900 p-2 text-center border-r border-pink-400 dark:border-pink-700 text-pink-900 dark:text-pink-100">− PUBLICIDAD</div>
+                  <div className="bg-emerald-400 dark:bg-emerald-800 p-2 text-center text-emerald-900 dark:text-emerald-100">GANANCIA</div>
                 </div>
-                
+
                 {settlements.map((s, index) => (
-                  <div 
+                  <div
                     key={s.week.id}
-                    className="grid grid-cols-[40px_100px_140px_80px_100px_120px_120px_120px_120px] border-b border-gray-200 dark:border-gray-700 text-sm"
+                    className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-b border-gray-200 dark:border-gray-700 text-sm"
                     data-testid={`row-settlement-${s.week.weekNumber}`}
                   >
                     <div className="bg-gray-200 dark:bg-gray-800 p-2 text-center border-r border-gray-300 dark:border-gray-600 font-medium text-gray-600 dark:text-gray-400">
@@ -191,11 +195,15 @@ export default function TutorSettlementPage() {
                     <div className="bg-green-100 dark:bg-green-950 p-2 text-right border-r border-green-200 dark:border-green-900 font-medium text-green-800 dark:text-green-200" data-testid={`text-gross-${s.week.weekNumber}`}>
                       {formatCurrency(s.grossIncome)}
                     </div>
-                    <div className="bg-pink-100 dark:bg-pink-950 p-2 text-right border-r border-pink-200 dark:border-pink-900 font-medium text-pink-700 dark:text-pink-300" data-testid={`text-advertising-${s.week.weekNumber}`}>
-                      {s.tutorAdvertisingShare > 0 ? `-${formatCurrency(s.tutorAdvertisingShare)}` : formatCurrency(0)}
-                    </div>
-                    <div className="bg-amber-50 dark:bg-amber-950 p-2 text-right border-r border-amber-100 dark:border-amber-900 font-medium" data-testid={`text-net-${s.week.weekNumber}`}>
+                    <div className="bg-blue-50 dark:bg-blue-950 p-2 text-right border-r border-blue-100 dark:border-blue-900 font-medium text-blue-700 dark:text-blue-300" data-testid={`text-net-commission-${s.week.weekNumber}`}>
                       {formatCurrency(s.netIncome)}
+                    </div>
+                    <div className="bg-pink-100 dark:bg-pink-950 p-2 text-right border-r border-pink-200 dark:border-pink-900 font-medium text-pink-700 dark:text-pink-300" data-testid={`text-advertising-${s.week.weekNumber}`}>
+                      {s.tutorAdvertisingShare > 0 ? (
+                        <span title={`$${formatCurrency(s.sharedAdvertisingUsd)} USD × TC ${formatCurrency(s.usdRate)}`}>
+                          -{formatCurrency(s.tutorAdvertisingShare)}
+                        </span>
+                      ) : "—"}
                     </div>
                     <div className="bg-emerald-100 dark:bg-emerald-950 p-2 text-right font-bold text-emerald-700 dark:text-emerald-300" data-testid={`text-earnings-${s.week.weekNumber}`}>
                       {formatCurrency(s.tutorEarnings)}
@@ -203,7 +211,7 @@ export default function TutorSettlementPage() {
                   </div>
                 ))}
 
-                <div className="grid grid-cols-[40px_100px_140px_80px_100px_120px_120px_120px_120px] border-t-2 border-gray-500 dark:border-gray-400 font-bold text-sm bg-gray-100 dark:bg-gray-800">
+                <div className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-t-2 border-gray-500 dark:border-gray-400 font-bold text-sm bg-gray-100 dark:bg-gray-800">
                   <div className="bg-gray-300 dark:bg-gray-700 p-3 text-center border-r border-gray-400 dark:border-gray-600"></div>
                   <div className="bg-gray-200 dark:bg-gray-800 p-3 border-r border-gray-300 dark:border-gray-700 col-span-4 text-right pr-4">
                     TOTALES:
@@ -211,11 +219,11 @@ export default function TutorSettlementPage() {
                   <div className="bg-green-200 dark:bg-green-900 p-3 text-right border-r border-green-300 dark:border-green-800 text-green-800 dark:text-green-200" data-testid="text-total-gross-row">
                     {formatCurrency(totals.grossIncome)}
                   </div>
-                  <div className="bg-pink-200 dark:bg-pink-900 p-3 text-right border-r border-pink-300 dark:border-pink-800 text-pink-700 dark:text-pink-300" data-testid="text-total-advertising-row">
-                    {totals.advertisingCost > 0 ? `-${formatCurrency(totals.advertisingCost)}` : formatCurrency(0)}
-                  </div>
-                  <div className="bg-amber-100 dark:bg-amber-900 p-3 text-right border-r border-amber-200 dark:border-amber-800" data-testid="text-total-net-row">
+                  <div className="bg-blue-100 dark:bg-blue-900 p-3 text-right border-r border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300" data-testid="text-total-net-row">
                     {formatCurrency(totals.netIncome)}
+                  </div>
+                  <div className="bg-pink-200 dark:bg-pink-900 p-3 text-right border-r border-pink-300 dark:border-pink-800 text-pink-700 dark:text-pink-300" data-testid="text-total-advertising-row">
+                    {totals.advertisingCost > 0 ? `-${formatCurrency(totals.advertisingCost)}` : "—"}
                   </div>
                   <div className="bg-emerald-300 dark:bg-emerald-800 p-3 text-right text-emerald-800 dark:text-emerald-200" data-testid="text-total-earnings-row">
                     {formatCurrency(totals.tutorEarnings)}
@@ -238,27 +246,23 @@ export default function TutorSettlementPage() {
           <CardTitle>Fórmula de Cálculo</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
             <div className="p-3 rounded-lg bg-green-100 dark:bg-green-950 border border-green-200 dark:border-green-800">
-              <p className="font-bold text-green-800 dark:text-green-200">1. Bruto</p>
-              <p className="text-green-700 dark:text-green-300 text-xs">Pagos verificados en PEN</p>
+              <p className="font-bold text-green-800 dark:text-green-200">1. Ingreso Bruto</p>
+              <p className="text-green-700 dark:text-green-300 text-xs">Pagos verificados convertidos a PEN</p>
+            </div>
+            <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+              <p className="font-bold text-blue-800 dark:text-blue-200">2. Aplicar Comisión ({commissionPercent}%)</p>
+              <p className="text-blue-700 dark:text-blue-300 text-xs">Bruto × {commissionPercent}%</p>
             </div>
             <div className="p-3 rounded-lg bg-pink-100 dark:bg-pink-950 border border-pink-200 dark:border-pink-800">
-              <p className="font-bold text-pink-800 dark:text-pink-200">2. Publicidad</p>
-              <p className="text-pink-700 dark:text-pink-300 text-xs">Costo ÷ tutores activos</p>
-            </div>
-            <div className="p-3 rounded-lg bg-amber-100 dark:bg-amber-950 border border-amber-200 dark:border-amber-800">
-              <p className="font-bold text-amber-800 dark:text-amber-200">3. Neto</p>
-              <p className="text-amber-700 dark:text-amber-300 text-xs">Bruto - Publicidad</p>
-            </div>
-            <div className="p-3 rounded-lg bg-emerald-100 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800">
-              <p className="font-bold text-emerald-800 dark:text-emerald-200">4. Mi {settings.tutorPercent}%</p>
-              <p className="text-emerald-700 dark:text-emerald-300 text-xs">Neto × {settings.tutorPercent}%</p>
+              <p className="font-bold text-pink-800 dark:text-pink-200">3. Restar Publicidad</p>
+              <p className="text-pink-700 dark:text-pink-300 text-xs">Publicidad USD × TC × 50% ÷ tutores activos</p>
             </div>
           </div>
           <div className="mt-4 p-3 bg-muted rounded-lg text-center">
             <p className="text-sm font-mono font-bold">
-              Ganancia = (Bruto - Publicidad) × {settings.tutorPercent}%
+              Ganancia = (Bruto × {commissionPercent}%) − Publicidad compartida
             </p>
           </div>
         </CardContent>

@@ -33,6 +33,7 @@ import {
   ShieldCheck,
   Phone,
   Lock,
+  Activity,
 } from "lucide-react";
 
 const adminItems = [
@@ -44,6 +45,7 @@ const adminItems = [
   { title: "Divisas", url: "/admin/currencies", icon: Coins },
   { title: "Clientes", url: "/admin/clients", icon: Phone },
   { title: "Lista Negra", url: "/admin/blacklist", icon: AlertTriangle },
+  { title: "Actividad", url: "/admin/activity", icon: Activity },
 ];
 
 const tutorItems = [

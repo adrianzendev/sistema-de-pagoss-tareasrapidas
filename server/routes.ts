@@ -4,7 +4,7 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
-import { insertUserSchema, insertCurrencySchema, insertPaymentSchema, createTutorSchema, insertBlacklistSchema, insertWeekSchema, insertAgencySettingsSchema, insertClientSchema, normalizePhone } from "@shared/schema";
+import { insertUserSchema, insertCurrencySchema, insertPaymentSchema, createTutorSchema, insertBlacklistSchema, insertWeekSchema, insertAgencySettingsSchema, insertClientSchema, normalizePhone, insertActivityLogSchema } from "@shared/schema";
 import { z } from "zod";
 import { db, pool } from "./db";
 import { users, currencies, payments } from "@shared/schema";
@@ -158,6 +158,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.patch("/api/admin/tutors/:id", requireAdmin, async (req, res) => {
     try {
       const { name, email, password: rawPassword, commissionPercent } = req.body;
+      const existing = await storage.getUser(req.params.id);
+      if (!existing) return res.status(404).json({ message: "Tutor no encontrado" });
       const updateData: any = {};
       if (name) updateData.name = name;
       if (email) updateData.email = email;
@@ -165,12 +167,27 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (rawPassword) updateData.password = await bcrypt.hash(rawPassword, 10);
       const [updated] = await db.update(users).set(updateData).where(eq(users.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Tutor no encontrado" });
+      if (commissionPercent !== undefined && commissionPercent !== existing.commissionPercent) {
+        storage.createActivityLog({
+          type: "commission_change",
+          description: `Comisión de ${updated.name} cambiada de ${existing.commissionPercent}% a ${commissionPercent}%`,
+          tutorId: updated.id,
+          performedBy: req.session.userId!,
+          oldValue: String(existing.commissionPercent),
+          newValue: String(commissionPercent),
+        }).catch(console.error);
+      }
       const { password, ...safe } = updated;
       res.json(safe);
     } catch (error) {
       console.error("Error updating tutor:", error);
       res.status(500).json({ message: "Error al actualizar tutor" });
     }
+  });
+
+  app.get("/api/admin/activity-log", requireAdmin, async (req, res) => {
+    const log = await storage.getActivityLog();
+    res.json(log);
   });
 
   app.delete("/api/admin/tutors/:id", requireAdmin, async (req, res) => {
@@ -596,6 +613,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         endDate,
         status: "open",
         advertisingCost: "0",
+        sharedAdvertisingUsd: "0",
       });
 
       res.status(201).json(week);
@@ -631,24 +649,25 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       const settings = await storage.getAgencySettings();
-      const agencyPercent = Number(settings?.agencyPercent ?? 30);
-      const tutorPercent = Number(settings?.tutorPercent ?? 70);
-      const advertisingCost = Number(week.advertisingCost ?? 0);
-
       const weekPayments = await storage.getPaymentsByWeek(week.id);
       const verifiedPayments = weekPayments.filter(p => p.status === "verified");
       const allCurrencies = await storage.getCurrencies();
       const tutors = await storage.getTutors();
 
-      const tutorsWithPayments = tutors.filter(tutor => 
+      const usdCurrency = allCurrencies.find(c => c.code === "USD");
+      const usdRate = Number(usdCurrency?.exchangeRate ?? 1);
+      const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
+      const advertisingInSoles = sharedAdvertisingUsd * usdRate;
+
+      const tutorsWithPayments = tutors.filter(tutor =>
         verifiedPayments.some(p => p.tutorId === tutor.id)
       );
       const activeTutorCount = tutorsWithPayments.length || 1;
-      const advertisingPerTutor = advertisingCost / activeTutorCount;
+      const tutorAdvertisingShare = (advertisingInSoles * 0.5) / activeTutorCount;
 
       const settlements = tutors.map(tutor => {
         const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
-        
+
         let grossIncome = 0;
         tutorPayments.forEach(p => {
           const currency = allCurrencies.find(c => c.id === p.currencyId);
@@ -656,20 +675,21 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           grossIncome += Number(p.amount) * rate;
         });
 
-        const tutorAdvertisingShare = tutorPayments.length > 0 ? advertisingPerTutor : 0;
-        
-        const netIncome = grossIncome - tutorAdvertisingShare;
-        const tutorEarnings = netIncome * (tutorPercent / 100);
-        const agencyEarnings = netIncome * (agencyPercent / 100);
+        const commission = Number(tutor.commissionPercent) / 100;
+        const advShare = tutorPayments.length > 0 ? tutorAdvertisingShare : 0;
+        const netIncome = grossIncome * commission;
+        const tutorEarnings = netIncome - advShare;
+        const agencyEarnings = grossIncome * (1 - commission) - advShare;
 
         return {
           week,
           tutorId: tutor.id,
           tutorName: tutor.name,
+          commissionPercent: Number(tutor.commissionPercent),
           grossIncome,
-          advertisingCost: tutorAdvertisingShare,
-          tutorAdvertisingShare,
-          agencyAdvertisingShare: 0,
+          advertisingCost: advShare,
+          tutorAdvertisingShare: advShare,
+          agencyAdvertisingShare: advShare,
           netIncome,
           tutorEarnings,
           agencyEarnings,
@@ -679,13 +699,28 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       const totals = {
         grossIncome: settlements.reduce((sum, s) => sum + s.grossIncome, 0),
-        advertisingCost,
+        advertisingCost: settlements.reduce((sum, s) => sum + s.tutorAdvertisingShare, 0),
         netIncome: settlements.reduce((sum, s) => sum + s.netIncome, 0),
         tutorEarnings: settlements.reduce((sum, s) => sum + s.tutorEarnings, 0),
         agencyEarnings: settlements.reduce((sum, s) => sum + s.agencyEarnings, 0),
       };
 
-      res.json({ week, settlements, totals, settings: { agencyPercent, tutorPercent } });
+      res.json({
+        week,
+        settlements,
+        totals,
+        settings: {
+          agencyPercent: Number(settings?.agencyPercent ?? 30),
+          tutorPercent: Number(settings?.tutorPercent ?? 70),
+        },
+        advertising: {
+          sharedAdvertisingUsd,
+          usdRate,
+          advertisingInSoles,
+          agencyShare: advertisingInSoles * 0.5,
+          tutorsShare: advertisingInSoles * 0.5,
+        },
+      });
     } catch (error) {
       console.error("Error getting settlement:", error);
       res.status(500).json({ message: "Error al obtener liquidación" });
@@ -732,17 +767,24 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const tutorPercent = Number(settings?.tutorPercent ?? 70);
       const allCurrencies = await storage.getCurrencies();
       const tutors = await storage.getTutors();
+      const commission = Number(user.commissionPercent) / 100;
+
+      const usdCurrency = allCurrencies.find(c => c.code === "USD");
+      const usdRate = Number(usdCurrency?.exchangeRate ?? 1);
 
       const weeklySettlements = await Promise.all(
         allWeeks.slice(0, 12).map(async (week) => {
           const weekPayments = await storage.getPaymentsByWeek(week.id);
           const verifiedPayments = weekPayments.filter(p => p.status === "verified");
           const tutorPayments = verifiedPayments.filter(p => p.tutorId === user.id);
-          const advertisingCost = Number(week.advertisingCost ?? 0);
-          
+
+          const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
+          const advertisingInSoles = sharedAdvertisingUsd * usdRate;
           const tutorsWithPayments = new Set(verifiedPayments.map(p => p.tutorId));
           const activeTutorCount = tutorsWithPayments.size || 1;
-          const advertisingPerTutor = advertisingCost / activeTutorCount;
+          const tutorAdvertisingShare = tutorPayments.length > 0
+            ? (advertisingInSoles * 0.5) / activeTutorCount
+            : 0;
 
           let grossIncome = 0;
           tutorPayments.forEach(p => {
@@ -751,20 +793,21 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             grossIncome += Number(p.amount) * rate;
           });
 
-          const tutorAdvertisingShare = tutorPayments.length > 0 ? advertisingPerTutor : 0;
-          
-          const netIncome = grossIncome - tutorAdvertisingShare;
-          const tutorEarnings = netIncome * (tutorPercent / 100);
-          const agencyEarnings = netIncome * (agencyPercent / 100);
+          const netIncome = grossIncome * commission;
+          const tutorEarnings = netIncome - tutorAdvertisingShare;
+          const agencyEarnings = grossIncome * (1 - commission) - tutorAdvertisingShare;
 
           return {
             week,
             tutorId: user.id,
             tutorName: user.name,
+            commissionPercent: Number(user.commissionPercent),
             grossIncome,
             advertisingCost: tutorAdvertisingShare,
             tutorAdvertisingShare,
-            agencyAdvertisingShare: 0,
+            agencyAdvertisingShare: tutorAdvertisingShare,
+            sharedAdvertisingUsd,
+            usdRate,
             netIncome,
             tutorEarnings,
             agencyEarnings,
@@ -773,9 +816,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         })
       );
 
-      res.json({ 
+      res.json({
         settlements: weeklySettlements,
-        settings: { agencyPercent, tutorPercent }
+        settings: { agencyPercent, tutorPercent },
+        commissionPercent: Number(user.commissionPercent),
       });
     } catch (error) {
       console.error("Error getting tutor settlement:", error);

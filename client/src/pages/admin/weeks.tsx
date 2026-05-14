@@ -13,7 +13,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -30,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Calendar, Plus, Settings, Eye, Trash2, Coins } from "lucide-react";
+import { Calendar, Plus, Settings, Eye, Trash2, Coins, DollarSign } from "lucide-react";
 import type { Week, AgencySettings } from "@shared/schema";
 
 type WeekSettlement = {
@@ -38,6 +37,7 @@ type WeekSettlement = {
   settlements: Array<{
     tutorId: string;
     tutorName: string;
+    commissionPercent: number;
     grossIncome: number;
     tutorAdvertisingShare: number;
     netIncome: number;
@@ -56,13 +56,20 @@ type WeekSettlement = {
     agencyPercent: number;
     tutorPercent: number;
   };
+  advertising: {
+    sharedAdvertisingUsd: number;
+    usdRate: number;
+    advertisingInSoles: number;
+    agencyShare: number;
+    tutorsShare: number;
+  };
 };
 
 export default function WeeksPage() {
   const { toast } = useToast();
   const [selectedWeek, setSelectedWeek] = useState<Week | null>(null);
   const [editingWeek, setEditingWeek] = useState<Week | null>(null);
-  const [advertisingCost, setAdvertisingCost] = useState("");
+  const [sharedAdvertisingUsd, setSharedAdvertisingUsd] = useState("");
   const [weekStatus, setWeekStatus] = useState<string>("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [agencyPercent, setAgencyPercent] = useState("");
@@ -75,6 +82,13 @@ export default function WeeksPage() {
   const { data: settings } = useQuery<AgencySettings>({
     queryKey: ["/api/admin/settings"],
   });
+
+  const { data: currencies } = useQuery<{ code: string; exchangeRate: string }[]>({
+    queryKey: ["/api/currencies"],
+  });
+
+  const usdRate = Number(currencies?.find(c => c.code === "USD")?.exchangeRate ?? 1);
+  const advertisingInSoles = Number(sharedAdvertisingUsd || 0) * usdRate;
 
   const { data: settlement, isLoading: settlementLoading } = useQuery<WeekSettlement>({
     queryKey: ["/api/admin/weeks", selectedWeek?.id, "settlement"],
@@ -93,13 +107,16 @@ export default function WeeksPage() {
   });
 
   const updateWeekMutation = useMutation({
-    mutationFn: (data: { id: string; advertisingCost?: string; status?: string }) =>
+    mutationFn: (data: { id: string; sharedAdvertisingUsd?: string; status?: string }) =>
       apiRequest("PATCH", `/api/admin/weeks/${data.id}`, {
-        advertisingCost: data.advertisingCost,
+        sharedAdvertisingUsd: data.sharedAdvertisingUsd,
         status: data.status,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/weeks"] });
+      if (selectedWeek) {
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/weeks", selectedWeek.id, "settlement"] });
+      }
       setEditingWeek(null);
       toast({ title: "Semana actualizada" });
     },
@@ -161,7 +178,7 @@ export default function WeeksPage() {
 
   const openEditDialog = (week: Week) => {
     setEditingWeek(week);
-    setAdvertisingCost(week.advertisingCost ?? "0");
+    setSharedAdvertisingUsd(week.sharedAdvertisingUsd ?? "0");
     setWeekStatus(week.status);
   };
 
@@ -262,7 +279,7 @@ export default function WeeksPage() {
                 <TableRow>
                   <TableHead>Semana</TableHead>
                   <TableHead>Período</TableHead>
-                  <TableHead>Publicidad</TableHead>
+                  <TableHead>Publicidad Compartida</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
@@ -277,7 +294,9 @@ export default function WeeksPage() {
                       {formatDate(week.startDate)} - {formatDate(week.endDate)}
                     </TableCell>
                     <TableCell data-testid={`text-advertising-${week.weekNumber}`}>
-                      {formatCurrency(Number(week.advertisingCost ?? 0))}
+                      <span className="font-mono text-sm">
+                        ${formatCurrency(Number(week.sharedAdvertisingUsd ?? 0))} USD
+                      </span>
                     </TableCell>
                     <TableCell>{getStatusBadge(week.status)}</TableCell>
                     <TableCell className="text-right">
@@ -351,7 +370,7 @@ export default function WeeksPage() {
               />
             </div>
             <p className="text-sm text-muted-foreground">
-              Total: {(parseFloat(tutorPercent || "0") + parseFloat(agencyPercent || "0")).toFixed(0)}% 
+              Total: {(parseFloat(tutorPercent || "0") + parseFloat(agencyPercent || "0")).toFixed(0)}%
               {parseFloat(tutorPercent || "0") + parseFloat(agencyPercent || "0") !== 100 && (
                 <span className="text-destructive ml-2">(debe ser 100%)</span>
               )}
@@ -375,17 +394,33 @@ export default function WeeksPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Gasto de Publicidad (PEN)</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                value={advertisingCost}
-                onChange={(e) => setAdvertisingCost(e.target.value)}
-                data-testid="input-advertising-cost"
-              />
+              <Label className="flex items-center gap-1">
+                <DollarSign className="h-4 w-4 text-green-600" />
+                Publicidad Compartida (USD)
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={sharedAdvertisingUsd}
+                  onChange={(e) => setSharedAdvertisingUsd(e.target.value)}
+                  className="pl-7"
+                  data-testid="input-advertising-cost"
+                />
+              </div>
+              {Number(sharedAdvertisingUsd) > 0 && (
+                <div className="text-xs text-muted-foreground space-y-1 p-2 bg-muted rounded-md">
+                  <p>Tipo de cambio USD: <span className="font-mono font-medium">S/ {formatCurrency(usdRate)}</span></p>
+                  <p>Total en soles: <span className="font-mono font-medium text-foreground">S/ {formatCurrency(advertisingInSoles)}</span></p>
+                  <p className="text-blue-600 dark:text-blue-400 font-medium">
+                    Agencia paga: S/ {formatCurrency(advertisingInSoles * 0.5)} · Tutores pagan: S/ {formatCurrency(advertisingInSoles * 0.5)}
+                  </p>
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
-                Este monto se dividirá proporcionalmente entre tutores y agencia
+                El 50% lo asume la agencia y el 50% se distribuye entre los tutores activos de la semana
               </p>
             </div>
             <div className="space-y-2">
@@ -407,7 +442,7 @@ export default function WeeksPage() {
                 editingWeek &&
                 updateWeekMutation.mutate({
                   id: editingWeek.id,
-                  advertisingCost,
+                  sharedAdvertisingUsd,
                   status: weekStatus,
                 })
               }
@@ -432,26 +467,46 @@ export default function WeeksPage() {
             </div>
           ) : settlement ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {settlement.advertising.sharedAdvertisingUsd > 0 && (
+                <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg text-sm">
+                  <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">Publicidad Compartida</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">Total USD:</span>
+                      <span className="font-mono font-bold ml-1">${formatCurrency(settlement.advertising.sharedAdvertisingUsd)}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">TC:</span>
+                      <span className="font-mono font-bold ml-1">S/{formatCurrency(settlement.advertising.usdRate)}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Agencia paga:</span>
+                      <span className="font-mono font-bold ml-1 text-amber-600">S/{formatCurrency(settlement.advertising.agencyShare)}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Tutores pagan:</span>
+                      <span className="font-mono font-bold ml-1 text-destructive">S/{formatCurrency(settlement.advertising.tutorsShare)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="text-center p-3 bg-muted rounded-lg">
                   <div className="text-lg font-bold">{formatCurrency(settlement.totals.grossIncome)}</div>
                   <div className="text-xs text-muted-foreground">Ingreso Bruto</div>
                 </div>
                 <div className="text-center p-3 bg-muted rounded-lg">
-                  <div className="text-lg font-bold text-destructive">{formatCurrency(settlement.totals.advertisingCost)}</div>
-                  <div className="text-xs text-muted-foreground">Publicidad</div>
-                </div>
-                <div className="text-center p-3 bg-muted rounded-lg">
                   <div className="text-lg font-bold">{formatCurrency(settlement.totals.netIncome)}</div>
-                  <div className="text-xs text-muted-foreground">Ingreso Neto</div>
+                  <div className="text-xs text-muted-foreground">Por comisión</div>
                 </div>
                 <div className="text-center p-3 bg-primary/10 rounded-lg">
                   <div className="text-lg font-bold text-primary">{formatCurrency(settlement.totals.tutorEarnings)}</div>
-                  <div className="text-xs text-muted-foreground">Tutores ({settlement.settings.tutorPercent}%)</div>
+                  <div className="text-xs text-muted-foreground">Ganancia Tutores</div>
                 </div>
                 <div className="text-center p-3 bg-muted rounded-lg">
                   <div className="text-lg font-bold">{formatCurrency(settlement.totals.agencyEarnings)}</div>
-                  <div className="text-xs text-muted-foreground">Agencia ({settlement.settings.agencyPercent}%)</div>
+                  <div className="text-xs text-muted-foreground">Ganancia Agencia</div>
                 </div>
               </div>
 
@@ -460,9 +515,10 @@ export default function WeeksPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Tutor</TableHead>
+                      <TableHead className="text-right">Comisión</TableHead>
                       <TableHead className="text-right">Bruto</TableHead>
-                      <TableHead className="text-right">Publicidad</TableHead>
-                      <TableHead className="text-right">Neto</TableHead>
+                      <TableHead className="text-right">× %</TableHead>
+                      <TableHead className="text-right">− Publicidad</TableHead>
                       <TableHead className="text-right">Ganancia</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -470,9 +526,14 @@ export default function WeeksPage() {
                     {settlement.settlements.map((s) => (
                       <TableRow key={s.tutorId}>
                         <TableCell className="font-medium">{s.tutorName}</TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant="outline">{s.commissionPercent}%</Badge>
+                        </TableCell>
                         <TableCell className="text-right">{formatCurrency(s.grossIncome)}</TableCell>
-                        <TableCell className="text-right text-destructive">-{formatCurrency(s.tutorAdvertisingShare)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(s.netIncome)}</TableCell>
+                        <TableCell className="text-right text-blue-600 dark:text-blue-400">{formatCurrency(s.netIncome)}</TableCell>
+                        <TableCell className="text-right text-destructive">
+                          {s.tutorAdvertisingShare > 0 ? `-${formatCurrency(s.tutorAdvertisingShare)}` : "—"}
+                        </TableCell>
                         <TableCell className="text-right font-bold text-primary">{formatCurrency(s.tutorEarnings)}</TableCell>
                       </TableRow>
                     ))}
