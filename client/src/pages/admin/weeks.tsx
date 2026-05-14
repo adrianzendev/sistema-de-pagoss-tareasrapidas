@@ -536,8 +536,9 @@ export default function WeeksPage() {
                       <TableHead className="text-right">Comisión</TableHead>
                       <TableHead className="text-right">Bruto</TableHead>
                       <TableHead className="text-right">× %</TableHead>
-                      <TableHead className="text-right">− Publicidad</TableHead>
-                      <TableHead className="text-right">Ganancia</TableHead>
+                      <TableHead className="text-right text-destructive">− Publicidad</TableHead>
+                      <TableHead className="text-right text-primary">Gan. Tutor</TableHead>
+                      <TableHead className="text-right text-amber-600 dark:text-amber-400">Gan. Agencia</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -549,10 +550,11 @@ export default function WeeksPage() {
                         </TableCell>
                         <TableCell className="text-right">{formatCurrency(s.grossIncome)}</TableCell>
                         <TableCell className="text-right text-blue-600 dark:text-blue-400">{formatCurrency(s.netIncome)}</TableCell>
-                        <TableCell className="text-right text-destructive">
+                        <TableCell className="text-right text-destructive font-medium">
                           {s.tutorAdvertisingShare > 0 ? `-${formatCurrency(s.tutorAdvertisingShare)}` : "—"}
                         </TableCell>
                         <TableCell className="text-right font-bold text-primary">{formatCurrency(s.tutorEarnings)}</TableCell>
+                        <TableCell className="text-right font-bold text-amber-600 dark:text-amber-400">{formatCurrency(s.agencyEarnings)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
