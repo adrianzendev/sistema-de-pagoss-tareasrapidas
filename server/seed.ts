@@ -96,7 +96,6 @@ export async function seedDatabase() {
     await ensureUser(standardPwd, { username: "carlos.lopez", role: "tutor", name: "Carlos López", email: "carlos.lopez@email.com", commissionPercent: "12" });
     await ensureUser(standardPwd, { username: "ana.martinez", role: "tutor", name: "Ana Martínez", email: "ana.martinez@email.com", commissionPercent: "18" });
     await ensureUser(standardPwd, { username: "roger", role: "tutor", name: "Roger", email: "roger@gmail.com", commissionPercent: "70" });
-    await ensureUser(standardPwd, { username: "tutor1", role: "tutor", name: "Tutor 1", email: "tutor1@gmail.com", commissionPercent: "15" });
     await ensureUser(standardPwd, { username: "adrian", role: "verifier", name: "Verificador Adrian", email: "adrian@gmail.com", commissionPercent: "0" });
 
     // Reset all passwords to 123456
