@@ -686,10 +686,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
       const advertisingInSoles = sharedAdvertisingUsd * usdRate;
 
-      const tutorsWithPayments = tutors.filter(tutor =>
-        tutor.isActive && verifiedPayments.some(p => p.tutorId === tutor.id)
-      );
-      const activeTutorCount = tutorsWithPayments.length || 1;
+      const activeTutorCount = tutors.filter(t => t.isActive !== false).length || 1;
       const tutorAdvertisingShare = (advertisingInSoles * 0.5) / activeTutorCount;
 
       const settlements = tutors.map(tutor => {
@@ -704,7 +701,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
         const commission = Number(tutor.commissionPercent) / 100;
         const isActive = tutor.isActive !== false;
-        const sharedAdvShare = (isActive && tutorPayments.length > 0) ? tutorAdvertisingShare : 0;
+        const sharedAdvShare = isActive ? tutorAdvertisingShare : 0;
         const ownAdvUsd = Number(tutor.advertisingCostUsd ?? 0);
         const ownAdvShare = isActive ? ownAdvUsd * usdRate * 0.5 : 0;
         const totalAdvShare = sharedAdvShare + ownAdvShare;
@@ -781,8 +778,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
         const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
         const advertisingInSoles = sharedAdvertisingUsd * usdRate;
-        const tutorsWithPayments = tutors.filter(t => t.isActive && verifiedPayments.some(p => p.tutorId === t.id));
-        const activeTutorCount = tutorsWithPayments.length || 1;
+        const activeTutors = tutors.filter(t => t.isActive !== false);
+        const activeTutorCount = activeTutors.length || 1;
         const weekTutorAdShare = (advertisingInSoles * 0.5) / activeTutorCount;
 
         for (const tutor of tutors) {
@@ -797,7 +794,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const commission = Number(tutor.commissionPercent) / 100;
           const tutorIsActive = tutor.isActive !== false;
           const hasPayments = tutorPayments.length > 0;
-          const sharedAdvShare = (tutorIsActive && hasPayments) ? weekTutorAdShare : 0;
+          const sharedAdvShare = tutorIsActive ? weekTutorAdShare : 0;
           const ownAdvShare = tutorIsActive ? Number(tutor.advertisingCostUsd ?? 0) * usdRate * 0.5 : 0;
           const totalAdvShare = sharedAdvShare + ownAdvShare;
           const netIncome = grossIncome * commission;

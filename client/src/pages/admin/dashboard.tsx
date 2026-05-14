@@ -104,7 +104,10 @@ export default function AdminDashboard() {
   const currencyTotals = matrixData?.currencyTotals ?? [];
 
   const tutorsWithAnyPayment = tutors.filter(t =>
-    weeks.some(w => (matrix[t.id]?.[w.id]?.paymentCount ?? 0) > 0) ||
+    weeks.some(w =>
+      (matrix[t.id]?.[w.id]?.paymentCount ?? 0) > 0 ||
+      (matrix[t.id]?.[w.id]?.tutorAdvertisingShare ?? 0) > 0
+    ) ||
     (t.isActive !== false && Number((t as any).advertisingCostUsd ?? 0) > 0)
   );
 
