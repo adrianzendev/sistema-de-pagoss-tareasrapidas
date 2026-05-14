@@ -477,10 +477,9 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .select()
       .from(payments)
-      .where(and(
-        gte(payments.createdAt, new Date(week.startDate + 'T00:00:00.000Z')),
-        lte(payments.createdAt, new Date(week.endDate + 'T23:59:59.999Z'))
-      ))
+      .where(
+        sql`DATE(${payments.createdAt} AT TIME ZONE 'America/Lima') BETWEEN ${week.startDate}::date AND ${week.endDate}::date`
+      )
       .orderBy(desc(payments.createdAt));
 
     const paymentDetails: PaymentWithDetails[] = [];
