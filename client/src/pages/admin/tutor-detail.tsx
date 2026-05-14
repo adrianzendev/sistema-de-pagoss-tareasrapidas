@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, ChevronDown, ChevronRight, Image } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Week } from "@shared/schema";
 
 type CurrencyEntry = { code: string; symbol: string; total: number };
@@ -177,6 +179,15 @@ export default function TutorDetailPage() {
   const totalPaid = tutorRows.filter(r => r.week.status === "paid").reduce((s, r) => s + (r.cell?.tutorEarnings ?? 0), 0);
   const totalPending = totalTutor - totalPaid;
 
+  const nextStatus = (s: string) => s === "open" ? "closed" : s === "closed" ? "paid" : "open";
+  const nextLabel = (s: string) => s === "open" ? "Cerrar" : s === "closed" ? "Marcar pagado" : "Reabrir";
+
+  const weekStatusMutation = useMutation({
+    mutationFn: ({ weekId, status }: { weekId: string; status: string }) =>
+      apiRequest("PATCH", `/api/admin/weeks/${weekId}`, { status }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/settlements/matrix"] }),
+  });
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center gap-3">
@@ -286,13 +297,24 @@ export default function TutorDetailPage() {
                         <td className="p-3 text-right tabular-nums font-medium text-sky-500 dark:text-sky-400">
                           {hasActivity ? fmt(cell?.agencyEarnings ?? 0) : "—"}
                         </td>
-                        <td className="p-3 text-center">
+                        <td className="p-3 text-center" onClick={e => e.stopPropagation()}>
                           {hasActivity ? (
-                            week.status === "paid"
-                              ? <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600">Pagado</Badge>
-                              : week.status === "closed"
-                                ? <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">Por pagar</Badge>
-                                : <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Abierta</Badge>
+                            <div className="flex flex-col items-center gap-1">
+                              {week.status === "paid"
+                                ? <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600">Pagado</Badge>
+                                : week.status === "closed"
+                                  ? <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">Por pagar</Badge>
+                                  : <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Abierta</Badge>}
+                              <Button
+                                size="sm"
+                                variant={week.status === "closed" ? "default" : "ghost"}
+                                className="h-5 text-[9px] px-2 py-0"
+                                disabled={weekStatusMutation.isPending}
+                                onClick={() => weekStatusMutation.mutate({ weekId: week.id, status: nextStatus(week.status) })}
+                              >
+                                {nextLabel(week.status)}
+                              </Button>
+                            </div>
                           ) : null}
                         </td>
                         <td className="p-3 text-right tabular-nums text-muted-foreground text-xs">
