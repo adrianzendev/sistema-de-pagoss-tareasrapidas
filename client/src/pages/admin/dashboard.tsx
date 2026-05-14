@@ -332,7 +332,7 @@ export default function AdminDashboard() {
                                 <div className={`text-xs font-medium ${agencyE >= 0 ? "text-sky-500 dark:text-sky-400" : "text-red-500 dark:text-red-400"}`}>
                                   {fmt(agencyE)}
                                 </div>
-                                {hasPayments && <div className="text-[9px] text-muted-foreground/60">{cell!.paymentCount} pg</div>}
+                                <div className="text-[9px] text-muted-foreground/60">{cell?.paymentCount ?? 0} pg</div>
                               </>
                             ) : (
                               <span className="text-muted-foreground/30">—</span>
