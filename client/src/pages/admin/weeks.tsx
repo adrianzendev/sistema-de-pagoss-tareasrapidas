@@ -237,43 +237,6 @@ export default function WeeksPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Configuración Actual
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="text-center p-3 bg-muted rounded-lg">
-              <div className="text-2xl font-bold text-primary" data-testid="text-tutor-percent">
-                {settings?.tutorPercent ?? 70}%
-              </div>
-              <div className="text-sm text-muted-foreground">Tutor</div>
-            </div>
-            <div className="text-center p-3 bg-muted rounded-lg">
-              <div className="text-2xl font-bold" data-testid="text-agency-percent">
-                {settings?.agencyPercent ?? 30}%
-              </div>
-              <div className="text-sm text-muted-foreground">Agencia</div>
-            </div>
-            <div className="text-center p-3 bg-muted rounded-lg">
-              <div className="text-2xl font-bold" data-testid="text-total-weeks">
-                {weeks?.length ?? 0}
-              </div>
-              <div className="text-sm text-muted-foreground">Semanas</div>
-            </div>
-            <div className="text-center p-3 bg-muted rounded-lg">
-              <div className="text-2xl font-bold" data-testid="text-current-week">
-                S{settings?.currentWeekNumber ?? 166}
-              </div>
-              <div className="text-sm text-muted-foreground">Semana Inicial</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle>Historial de Semanas</CardTitle>
           <CardDescription>Semanas de domingo a sábado con sus liquidaciones</CardDescription>
         </CardHeader>
