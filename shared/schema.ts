@@ -78,6 +78,7 @@ export const activityLog = pgTable("activity_log", {
   type: text("type").notNull(),
   description: text("description").notNull(),
   tutorId: varchar("tutor_id").references(() => users.id, { onDelete: "set null" }),
+  weekId: varchar("week_id").references(() => weeks.id, { onDelete: "set null" }),
   performedBy: varchar("performed_by").references(() => users.id, { onDelete: "set null" }),
   oldValue: text("old_value"),
   newValue: text("new_value"),

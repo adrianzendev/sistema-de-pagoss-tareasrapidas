@@ -556,19 +556,19 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async getActivityLog(): Promise<(ActivityLog & { tutor?: User; performer?: User })[]> {
+  async getActivityLog(): Promise<(ActivityLog & { tutor?: Omit<User, "password">; performer?: Omit<User, "password"> })[]> {
     const entries = await db.select().from(activityLog).orderBy(desc(activityLog.createdAt));
     const result = [];
     for (const entry of entries) {
-      let tutor: User | undefined;
-      let performer: User | undefined;
+      let tutor: Omit<User, "password"> | undefined;
+      let performer: Omit<User, "password"> | undefined;
       if (entry.tutorId) {
         const [t] = await db.select().from(users).where(eq(users.id, entry.tutorId));
-        tutor = t;
+        if (t) { const { password: _p, ...safe } = t; tutor = safe; }
       }
       if (entry.performedBy) {
         const [p] = await db.select().from(users).where(eq(users.id, entry.performedBy));
-        performer = p;
+        if (p) { const { password: _pw, ...safe } = p; performer = safe; }
       }
       result.push({ ...entry, tutor, performer });
     }

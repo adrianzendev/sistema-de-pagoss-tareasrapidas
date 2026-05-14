@@ -167,7 +167,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (rawPassword) updateData.password = await bcrypt.hash(rawPassword, 10);
       const [updated] = await db.update(users).set(updateData).where(eq(users.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Tutor no encontrado" });
-      if (commissionPercent !== undefined && commissionPercent !== existing.commissionPercent) {
+      if (commissionPercent !== undefined && Number(commissionPercent) !== Number(existing.commissionPercent)) {
         storage.createActivityLog({
           type: "commission_change",
           description: `Comisión de ${updated.name} cambiada de ${existing.commissionPercent}% a ${commissionPercent}%`,
