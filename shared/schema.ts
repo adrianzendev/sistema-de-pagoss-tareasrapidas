@@ -19,6 +19,7 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   commissionPercent: decimal("commission_percent", { precision: 5, scale: 2 }).notNull().default("0"),
   advertisingCostUsd: decimal("advertising_cost_usd", { precision: 12, scale: 2 }).notNull().default("0"),
+  isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

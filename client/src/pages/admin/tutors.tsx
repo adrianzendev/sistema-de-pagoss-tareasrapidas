@@ -16,6 +16,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
 import { Plus, Search, Loader2, UserPlus, Mail, Percent, Trash2, Edit, DollarSign } from "lucide-react";
 import {
   AlertDialog,
@@ -40,6 +41,7 @@ const createTutorSchema = z.object({
     const num = parseFloat(val);
     return !isNaN(num) && num >= 0;
   }, "Debe ser un valor mayor o igual a 0"),
+  isActive: z.boolean().default(true),
 });
 
 const editTutorSchema = z.object({
@@ -54,6 +56,7 @@ const editTutorSchema = z.object({
     const num = parseFloat(val);
     return !isNaN(num) && num >= 0;
   }, "Debe ser un valor mayor o igual a 0"),
+  isActive: z.boolean().default(true),
 });
 
 type CreateTutorForm = z.infer<typeof createTutorSchema>;
@@ -93,12 +96,12 @@ export default function TutorsPage() {
 
   const createForm = useForm<CreateTutorForm>({
     resolver: zodResolver(createTutorSchema),
-    defaultValues: { name: "", email: "", password: "", commissionPercent: "10", advertisingCostUsd: "0" },
+    defaultValues: { name: "", email: "", password: "", commissionPercent: "10", advertisingCostUsd: "0", isActive: true },
   });
 
   const editForm = useForm<EditTutorForm>({
     resolver: zodResolver(editTutorSchema),
-    defaultValues: { name: "", email: "", password: "", commissionPercent: "10", advertisingCostUsd: "0" },
+    defaultValues: { name: "", email: "", password: "", commissionPercent: "10", advertisingCostUsd: "0", isActive: true },
   });
 
   const createMutation = useMutation({
@@ -123,6 +126,7 @@ export default function TutorsPage() {
         email: data.email,
         commissionPercent: data.commissionPercent,
         advertisingCostUsd: data.advertisingCostUsd,
+        isActive: data.isActive,
       };
       if (data.password) body.password = data.password;
       await apiRequest("PATCH", `/api/admin/tutors/${id}`, body);
@@ -160,6 +164,7 @@ export default function TutorsPage() {
       password: "",
       commissionPercent: tutor.commissionPercent,
       advertisingCostUsd: tutor.advertisingCostUsd ?? "0",
+      isActive: tutor.isActive !== false,
     });
   };
 
@@ -278,6 +283,27 @@ export default function TutorsPage() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={createForm.control}
+                  name="isActive"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <FormLabel className="text-sm font-medium">Colaborador activo</FormLabel>
+                        <FormDescription className="text-xs">
+                          Si está activo se le carga publicidad. Inactivo = sin cargo.
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="switch-tutor-active"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
                 <div className="flex justify-end gap-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => { setIsOpen(false); createForm.reset(); }}>Cancelar</Button>
                   <Button type="submit" disabled={createMutation.isPending} data-testid="button-submit-tutor">
@@ -385,6 +411,27 @@ export default function TutorsPage() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={editForm.control}
+                  name="isActive"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <FormLabel className="text-sm font-medium">Colaborador activo</FormLabel>
+                        <FormDescription className="text-xs">
+                          Si está activo se le carga publicidad. Inactivo = sin cargo.
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="switch-edit-tutor-active"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
                 <div className="flex justify-end gap-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => { setEditingTutor(null); editForm.reset(); }}>Cancelar</Button>
                   <Button type="submit" disabled={updateMutation.isPending} data-testid="button-update-tutor">
@@ -438,6 +485,7 @@ export default function TutorsPage() {
                   <TableRow>
                     <TableHead>Nombre</TableHead>
                     <TableHead>Email</TableHead>
+                    <TableHead>Estado</TableHead>
                     <TableHead className="text-right">Comisión</TableHead>
                     <TableHead className="text-right">Publicidad/sem</TableHead>
                     <TableHead>Registrado</TableHead>
@@ -449,6 +497,13 @@ export default function TutorsPage() {
                     <TableRow key={tutor.id} data-testid={`row-tutor-${tutor.id}`}>
                       <TableCell className="font-medium">{tutor.name}</TableCell>
                       <TableCell>{tutor.email}</TableCell>
+                      <TableCell>
+                        {tutor.isActive !== false ? (
+                          <Badge className="bg-green-600 text-white text-[10px] px-1.5 py-0" data-testid={`status-tutor-${tutor.id}`}>Activo</Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0" data-testid={`status-tutor-${tutor.id}`}>Inactivo</Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         <Badge variant="outline">{tutor.commissionPercent}%</Badge>
                       </TableCell>

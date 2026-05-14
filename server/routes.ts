@@ -157,7 +157,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.patch("/api/admin/tutors/:id", requireAdmin, async (req, res) => {
     try {
-      const { name, email, password: rawPassword, commissionPercent, advertisingCostUsd } = req.body;
+      const { name, email, password: rawPassword, commissionPercent, advertisingCostUsd, isActive } = req.body;
       const existing = await storage.getUser(req.params.id);
       if (!existing) return res.status(404).json({ message: "Tutor no encontrado" });
       const updateData: any = {};
@@ -165,6 +165,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (email) updateData.email = email;
       if (commissionPercent !== undefined) updateData.commissionPercent = commissionPercent;
       if (advertisingCostUsd !== undefined) updateData.advertisingCostUsd = advertisingCostUsd;
+      if (isActive !== undefined) updateData.isActive = isActive;
       if (rawPassword) updateData.password = await bcrypt.hash(rawPassword, 10);
       const [updated] = await db.update(users).set(updateData).where(eq(users.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Tutor no encontrado" });
@@ -674,7 +675,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const advertisingInSoles = sharedAdvertisingUsd * usdRate;
 
       const tutorsWithPayments = tutors.filter(tutor =>
-        verifiedPayments.some(p => p.tutorId === tutor.id)
+        tutor.isActive && verifiedPayments.some(p => p.tutorId === tutor.id)
       );
       const activeTutorCount = tutorsWithPayments.length || 1;
       const tutorAdvertisingShare = (advertisingInSoles * 0.5) / activeTutorCount;
@@ -690,9 +691,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         });
 
         const commission = Number(tutor.commissionPercent) / 100;
-        const sharedAdvShare = tutorPayments.length > 0 ? tutorAdvertisingShare : 0;
+        const isActive = tutor.isActive !== false;
+        const sharedAdvShare = (isActive && tutorPayments.length > 0) ? tutorAdvertisingShare : 0;
         const ownAdvUsd = Number(tutor.advertisingCostUsd ?? 0);
-        const ownAdvShare = tutorPayments.length > 0 ? ownAdvUsd * usdRate * 0.5 : 0;
+        const ownAdvShare = (isActive && tutorPayments.length > 0) ? ownAdvUsd * usdRate * 0.5 : 0;
         const totalAdvShare = sharedAdvShare + ownAdvShare;
         const netIncome = grossIncome * commission;
         const tutorEarnings = netIncome - totalAdvShare;
@@ -767,7 +769,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
         const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
         const advertisingInSoles = sharedAdvertisingUsd * usdRate;
-        const tutorsWithPayments = tutors.filter(t => verifiedPayments.some(p => p.tutorId === t.id));
+        const tutorsWithPayments = tutors.filter(t => t.isActive && verifiedPayments.some(p => p.tutorId === t.id));
         const activeTutorCount = tutorsWithPayments.length || 1;
         const weekTutorAdShare = (advertisingInSoles * 0.5) / activeTutorCount;
 
@@ -781,9 +783,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           });
 
           const commission = Number(tutor.commissionPercent) / 100;
+          const tutorIsActive = tutor.isActive !== false;
           const hasPayments = tutorPayments.length > 0;
-          const sharedAdvShare = hasPayments ? weekTutorAdShare : 0;
-          const ownAdvShare = hasPayments ? Number(tutor.advertisingCostUsd ?? 0) * usdRate * 0.5 : 0;
+          const sharedAdvShare = (tutorIsActive && hasPayments) ? weekTutorAdShare : 0;
+          const ownAdvShare = (tutorIsActive && hasPayments) ? Number(tutor.advertisingCostUsd ?? 0) * usdRate * 0.5 : 0;
           const totalAdvShare = sharedAdvShare + ownAdvShare;
           const netIncome = grossIncome * commission;
           const tutorEarnings = netIncome - totalAdvShare;
