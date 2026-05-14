@@ -307,6 +307,11 @@ export default function AdminDashboard() {
                       <div className={`p-3 border-r border-border sticky left-0 z-10 ${rowIdx % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>
                         <div className="font-semibold text-sm truncate">{tutor.name}</div>
                         <div className="text-[10px] text-muted-foreground">{tutor.commissionPercent}%</div>
+                        {Number((tutor as any).advertisingCostUsd ?? 0) > 0 && (
+                          <div className="text-[9px] text-orange-500/80 dark:text-orange-400/80">
+                            pub: ${(Number((tutor as any).advertisingCostUsd) / 2).toFixed(2)}
+                          </div>
+                        )}
                       </div>
 
                       {/* Week cells */}
@@ -334,9 +339,6 @@ export default function AdminDashboard() {
                                   {fmt(agencyE)}
                                 </div>
                                 <div className="text-[9px] text-muted-foreground/60">{cell?.paymentCount ?? 0} pg</div>
-                                {(cell?.tutorAdvertisingShare ?? 0) > 0 && (
-                                  <div className="text-[9px] text-orange-500/80 dark:text-orange-400/80">pub: {fmt(cell!.tutorAdvertisingShare / 2)}</div>
-                                )}
                               </>
                             ) : (
                               <span className="text-muted-foreground/30">—</span>
