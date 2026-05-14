@@ -40,6 +40,7 @@ type SettlementsMatrix = {
   matrix: Record<string, Record<string, MatrixCell>>;
   currencyTotals: CurrencyTotal[];
   weekPaidMap: Record<string, string[]>;
+  usdRate: number;
 };
 
 type TutorRow = { id: string; name: string; commissionPercent: string };
@@ -109,6 +110,7 @@ export default function AdminDashboard() {
   const currencyTotals = matrixData?.currencyTotals ?? [];
   const weekCurrencyTotals: Record<string, Record<string, { code: string; symbol: string; total: number }>> = matrixData?.weekCurrencyTotals ?? {};
   const weekPaidMap: Record<string, string[]> = matrixData?.weekPaidMap ?? {};
+  const usdRate = matrixData?.usdRate ?? 1;
 
   const tutorsWithAnyPayment = tutors.filter(t => t.isActive !== false);
 
@@ -299,9 +301,17 @@ export default function AdminDashboard() {
                           <div className="font-semibold text-sm truncate text-purple-600 hover:underline cursor-pointer">{tutor.name}</div>
                         </Link>
                         <div className="text-[10px] text-muted-foreground">{tutor.commissionPercent}%</div>
-                        {Number(tutor.advertisingCostUsd ?? 0) > 0 && (
-                          <div className="text-[10px] text-orange-500/80">P.C {Number(tutor.advertisingCostUsd).toFixed(2)}</div>
-                        )}
+                        {Number(tutor.advertisingCostUsd ?? 0) > 0 && (() => {
+                          const half = Number(tutor.advertisingCostUsd) / 2;
+                          const pen = half * usdRate;
+                          return (
+                            <div className="text-[10px] text-muted-foreground/60 leading-tight">
+                              <span className="text-muted-foreground/40">USD</span> {half.toFixed(2)}
+                              <span className="text-muted-foreground/30"> · </span>
+                              <span className="text-muted-foreground/40">PEN</span> {pen.toFixed(2)}
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {/* Week cells */}

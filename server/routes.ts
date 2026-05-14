@@ -936,7 +936,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       const safeTutors = tutors.map(({ password: _pw, ...safe }) => safe);
-      res.json({ weeks: allWeeks, tutors: safeTutors, matrix, currencyTotals: Object.values(currencyTotals), weekCurrencyTotals, weekPaidMap, tutorWeekAdvMap });
+      res.json({ weeks: allWeeks, tutors: safeTutors, matrix, currencyTotals: Object.values(currencyTotals), weekCurrencyTotals, weekPaidMap, tutorWeekAdvMap, usdRate });
     } catch (error) {
       console.error("Error getting settlements matrix:", error);
       res.status(500).json({ message: "Error al obtener matriz" });
