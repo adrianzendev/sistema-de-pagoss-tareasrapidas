@@ -91,7 +91,9 @@ function WeekPayments({ tutorId, weekId }: { tutorId: string; weekId: string }) 
               {rate !== 1 ? `S/. ${amountSoles.toFixed(2)}` : "—"}
             </td>
             <td className="px-3 py-2 tabular-nums text-muted-foreground/70 text-[10px]">
-              {rate !== 1 ? `×${rate.toFixed(4)}` : "—"}
+              {rate !== 1 ? (
+                <span title="Tipo de cambio al momento del pago">TC: {rate.toFixed(4)}</span>
+              ) : "—"}
             </td>
             <td className="px-3 py-2">
               {p.status === "verified" ? (
