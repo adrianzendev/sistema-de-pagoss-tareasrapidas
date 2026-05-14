@@ -274,25 +274,36 @@ export default function AdminDashboard() {
                   <div className="p-3 border-r border-border sticky left-0 bg-muted/80 z-10">
                     Tutor
                   </div>
-                  {weeks.map(w => (
-                    <div key={w.id} className="p-2 text-center border-r border-border last:border-r-0">
-                      <div className="text-foreground">S{w.weekNumber}</div>
-                      <div className="text-muted-foreground font-normal normal-case text-[10px]">
-                        {new Date(w.startDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
-                        {" - "}
-                        {new Date(w.endDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
+                  {weeks.map(w => {
+                    const activeTutorsThisWeek = tutorsWithAnyPayment.filter(t =>
+                      (matrix[t.id]?.[w.id]?.paymentCount ?? 0) > 0 ||
+                      (matrix[t.id]?.[w.id]?.tutorAdvertisingShare ?? 0) > 0
+                    );
+                    const paidCount = activeTutorsThisWeek.filter(t => weekPaidMap[w.id]?.includes(t.id)).length;
+                    const totalActive = activeTutorsThisWeek.length;
+                    return (
+                      <div key={w.id} className="p-2 text-center border-r border-border last:border-r-0">
+                        <div className="text-foreground">S{w.weekNumber}</div>
+                        <div className="text-muted-foreground font-normal normal-case text-[10px]">
+                          {new Date(w.startDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
+                          {" - "}
+                          {new Date(w.endDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
+                        </div>
+                        <div className="mt-1 flex flex-col items-center gap-0.5">
+                          {w.status === "open" ? (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Abierta</Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">Cerrada</Badge>
+                          )}
+                          {totalActive > 0 && (
+                            <span className={`text-[9px] font-semibold ${paidCount === totalActive ? "text-green-600 dark:text-green-400" : "text-muted-foreground/60"}`}>
+                              {paidCount}/{totalActive} pagados
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="mt-1">
-                        {w.status === "paid" ? (
-                          <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600">Pagada</Badge>
-                        ) : w.status === "closed" ? (
-                          <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">Cerrada</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Abierta</Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   <div className="p-2 text-center text-primary">
                     TOTAL
                   </div>
