@@ -308,24 +308,18 @@ export default function TutorDetailPage() {
                         </td>
                         <td className="p-3 text-center" onClick={e => e.stopPropagation()}>
                           {hasActivity ? (
-                            <div className="flex flex-col items-center gap-1">
-                              {isPaid
-                                ? <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600">Pagado</Badge>
-                                : <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Por pagar</Badge>}
-                              <Button
-                                size="sm"
-                                variant={isPaid ? "ghost" : "default"}
-                                className="h-5 text-[9px] px-2 py-0"
-                                disabled={isMutating}
-                                onClick={() =>
-                                  isPaid
-                                    ? unmarkPaidMutation.mutate({ weekId: week.id })
-                                    : markPaidMutation.mutate({ weekId: week.id })
-                                }
-                              >
-                                {isPaid ? "Desmarcar" : "Marcar pagado"}
-                              </Button>
-                            </div>
+                            isPaid ? (
+                              <Badge
+                                className="text-[9px] px-1.5 py-0 h-4 bg-green-600 cursor-pointer hover:bg-green-700"
+                                onClick={() => !isMutating && unmarkPaidMutation.mutate({ weekId: week.id })}
+                              >Pagado</Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] px-1.5 py-0 h-4 cursor-pointer hover:bg-muted"
+                                onClick={() => !isMutating && markPaidMutation.mutate({ weekId: week.id })}
+                              >Por pagar</Badge>
+                            )
                           ) : null}
                         </td>
                         <td className="p-3 text-right tabular-nums text-muted-foreground text-xs">
