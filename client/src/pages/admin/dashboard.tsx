@@ -26,6 +26,7 @@ type MatrixCell = {
   grossIncome: number;
   netIncome: number;
   tutorEarnings: number;
+  agencyEarnings: number;
   tutorAdvertisingShare: number;
   paymentCount: number;
 };
@@ -291,27 +292,26 @@ export default function AdminDashboard() {
                       {/* Week cells */}
                       {weeks.map(w => {
                         const cell = matrix[tutor.id]?.[w.id];
-                        const earnings = cell?.tutorEarnings ?? 0;
+                        const tutorE = cell?.tutorEarnings ?? 0;
+                        const agencyE = cell?.agencyEarnings ?? 0;
                         const hasPayments = (cell?.paymentCount ?? 0) > 0;
-
-                        let cellClass = "text-muted-foreground/40 font-normal";
-                        if (hasPayments) {
-                          cellClass = earnings >= 0
-                            ? "text-green-700 dark:text-green-400 font-bold"
-                            : "text-red-600 dark:text-red-400 font-bold";
-                        }
 
                         return (
                           <div
                             key={w.id}
                             className="p-2 text-right border-r border-border last:border-r-0 text-xs"
-                            title={hasPayments ? `Bruto: ${fmt(cell!.grossIncome)} | ×${tutor.commissionPercent}% = ${fmt(cell!.netIncome)} | −pub = ${fmt(earnings)}` : "Sin pagos"}
+                            title={hasPayments ? `Bruto: ${fmt(cell!.grossIncome)} | ×${tutor.commissionPercent}% = ${fmt(cell!.netIncome)} | −pub = ${fmt(cell!.tutorAdvertisingShare)} | Tutor: ${fmt(tutorE)} | Agencia: ${fmt(agencyE)}` : "Sin pagos"}
                             data-testid={`cell-${tutor.id}-${w.weekNumber}`}
                           >
                             {hasPayments ? (
                               <>
-                                <div className={cellClass}>{fmt(earnings)}</div>
-                                <div className="text-[9px] text-muted-foreground">{cell!.paymentCount}p</div>
+                                <div className={`font-bold ${tutorE >= 0 ? "text-green-700 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                                  {fmt(tutorE)}
+                                </div>
+                                <div className="text-[10px] text-muted-foreground font-medium">
+                                  {fmt(agencyE)}
+                                </div>
+                                <div className="text-[9px] text-muted-foreground/60">{cell!.paymentCount} pg</div>
                               </>
                             ) : (
                               <span className="text-muted-foreground/30">—</span>

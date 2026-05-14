@@ -775,9 +775,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const netIncome = grossIncome * commission;
           const tutorEarnings = netIncome - totalAdvShare;
 
+          const agencyEarnings = grossIncome * (1 - commission) - totalAdvShare;
+
           if (!matrix[tutor.id]) matrix[tutor.id] = {};
           matrix[tutor.id][week.id] = {
-            grossIncome, netIncome, tutorEarnings,
+            grossIncome, netIncome, tutorEarnings, agencyEarnings,
             tutorAdvertisingShare: totalAdvShare,
             paymentCount: tutorPayments.length,
           };
