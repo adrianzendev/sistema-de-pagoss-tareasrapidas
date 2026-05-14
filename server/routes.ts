@@ -706,7 +706,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const isActive = tutor.isActive !== false;
         const sharedAdvShare = (isActive && tutorPayments.length > 0) ? tutorAdvertisingShare : 0;
         const ownAdvUsd = Number(tutor.advertisingCostUsd ?? 0);
-        const ownAdvShare = (isActive && tutorPayments.length > 0) ? ownAdvUsd * usdRate * 0.5 : 0;
+        const ownAdvShare = isActive ? ownAdvUsd * usdRate * 0.5 : 0;
         const totalAdvShare = sharedAdvShare + ownAdvShare;
         const netIncome = grossIncome * commission;
         const tutorEarnings = netIncome - totalAdvShare;
@@ -798,7 +798,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const tutorIsActive = tutor.isActive !== false;
           const hasPayments = tutorPayments.length > 0;
           const sharedAdvShare = (tutorIsActive && hasPayments) ? weekTutorAdShare : 0;
-          const ownAdvShare = (tutorIsActive && hasPayments) ? Number(tutor.advertisingCostUsd ?? 0) * usdRate * 0.5 : 0;
+          const ownAdvShare = tutorIsActive ? Number(tutor.advertisingCostUsd ?? 0) * usdRate * 0.5 : 0;
           const totalAdvShare = sharedAdvShare + ownAdvShare;
           const netIncome = grossIncome * commission;
           const tutorEarnings = netIncome - totalAdvShare;

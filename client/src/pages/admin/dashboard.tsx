@@ -104,7 +104,8 @@ export default function AdminDashboard() {
   const currencyTotals = matrixData?.currencyTotals ?? [];
 
   const tutorsWithAnyPayment = tutors.filter(t =>
-    weeks.some(w => (matrix[t.id]?.[w.id]?.paymentCount ?? 0) > 0)
+    weeks.some(w => (matrix[t.id]?.[w.id]?.paymentCount ?? 0) > 0) ||
+    (t.isActive !== false && Number((t as any).advertisingCostUsd ?? 0) > 0)
   );
 
   return (
@@ -316,15 +317,17 @@ export default function AdminDashboard() {
                         const tutorE = cell?.tutorEarnings ?? 0;
                         const agencyE = cell?.agencyEarnings ?? 0;
                         const hasPayments = (cell?.paymentCount ?? 0) > 0;
+                        const hasAdvCharge = (cell?.tutorAdvertisingShare ?? 0) > 0;
+                        const showCell = hasPayments || hasAdvCharge;
 
                         return (
                           <div
                             key={w.id}
                             className="p-2 text-right border-r border-border last:border-r-0 text-xs"
-                            title={hasPayments ? `Bruto: ${fmt(cell!.grossIncome)} | ×${tutor.commissionPercent}% = ${fmt(cell!.netIncome)} | −pub = ${fmt(cell!.tutorAdvertisingShare)} | Tutor: ${fmt(tutorE)} | Agencia: ${fmt(agencyE)}` : "Sin pagos"}
+                            title={showCell ? `Bruto: ${fmt(cell!.grossIncome)} | ×${tutor.commissionPercent}% = ${fmt(cell!.netIncome)} | −pub = ${fmt(cell!.tutorAdvertisingShare)} | Tutor: ${fmt(tutorE)} | Agencia: ${fmt(agencyE)}` : "Sin actividad"}
                             data-testid={`cell-${tutor.id}-${w.weekNumber}`}
                           >
-                            {hasPayments ? (
+                            {showCell ? (
                               <>
                                 <div className={`text-xs font-bold ${tutorE >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"}`}>
                                   {fmt(tutorE)}
@@ -332,7 +335,7 @@ export default function AdminDashboard() {
                                 <div className={`text-xs font-medium ${agencyE >= 0 ? "text-sky-500 dark:text-sky-400" : "text-red-500 dark:text-red-400"}`}>
                                   {fmt(agencyE)}
                                 </div>
-                                <div className="text-[9px] text-muted-foreground/60">{cell!.paymentCount} pg</div>
+                                {hasPayments && <div className="text-[9px] text-muted-foreground/60">{cell!.paymentCount} pg</div>}
                               </>
                             ) : (
                               <span className="text-muted-foreground/30">—</span>
