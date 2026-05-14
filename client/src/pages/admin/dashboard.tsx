@@ -327,7 +327,7 @@ export default function AdminDashboard() {
                           >
                             {showCell ? (
                               <>
-                                <div className={`text-xs font-bold ${tutorE >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"}`}>
+                                <div className={`text-xs font-bold ${tutorE >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>
                                   {fmt(tutorE)}
                                 </div>
                                 <div className={`text-xs font-medium ${agencyE >= 0 ? "text-sky-500 dark:text-sky-400" : "text-red-500 dark:text-red-400"}`}>
@@ -344,7 +344,7 @@ export default function AdminDashboard() {
 
                       {/* Total cell */}
                       <div className="p-2 text-right" data-testid={`total-${tutor.id}`}>
-                        <div className={`text-xs font-bold ${rowTotal >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"}`}>
+                        <div className={`text-xs font-bold ${rowTotal >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>
                           {fmt(rowTotal)}
                         </div>
                         <div className={`text-xs font-medium ${rowAgencyTotal >= 0 ? "text-sky-500 dark:text-sky-400" : "text-red-500 dark:text-red-400"}`}>
@@ -362,7 +362,7 @@ export default function AdminDashboard() {
                 >
                   <div className="p-3 border-r border-border sticky left-0 bg-muted/70 z-10">
                     <div className="text-[9px] uppercase text-muted-foreground/70 font-normal">Total Bruto</div>
-                    <div className="text-xs uppercase text-blue-600 dark:text-blue-400">Tutores</div>
+                    <div className="text-xs uppercase text-purple-600 dark:text-purple-400">Tutores</div>
                     <div className="text-xs uppercase text-sky-500 dark:text-sky-400">Agencia</div>
                   </div>
                   {weeks.map(w => {
@@ -383,7 +383,7 @@ export default function AdminDashboard() {
                                 {ct.symbol}{ct.total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </div>
                             ))}
-                            <div className={`font-bold ${colTutor >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"}`}>
+                            <div className={`font-bold ${colTutor >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>
                               {fmt(colTutor)}
                             </div>
                             <div className={`font-medium ${colAgency >= 0 ? "text-sky-500 dark:text-sky-400" : "text-red-500 dark:text-red-400"}`}>
@@ -399,7 +399,7 @@ export default function AdminDashboard() {
                   <div className="p-2 text-right">
                     <div className={`text-xs font-bold ${
                       tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.tutorEarnings ?? 0), 0), 0) >= 0
-                        ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"
+                        ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"
                     }`}>
                       {fmt(tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.tutorEarnings ?? 0), 0), 0))}
                     </div>
