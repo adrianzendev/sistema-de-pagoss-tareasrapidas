@@ -256,6 +256,8 @@ export default function AdminDashboard() {
                       <div className="text-foreground">S{w.weekNumber}</div>
                       <div className="text-muted-foreground font-normal normal-case text-[10px]">
                         {new Date(w.startDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
+                        {" - "}
+                        {new Date(w.endDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
                       </div>
                       <div className="mt-1">
                         {w.status === "paid" ? (

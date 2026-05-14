@@ -104,12 +104,14 @@ export async function seedDatabase() {
     console.log("All passwords set to 123456");
 
     // === CURRENCIES ===
-    await ensureCurrency({ code: "USD", name: "Dólar Estadounidense", exchangeRate: "1.0000" });
-    await ensureCurrency({ code: "EUR", name: "Euro", exchangeRate: "0.9200" });
-    await ensureCurrency({ code: "MXN", name: "Peso Mexicano", exchangeRate: "17.5000" });
-    await ensureCurrency({ code: "COP", name: "Peso Colombiano", exchangeRate: "4000.0000" });
-    await ensureCurrency({ code: "ARS", name: "Peso Argentino", exchangeRate: "875.0000" });
-    await ensureCurrency({ code: "PEN", name: "Sol Peruano", exchangeRate: "3.3100" });
+    // Exchange rates = soles (PEN) per 1 unit of each currency
+    // PEN must always be 1.0 since amounts in soles need no conversion
+    await ensureCurrency({ code: "PEN", name: "Sol Peruano", exchangeRate: "1.0000" });
+    await ensureCurrency({ code: "USD", name: "Dólar Estadounidense", exchangeRate: "3.7500" });
+    await ensureCurrency({ code: "EUR", name: "Euro", exchangeRate: "4.0500" });
+    await ensureCurrency({ code: "MXN", name: "Peso Mexicano", exchangeRate: "0.1900" });
+    await ensureCurrency({ code: "COP", name: "Peso Colombiano", exchangeRate: "0.0009" });
+    await ensureCurrency({ code: "ARS", name: "Peso Argentino", exchangeRate: "0.0040" });
 
     // === LINK VERIFIERS TO CURRENCIES ===
     const [adrianUser] = await db.select().from(users).where(eq(users.username, "adrian"));
