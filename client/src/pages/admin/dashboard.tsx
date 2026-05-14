@@ -289,18 +289,13 @@ export default function AdminDashboard() {
                           {" - "}
                           {new Date(w.endDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
                         </div>
-                        <div className="mt-1 flex flex-col items-center gap-0.5">
-                          {w.status === "open" ? (
-                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Abierta</Badge>
-                          ) : (
-                            <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">Cerrada</Badge>
-                          )}
-                          {totalActive > 0 && (
+                        {totalActive > 0 && paidCount > 0 && (
+                          <div className="mt-1">
                             <span className={`text-[9px] font-semibold ${paidCount === totalActive ? "text-green-600 dark:text-green-400" : "text-muted-foreground/60"}`}>
                               {paidCount}/{totalActive} pagados
                             </span>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
