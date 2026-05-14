@@ -137,7 +137,21 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Admin: Tutors
   app.get("/api/admin/tutors", requireAdmin, async (req, res) => {
     const tutors = await storage.getTutors();
-    res.json(tutors.map(({ password, ...t }) => t));
+    const currentWeek = await storage.getCurrentWeek();
+    const currentWeekAdvMap: Record<string, number> = {};
+    if (currentWeek) {
+      const allAdv = await storage.getAllTutorWeekAdvertising();
+      for (const entry of allAdv) {
+        if (entry.weekId === currentWeek.id) {
+          currentWeekAdvMap[entry.tutorId] = Number(entry.advertisingCostUsd);
+        }
+      }
+    }
+    res.json(tutors.map(({ password, ...t }) => ({
+      ...t,
+      currentWeekAdv: currentWeekAdvMap[t.id] ?? 0,
+      currentWeekId: currentWeek?.id ?? null,
+    })));
   });
 
   app.get("/api/admin/tutors/:id/payments", requireAdmin, async (req, res) => {
@@ -153,7 +167,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/admin/tutors", requireAdmin, async (req, res) => {
     try {
-      const validatedData = createTutorSchema.parse(req.body);
+      const { advertisingCostUsd: advCost, ...restBody } = req.body;
+      const validatedData = createTutorSchema.parse(restBody);
       const username = validatedData.email.split("@")[0].toLowerCase().replace(/[^a-z0-9.]/g, "");
       const existing = await storage.getUserByUsername(username);
       if (existing) {
@@ -167,6 +182,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         password: hashedPassword,
         activatedAt: validatedData.isActive !== false ? new Date() : null,
       });
+      if (advCost !== undefined && Number(advCost) >= 0) {
+        const currentWeek = await storage.getCurrentWeek();
+        if (currentWeek) {
+          await storage.setTutorWeekAdvertising(tutor.id, currentWeek.id, Number(advCost));
+        }
+      }
       const { password, ...safeTutor } = tutor;
       res.status(201).json(safeTutor);
     } catch (error) {
@@ -181,7 +202,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.patch("/api/admin/tutors/:id", requireAdmin, async (req, res) => {
     try {
-      const { name, email, password: rawPassword, commissionPercent, isActive } = req.body;
+      const { name, email, password: rawPassword, commissionPercent, isActive, advertisingCostUsd: advCost } = req.body;
       const existing = await storage.getUser(req.params.id);
       if (!existing) return res.status(404).json({ message: "Tutor no encontrado" });
       const updateData: any = {};
@@ -206,6 +227,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           oldValue: String(existing.commissionPercent),
           newValue: String(commissionPercent),
         }).catch(console.error);
+      }
+      if (advCost !== undefined && Number(advCost) >= 0) {
+        const currentWeek = await storage.getCurrentWeek();
+        if (currentWeek) {
+          await storage.setTutorWeekAdvertising(req.params.id, currentWeek.id, Number(advCost));
+        }
       }
       const { password, ...safe } = updated;
       res.json(safe);

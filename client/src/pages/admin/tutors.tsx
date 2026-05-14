@@ -5,8 +5,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { User } from "@shared/schema";
+import type { User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Loader2, UserPlus, Mail, Percent, Trash2, Edit } from "lucide-react";
+import { Plus, Search, Loader2, UserPlus, Mail, Percent, Trash2, Edit, DollarSign } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +30,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+type TutorRow = User & { currentWeekAdv: number; currentWeekId: string | null };
+
 const createTutorSchema = z.object({
   name: z.string().min(2, "Nombre debe tener al menos 2 caracteres"),
   email: z.string().email("Email inválido"),
@@ -37,6 +40,10 @@ const createTutorSchema = z.object({
     const num = parseFloat(val);
     return !isNaN(num) && num >= 0 && num <= 100;
   }, "Comisión debe ser entre 0 y 100"),
+  advertisingCostUsd: z.string().refine((val) => {
+    const num = parseFloat(val);
+    return !isNaN(num) && num >= 0;
+  }, "Debe ser un valor ≥ 0").default("0"),
   isActive: z.boolean().default(true),
 });
 
@@ -48,32 +55,50 @@ const editTutorSchema = z.object({
     const num = parseFloat(val);
     return !isNaN(num) && num >= 0 && num <= 100;
   }, "Comisión debe ser entre 0 y 100"),
+  advertisingCostUsd: z.string().refine((val) => {
+    const num = parseFloat(val);
+    return !isNaN(num) && num >= 0;
+  }, "Debe ser un valor ≥ 0").default("0"),
   isActive: z.boolean().default(true),
 });
 
 type CreateTutorForm = z.infer<typeof createTutorSchema>;
 type EditTutorForm = z.infer<typeof editTutorSchema>;
 
+function AdvertisingPreview({ value }: { value: string }) {
+  const num = parseFloat(value);
+  if (isNaN(num) || num <= 0) return null;
+  const half = (num / 2).toFixed(2);
+  return (
+    <p className="text-xs text-muted-foreground mt-1">
+      USD {half} tutor · USD {half} agencia (50/50)
+    </p>
+  );
+}
+
 export default function TutorsPage() {
   const [isOpen, setIsOpen] = useState(false);
-  const [editingTutor, setEditingTutor] = useState<User | null>(null);
+  const [editingTutor, setEditingTutor] = useState<TutorRow | null>(null);
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const { data: tutors, isLoading } = useQuery<User[]>({
+  const { data: tutors, isLoading } = useQuery<TutorRow[]>({
     queryKey: ["/api/admin/tutors"],
   });
 
   const createForm = useForm<CreateTutorForm>({
     resolver: zodResolver(createTutorSchema),
-    defaultValues: { name: "", email: "", password: "", commissionPercent: "10", isActive: true },
+    defaultValues: { name: "", email: "", password: "", commissionPercent: "10", advertisingCostUsd: "0", isActive: true },
   });
 
   const editForm = useForm<EditTutorForm>({
     resolver: zodResolver(editTutorSchema),
-    defaultValues: { name: "", email: "", password: "", commissionPercent: "10", isActive: true },
+    defaultValues: { name: "", email: "", password: "", commissionPercent: "10", advertisingCostUsd: "0", isActive: true },
   });
+
+  const createAdvWatch = createForm.watch("advertisingCostUsd");
+  const editAdvWatch = editForm.watch("advertisingCostUsd");
 
   const createMutation = useMutation({
     mutationFn: (data: CreateTutorForm) =>
@@ -97,6 +122,7 @@ export default function TutorsPage() {
         name: data.name,
         email: data.email,
         commissionPercent: data.commissionPercent,
+        advertisingCostUsd: data.advertisingCostUsd,
         isActive: data.isActive,
       };
       if (data.password) body.password = data.password;
@@ -128,13 +154,14 @@ export default function TutorsPage() {
     },
   });
 
-  const openEdit = (tutor: User) => {
+  const openEdit = (tutor: TutorRow) => {
     setEditingTutor(tutor);
     editForm.reset({
       name: tutor.name,
       email: tutor.email,
       password: "",
       commissionPercent: tutor.commissionPercent,
+      advertisingCostUsd: String(tutor.currentWeekAdv ?? 0),
       isActive: tutor.isActive !== false,
     });
   };
@@ -224,6 +251,24 @@ export default function TutorsPage() {
                           <Input {...field} type="number" step="0.01" min="0" max="100" placeholder="10" className="pl-10" data-testid="input-tutor-commission" />
                         </div>
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={createForm.control}
+                  name="advertisingCostUsd"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Publicidad semana actual (USD)</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input {...field} type="number" step="0.01" min="0" placeholder="0" className="pl-10" data-testid="input-tutor-advertising" />
+                        </div>
+                      </FormControl>
+                      <AdvertisingPreview value={createAdvWatch} />
+                      <FormDescription className="text-xs">Costo P.C para la semana actual. 0 = sin publicidad.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -335,6 +380,27 @@ export default function TutorsPage() {
                 />
                 <FormField
                   control={editForm.control}
+                  name="advertisingCostUsd"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Publicidad semana actual (USD)</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input {...field} type="number" step="0.01" min="0" placeholder="0" className="pl-10" data-testid="input-edit-tutor-advertising" />
+                        </div>
+                      </FormControl>
+                      <AdvertisingPreview value={editAdvWatch} />
+                      <FormDescription className="text-xs">
+                        Costo P.C para la semana actual. 0 = sin publicidad.
+                        {!editingTutor?.currentWeekId && " (Sin semana activa — no tendrá efecto)"}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
                   name="isActive"
                   render={({ field }) => (
                     <FormItem className="flex items-center justify-between rounded-lg border p-3">
@@ -409,6 +475,7 @@ export default function TutorsPage() {
                     <TableHead>Email</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead className="text-right">Comisión</TableHead>
+                    <TableHead className="text-right">P.C sem. actual</TableHead>
                     <TableHead>Registrado</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
@@ -427,6 +494,11 @@ export default function TutorsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <Badge variant="outline">{tutor.commissionPercent}%</Badge>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-xs text-muted-foreground" data-testid={`text-adv-tutor-${tutor.id}`}>
+                        {(tutor.currentWeekAdv ?? 0) > 0
+                          ? `USD ${Number(tutor.currentWeekAdv).toFixed(2)}`
+                          : <span className="opacity-40">—</span>}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground" data-testid={`text-created-tutor-${tutor.id}`}>
                         {tutor.createdAt ? format(new Date(tutor.createdAt), "dd/MM/yyyy HH:mm", { locale: es }) : "—"}
