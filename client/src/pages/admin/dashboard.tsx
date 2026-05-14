@@ -36,7 +36,7 @@ type CurrencyTotal = { code: string; name: string; symbol: string; total: number
 
 type SettlementsMatrix = {
   weeks: Week[];
-  tutors: Array<{ id: string; name: string; commissionPercent: string }>;
+  tutors: Array<{ id: string; name: string; commissionPercent: string; advertisingCostUsd?: string }>;
   matrix: Record<string, Record<string, MatrixCell>>;
   currencyTotals: CurrencyTotal[];
   weekPaidMap: Record<string, string[]>;
@@ -299,6 +299,9 @@ export default function AdminDashboard() {
                           <div className="font-semibold text-sm truncate text-purple-600 hover:underline cursor-pointer">{tutor.name}</div>
                         </Link>
                         <div className="text-[10px] text-muted-foreground">{tutor.commissionPercent}%</div>
+                        {Number(tutor.advertisingCostUsd ?? 0) > 0 && (
+                          <div className="text-[10px] text-orange-500/80">P.C {Number(tutor.advertisingCostUsd).toFixed(2)}</div>
+                        )}
                       </div>
 
                       {/* Week cells */}
