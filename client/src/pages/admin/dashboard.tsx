@@ -239,18 +239,6 @@ export default function AdminDashboard() {
                 </CardDescription>
               </div>
             </div>
-            {currencyTotals.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {currencyTotals.map(ct => (
-                  <div key={ct.code} className="flex flex-col items-end rounded-lg border border-border bg-muted/40 px-3 py-1.5">
-                    <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">{ct.code}</span>
-                    <span className="text-sm font-bold text-foreground tabular-nums">
-                      {ct.symbol} {ct.total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">
