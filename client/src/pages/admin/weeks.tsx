@@ -276,14 +276,6 @@ export default function WeeksPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => openEditDialog(week)}
-                          data-testid={`button-edit-week-${week.weekNumber}`}
-                        >
-                          <Coins className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
                           onClick={() => deleteWeekMutation.mutate(week.id)}
                           data-testid={`button-delete-week-${week.weekNumber}`}
                         >
