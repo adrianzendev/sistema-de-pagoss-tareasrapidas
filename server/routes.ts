@@ -140,6 +140,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json(tutors.map(({ password, ...t }) => t));
   });
 
+  app.get("/api/admin/tutors/:id/payments", requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    const { weekId } = req.query;
+    if (weekId) {
+      const pays = await storage.getPaymentsByTutorAndWeek(id, weekId as string);
+      return res.json(pays);
+    }
+    const pays = await storage.getPaymentsByTutor(id);
+    res.json(pays);
+  });
+
   app.post("/api/admin/tutors", requireAdmin, async (req, res) => {
     try {
       const validatedData = createTutorSchema.parse(req.body);

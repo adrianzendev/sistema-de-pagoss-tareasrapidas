@@ -1,9 +1,10 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, Image } from "lucide-react";
 import type { Week } from "@shared/schema";
 
 type MatrixCell = {
@@ -21,8 +22,95 @@ type SettlementsMatrix = {
   matrix: Record<string, Record<string, MatrixCell>>;
 };
 
+type Payment = {
+  id: string;
+  amount: string;
+  clientNumber: string;
+  status: string;
+  createdAt: string;
+  proofImage?: string;
+  exchangeRateSnapshot?: string;
+  currency?: { code: string; symbol: string; exchangeRate: string };
+  verifier?: { name: string };
+};
+
+function WeekPayments({ tutorId, weekId }: { tutorId: string; weekId: string }) {
+  const { data: payments, isLoading } = useQuery<Payment[]>({
+    queryKey: [`/api/admin/tutors/${tutorId}/payments`, weekId],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/tutors/${tutorId}/payments?weekId=${weekId}`);
+      if (!res.ok) throw new Error("Error");
+      return res.json();
+    },
+  });
+
+  const fmtAmt = (amount: string, symbol: string) =>
+    `${symbol}${new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(amount))}`;
+
+  if (isLoading) {
+    return (
+      <tr>
+        <td colSpan={8} className="px-6 py-3 bg-muted/30">
+          <Skeleton className="h-4 w-48" />
+        </td>
+      </tr>
+    );
+  }
+
+  if (!payments || payments.length === 0) {
+    return (
+      <tr>
+        <td colSpan={8} className="px-6 py-3 bg-muted/20 text-muted-foreground text-xs italic">
+          Sin pagos en esta semana.
+        </td>
+      </tr>
+    );
+  }
+
+  return (
+    <>
+      {payments.map((p, i) => {
+        const rate = Number(p.exchangeRateSnapshot ?? p.currency?.exchangeRate ?? 1);
+        const amountSoles = Number(p.amount) * rate;
+        return (
+          <tr key={p.id} className={`${i % 2 === 0 ? "bg-muted/10" : "bg-muted/20"} text-xs`}>
+            <td className="pl-10 pr-3 py-2 text-muted-foreground">{new Date(p.createdAt).toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}</td>
+            <td className="px-3 py-2 text-muted-foreground" colSpan={1}>{p.clientNumber}</td>
+            <td className="px-3 py-2 tabular-nums">
+              <span className="font-medium">{fmtAmt(p.amount, p.currency?.symbol ?? "$")}</span>
+              <span className="text-muted-foreground ml-1 text-[10px]">{p.currency?.code}</span>
+            </td>
+            <td className="px-3 py-2 tabular-nums text-muted-foreground">
+              {rate !== 1 ? `S/. ${amountSoles.toFixed(2)}` : "—"}
+            </td>
+            <td className="px-3 py-2" colSpan={2}>
+              {p.status === "verified" ? (
+                <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600">Verificado</Badge>
+              ) : p.status === "rejected" ? (
+                <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">Rechazado</Badge>
+              ) : (
+                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Pendiente</Badge>
+              )}
+              {p.verifier && <span className="ml-2 text-[10px] text-muted-foreground">{p.verifier.name}</span>}
+            </td>
+            <td className="px-3 py-2">
+              {p.proofImage && (
+                <a href={p.proofImage} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                  <Image className="w-3 h-3" /> <span className="text-[10px]">ver</span>
+                </a>
+              )}
+            </td>
+            <td />
+          </tr>
+        );
+      })}
+    </>
+  );
+}
+
 export default function TutorDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const [expandedWeek, setExpandedWeek] = useState<string | null>(null);
 
   const { data: matrixData, isLoading } = useQuery<SettlementsMatrix>({
     queryKey: ["/api/admin/settlements/matrix"],
@@ -30,7 +118,6 @@ export default function TutorDetailPage() {
 
   const fmt = (n: number) =>
     "S/. " + new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
-
   const fmtUsd = (n: number) =>
     "$" + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
@@ -57,10 +144,7 @@ export default function TutorDetailPage() {
   }
 
   const advUsd = Number(tutor.advertisingCostUsd ?? 0);
-  const tutorRows = weeks.map(w => {
-    const cell = matrix[tutor.id]?.[w.id];
-    return { week: w, cell };
-  });
+  const tutorRows = weeks.map(w => ({ week: w, cell: matrix[tutor.id]?.[w.id] }));
 
   const totalGross = tutorRows.reduce((s, r) => s + (r.cell?.grossIncome ?? 0), 0);
   const totalAdv = tutorRows.reduce((s, r) => s + (r.cell?.tutorAdvertisingShare ?? 0), 0);
@@ -87,19 +171,18 @@ export default function TutorDetailPage() {
               <CardTitle className="text-xl">{tutor.name}</CardTitle>
               <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                 <span>Comisión: <strong>{tutor.commissionPercent}%</strong></span>
-                {advUsd > 0 && (
-                  <span>P.C: <strong>{fmtUsd(advUsd / 2)}</strong>/sem</span>
-                )}
+                {advUsd > 0 && <span>P.C: <strong>{fmtUsd(advUsd / 2)}</strong>/sem</span>}
               </div>
             </div>
             <Badge variant="outline" className="text-xs">{totalPayments} pagos totales</Badge>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b-2 border-border bg-muted/50">
+                  <th className="text-left p-3 w-6" />
                   <th className="text-left p-3 font-semibold">Semana</th>
                   <th className="text-left p-3 font-semibold text-[10px] text-muted-foreground">Estado</th>
                   <th className="text-right p-3 font-semibold">Bruto</th>
@@ -113,52 +196,62 @@ export default function TutorDetailPage() {
               <tbody>
                 {tutorRows.map(({ week, cell }) => {
                   const hasActivity = (cell?.paymentCount ?? 0) > 0 || (cell?.tutorAdvertisingShare ?? 0) > 0;
+                  const isExpanded = expandedWeek === week.id;
                   return (
-                    <tr
-                      key={week.id}
-                      className={`border-b border-border transition-colors ${hasActivity ? "hover:bg-muted/30" : "opacity-40"}`}
-                    >
-                      <td className="p-3">
-                        <div className="font-semibold">S{week.weekNumber}</div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {new Date(week.startDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
-                          {" – "}
-                          {new Date(week.endDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        {week.status === "paid" ? (
-                          <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600">Pagada</Badge>
-                        ) : week.status === "closed" ? (
-                          <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">Cerrada</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Abierta</Badge>
-                        )}
-                      </td>
-                      <td className="p-3 text-right tabular-nums">
-                        {hasActivity ? fmt(cell?.grossIncome ?? 0) : "—"}
-                      </td>
-                      <td className="p-3 text-right tabular-nums text-muted-foreground/70 text-xs">
-                        {(cell?.tutorAdvertisingShare ?? 0) > 0 ? `−${fmt(cell!.tutorAdvertisingShare)}` : "—"}
-                      </td>
-                      <td className="p-3 text-right tabular-nums font-medium">
-                        {hasActivity ? fmt(cell?.netIncome ?? 0) : "—"}
-                      </td>
-                      <td className="p-3 text-right tabular-nums font-bold text-purple-600 dark:text-purple-400">
-                        {hasActivity ? fmt(cell?.tutorEarnings ?? 0) : "—"}
-                      </td>
-                      <td className="p-3 text-right tabular-nums font-medium text-sky-500 dark:text-sky-400">
-                        {hasActivity ? fmt(cell?.agencyEarnings ?? 0) : "—"}
-                      </td>
-                      <td className="p-3 text-right tabular-nums text-muted-foreground text-xs">
-                        {(cell?.paymentCount ?? 0) > 0 ? cell!.paymentCount : "—"}
-                      </td>
-                    </tr>
+                    <>
+                      <tr
+                        key={week.id}
+                        className={`border-b border-border transition-colors cursor-pointer select-none ${
+                          hasActivity ? "hover:bg-muted/40" : "opacity-40"
+                        } ${isExpanded ? "bg-muted/30" : ""}`}
+                        onClick={() => hasActivity && setExpandedWeek(isExpanded ? null : week.id)}
+                        data-testid={`row-week-${week.id}`}
+                      >
+                        <td className="p-3 text-muted-foreground/50">
+                          {hasActivity && (isExpanded
+                            ? <ChevronDown className="w-4 h-4" />
+                            : <ChevronRight className="w-4 h-4" />)}
+                        </td>
+                        <td className="p-3">
+                          <div className="font-semibold">S{week.weekNumber}</div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {new Date(week.startDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
+                            {" – "}
+                            {new Date(week.endDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          {week.status === "paid" ? (
+                            <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600">Pagada</Badge>
+                          ) : week.status === "closed" ? (
+                            <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">Cerrada</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Abierta</Badge>
+                          )}
+                        </td>
+                        <td className="p-3 text-right tabular-nums">{hasActivity ? fmt(cell?.grossIncome ?? 0) : "—"}</td>
+                        <td className="p-3 text-right tabular-nums text-muted-foreground/70 text-xs">
+                          {(cell?.tutorAdvertisingShare ?? 0) > 0 ? `−${fmt(cell!.tutorAdvertisingShare)}` : "—"}
+                        </td>
+                        <td className="p-3 text-right tabular-nums font-medium">{hasActivity ? fmt(cell?.netIncome ?? 0) : "—"}</td>
+                        <td className="p-3 text-right tabular-nums font-bold text-purple-600 dark:text-purple-400">
+                          {hasActivity ? fmt(cell?.tutorEarnings ?? 0) : "—"}
+                        </td>
+                        <td className="p-3 text-right tabular-nums font-medium text-sky-500 dark:text-sky-400">
+                          {hasActivity ? fmt(cell?.agencyEarnings ?? 0) : "—"}
+                        </td>
+                        <td className="p-3 text-right tabular-nums text-muted-foreground text-xs">
+                          {(cell?.paymentCount ?? 0) > 0 ? cell!.paymentCount : "—"}
+                        </td>
+                      </tr>
+                      {isExpanded && <WeekPayments tutorId={tutor.id} weekId={week.id} />}
+                    </>
                   );
                 })}
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-border bg-muted/50 font-bold">
+                  <td className="p-3" />
                   <td className="p-3 text-sm uppercase text-muted-foreground" colSpan={2}>Total</td>
                   <td className="p-3 text-right tabular-nums">{fmt(totalGross)}</td>
                   <td className="p-3 text-right tabular-nums text-muted-foreground/70 text-xs">

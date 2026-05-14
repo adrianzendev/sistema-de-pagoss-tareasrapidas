@@ -104,6 +104,7 @@ export interface IStorage {
   updateWeek(id: string, data: Partial<InsertWeek>): Promise<Week | undefined>;
   deleteWeek(id: string): Promise<void>;
   getPaymentsByWeek(weekId: string): Promise<PaymentWithDetails[]>;
+  getPaymentsByTutorAndWeek(tutorId: string, weekId: string): Promise<PaymentWithDetails[]>;
 
   // Agency Settings
   getAgencySettings(): Promise<AgencySettings | undefined>;
@@ -513,6 +514,32 @@ export class DatabaseStorage implements IStorage {
       paymentDetails.push({ ...payment, tutor, currency, verifier });
     }
 
+    return paymentDetails;
+  }
+
+  async getPaymentsByTutorAndWeek(tutorId: string, weekId: string): Promise<PaymentWithDetails[]> {
+    const week = await this.getWeek(weekId);
+    if (!week) return [];
+    const result = await db
+      .select()
+      .from(payments)
+      .where(
+        and(
+          eq(payments.tutorId, tutorId),
+          sql`DATE(${payments.createdAt}::timestamptz AT TIME ZONE 'America/Lima') BETWEEN ${week.startDate}::date AND ${week.endDate}::date`
+        )
+      )
+      .orderBy(desc(payments.createdAt));
+    const paymentDetails: PaymentWithDetails[] = [];
+    for (const payment of result) {
+      const [currency] = await db.select().from(currencies).where(eq(currencies.id, payment.currencyId));
+      let verifier: User | undefined;
+      if (payment.verifiedBy) {
+        const [v] = await db.select().from(users).where(eq(users.id, payment.verifiedBy));
+        verifier = v;
+      }
+      paymentDetails.push({ ...payment, currency, verifier });
+    }
     return paymentDetails;
   }
 
