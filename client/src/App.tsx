@@ -1,17 +1,12 @@
-import { useState } from "react";
 import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { Plus, LogOut } from "lucide-react";
-import { NewPaymentModal } from "@/components/new-payment-modal";
 
 import LoginPage from "@/pages/login";
 import AdminDashboard from "@/pages/admin/dashboard";
@@ -83,11 +78,9 @@ function VerifierRoutes() {
 }
 
 function AuthenticatedApp() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const isAdmin = user?.role === "admin";
-  const isTutor = user?.role === "tutor";
   const isVerifier = user?.role === "verifier";
-  const [isNewPaymentOpen, setIsNewPaymentOpen] = useState(false);
 
   const style = {
     "--sidebar-width": "16rem",
@@ -105,35 +98,11 @@ function AuthenticatedApp() {
       <div className="flex h-screen w-full">
         <AppSidebar />
         <div className="flex flex-col flex-1 min-w-0">
-          <main className="flex-1 overflow-auto p-4 sm:p-6 pb-16">
+          <main className="flex-1 overflow-auto p-4 sm:p-6">
             {getRoutes()}
           </main>
-          <nav className="fixed bottom-0 left-0 right-0 flex items-center justify-between gap-2 px-4 py-2 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-40">
-            <SidebarTrigger data-testid="button-sidebar-toggle" />
-            <div className="flex items-center gap-2">
-              {isTutor && (
-                <Button
-                  size="icon"
-                  onClick={() => setIsNewPaymentOpen(true)}
-                  data-testid="button-add-payment"
-                >
-                  <Plus className="h-5 w-5" />
-                </Button>
-              )}
-              <ThemeToggle />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={logout}
-                data-testid="button-logout-bottom"
-              >
-                <LogOut className="h-5 w-5" />
-              </Button>
-            </div>
-          </nav>
         </div>
       </div>
-      {isTutor && <NewPaymentModal open={isNewPaymentOpen} onOpenChange={setIsNewPaymentOpen} />}
     </SidebarProvider>
   );
 }

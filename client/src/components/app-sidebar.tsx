@@ -12,12 +12,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { NewPaymentModal } from "@/components/new-payment-modal";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/hooks/use-toast";
 import {
   LayoutDashboard,
@@ -185,15 +187,19 @@ export function AppSidebar() {
               </span>
             </div>
           </div>
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={logout}
-            data-testid="button-logout"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Cerrar Sesión
-          </Button>
+          <div className="flex items-center gap-2 mb-2">
+            <SidebarTrigger data-testid="button-sidebar-toggle" className="h-9 w-9 flex-shrink-0" />
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={logout}
+              className="flex-shrink-0"
+              data-testid="button-logout"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
         </SidebarFooter>
       </Sidebar>
 
