@@ -7,6 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, ChevronDown, ChevronRight, Image } from "lucide-react";
 import type { Week } from "@shared/schema";
 
+type CurrencyEntry = { code: string; symbol: string; total: number };
+
 type MatrixCell = {
   grossIncome: number;
   netIncome: number;
@@ -14,6 +16,7 @@ type MatrixCell = {
   agencyEarnings: number;
   tutorAdvertisingShare: number;
   paymentCount: number;
+  currencies: CurrencyEntry[];
 };
 
 type SettlementsMatrix = {
@@ -146,6 +149,15 @@ export default function TutorDetailPage() {
   const advUsd = Number(tutor.advertisingCostUsd ?? 0);
   const tutorRows = weeks.map(w => ({ week: w, cell: matrix[tutor.id]?.[w.id] }));
 
+  // Collect all distinct currencies this tutor has used
+  const currencyMap = new Map<string, { code: string; symbol: string }>();
+  for (const { cell } of tutorRows) {
+    for (const c of (cell?.currencies ?? [])) {
+      if (!currencyMap.has(c.code)) currencyMap.set(c.code, { code: c.code, symbol: c.symbol });
+    }
+  }
+  const allCurrencies = Array.from(currencyMap.values());
+
   const totalGross = tutorRows.reduce((s, r) => s + (r.cell?.grossIncome ?? 0), 0);
   const totalAdv = tutorRows.reduce((s, r) => s + (r.cell?.tutorAdvertisingShare ?? 0), 0);
   const totalNet = tutorRows.reduce((s, r) => s + (r.cell?.netIncome ?? 0), 0);
@@ -185,6 +197,9 @@ export default function TutorDetailPage() {
                   <th className="text-left p-3 w-6" />
                   <th className="text-left p-3 font-semibold">Semana</th>
                   <th className="text-left p-3 font-semibold text-[10px] text-muted-foreground">Estado</th>
+                  {allCurrencies.map(c => (
+                    <th key={c.code} className="text-right p-3 font-semibold text-[10px] text-amber-600 dark:text-amber-400">{c.code}</th>
+                  ))}
                   <th className="text-right p-3 font-semibold">Bruto</th>
                   <th className="text-right p-3 font-semibold text-muted-foreground/70">Pub.</th>
                   <th className="text-right p-3 font-semibold">Neto</th>
@@ -229,6 +244,14 @@ export default function TutorDetailPage() {
                             <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Abierta</Badge>
                           )}
                         </td>
+                        {allCurrencies.map(c => {
+                          const entry = cell?.currencies?.find(x => x.code === c.code);
+                          return (
+                            <td key={c.code} className="p-3 text-right tabular-nums text-xs text-amber-700 dark:text-amber-400">
+                              {entry ? `${c.symbol}${new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(entry.total)}` : "—"}
+                            </td>
+                          );
+                        })}
                         <td className="p-3 text-right tabular-nums">{hasActivity ? fmt(cell?.grossIncome ?? 0) : "—"}</td>
                         <td className="p-3 text-right tabular-nums text-muted-foreground/70 text-xs">
                           {(cell?.tutorAdvertisingShare ?? 0) > 0 ? `−${fmt(cell!.tutorAdvertisingShare)}` : "—"}
@@ -253,6 +276,14 @@ export default function TutorDetailPage() {
                 <tr className="border-t-2 border-border bg-muted/50 font-bold">
                   <td className="p-3" />
                   <td className="p-3 text-sm uppercase text-muted-foreground" colSpan={2}>Total</td>
+                  {allCurrencies.map(c => {
+                    const total = tutorRows.reduce((s, r) => s + (r.cell?.currencies?.find(x => x.code === c.code)?.total ?? 0), 0);
+                    return (
+                      <td key={c.code} className="p-3 text-right tabular-nums text-xs text-amber-700 dark:text-amber-400">
+                        {`${c.symbol}${new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(total)}`}
+                      </td>
+                    );
+                  })}
                   <td className="p-3 text-right tabular-nums">{fmt(totalGross)}</td>
                   <td className="p-3 text-right tabular-nums text-muted-foreground/70 text-xs">
                     {totalAdv > 0 ? `−${fmt(totalAdv)}` : "—"}
