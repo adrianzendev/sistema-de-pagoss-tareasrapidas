@@ -617,6 +617,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (existing) {
         return res.status(400).json({ message: "Ya existe una semana con este número" });
       }
+      if (req.body.sharedAdvertisingUsd === undefined) {
+        const allWeeks = await storage.getWeeks();
+        if (allWeeks.length > 0) {
+          const latest = allWeeks.reduce((max, w) => w.weekNumber > max.weekNumber ? w : max, allWeeks[0]);
+          data.sharedAdvertisingUsd = latest.sharedAdvertisingUsd ?? "0";
+        }
+      }
       const week = await storage.createWeek(data);
       res.status(201).json(week);
     } catch (error) {
@@ -654,13 +661,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(400).json({ message: "La semana actual ya existe" });
       }
 
+      const prevSharedAdv = existingWeeks.length > 0
+        ? (existingWeeks.reduce((max, w) => w.weekNumber > max.weekNumber ? w : max, existingWeeks[0]).sharedAdvertisingUsd ?? "0")
+        : "0";
+
       const week = await storage.createWeek({
         weekNumber: nextWeekNumber,
         startDate,
         endDate,
         status: "open",
         advertisingCost: "0",
-        sharedAdvertisingUsd: "0",
+        sharedAdvertisingUsd: prevSharedAdv,
       });
 
       res.status(201).json(week);
@@ -1069,12 +1080,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         endDate.setDate(startDate.getDate() + 6);
       }
 
+      const prevSharedAdv = existingWeeks.length > 0
+        ? (existingWeeks.reduce((max, w) => w.weekNumber > max.weekNumber ? w : max, existingWeeks[0]).sharedAdvertisingUsd ?? "0")
+        : "0";
+
       const week = await storage.createWeek({
         weekNumber: newWeekNumber,
         startDate: startDate.toISOString().split("T")[0],
         endDate: endDate.toISOString().split("T")[0],
         status: "open",
         advertisingCost: "0",
+        sharedAdvertisingUsd: prevSharedAdv,
       });
 
       res.status(201).json(week);
