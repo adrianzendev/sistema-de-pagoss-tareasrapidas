@@ -31,6 +31,7 @@ type Payment = {
   clientNumber: string;
   status: string;
   createdAt: string;
+  verifiedAt?: string;
   proofImage?: string;
   exchangeRateSnapshot?: string;
   currency?: { code: string; symbol: string; exchangeRate: string };
@@ -77,8 +78,11 @@ function WeekPayments({ tutorId, weekId }: { tutorId: string; weekId: string }) 
         const amountSoles = Number(p.amount) * rate;
         return (
           <tr key={p.id} className={`${i % 2 === 0 ? "bg-muted/10" : "bg-muted/20"} text-xs`}>
-            <td className="pl-10 pr-3 py-2 text-muted-foreground">{new Date(p.createdAt).toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}</td>
-            <td className="px-3 py-2 text-muted-foreground" colSpan={1}>{p.clientNumber}</td>
+            <td className="pl-10 pr-3 py-2 text-muted-foreground">
+              {new Date(p.createdAt).toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
+              <div className="text-[9px] opacity-60">{new Date(p.createdAt).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}</div>
+            </td>
+            <td className="px-3 py-2 text-muted-foreground">{p.clientNumber}</td>
             <td className="px-3 py-2 tabular-nums">
               <span className="font-medium">{fmtAmt(p.amount, p.currency?.symbol ?? "$")}</span>
               <span className="text-muted-foreground ml-1 text-[10px]">{p.currency?.code}</span>
@@ -86,7 +90,10 @@ function WeekPayments({ tutorId, weekId }: { tutorId: string; weekId: string }) 
             <td className="px-3 py-2 tabular-nums text-muted-foreground">
               {rate !== 1 ? `S/. ${amountSoles.toFixed(2)}` : "—"}
             </td>
-            <td className="px-3 py-2" colSpan={2}>
+            <td className="px-3 py-2 tabular-nums text-muted-foreground/70 text-[10px]">
+              {rate !== 1 ? `×${rate.toFixed(4)}` : "—"}
+            </td>
+            <td className="px-3 py-2">
               {p.status === "verified" ? (
                 <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600">Verificado</Badge>
               ) : p.status === "rejected" ? (
@@ -94,7 +101,8 @@ function WeekPayments({ tutorId, weekId }: { tutorId: string; weekId: string }) 
               ) : (
                 <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Pendiente</Badge>
               )}
-              {p.verifier && <span className="ml-2 text-[10px] text-muted-foreground">{p.verifier.name}</span>}
+              {p.verifier && <div className="text-[9px] text-muted-foreground mt-0.5">{p.verifier.name}</div>}
+              {p.verifiedAt && <div className="text-[9px] text-muted-foreground/60">{new Date(p.verifiedAt).toLocaleString("es-PE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</div>}
             </td>
             <td className="px-3 py-2">
               {p.proofImage && (
