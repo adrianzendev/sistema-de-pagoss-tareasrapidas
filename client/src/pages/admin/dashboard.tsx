@@ -136,16 +136,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard title="Total Tutores" value={stats?.totalTutors ?? 0} description="Tutores registrados" icon={Users} />
-        <StatCard title="Total Pagos" value={stats?.totalPayments ?? 0} description="En el periodo seleccionado" icon={CreditCard} />
-        <StatCard
-          title="Monto Total"
-          value={`${(stats?.totalAmount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
-          description="Verificados en el periodo"
-          icon={Coins}
-        />
-      </div>
 
       <div className="hidden grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="md:col-span-2 lg:col-span-2">
