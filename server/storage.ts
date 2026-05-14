@@ -478,8 +478,8 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(payments)
       .where(and(
-        gte(payments.createdAt, new Date(week.startDate)),
-        lte(payments.createdAt, new Date(week.endDate + 'T23:59:59'))
+        gte(payments.createdAt, new Date(week.startDate + 'T00:00:00.000Z')),
+        lte(payments.createdAt, new Date(week.endDate + 'T23:59:59.999Z'))
       ))
       .orderBy(desc(payments.createdAt));
 
