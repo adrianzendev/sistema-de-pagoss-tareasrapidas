@@ -19,6 +19,7 @@ import {
   type ActivityLog,
   type InsertActivityLog,
   type WeekTutorPaid,
+  type TutorWeekAdvertising,
   users,
   currencies,
   payments,
@@ -29,6 +30,7 @@ import {
   pushSubscriptions,
   activityLog,
   weekTutorPaid,
+  tutorWeekAdvertising,
   normalizePhone,
 } from "@shared/schema";
 import { db } from "./db";
@@ -126,6 +128,11 @@ export interface IStorage {
   getWeekPaidTutors(weekId: string): Promise<WeekTutorPaid[]>;
   markTutorPaid(weekId: string, tutorId: string): Promise<WeekTutorPaid>;
   unmarkTutorPaid(weekId: string, tutorId: string): Promise<void>;
+
+  // Tutor Week Advertising
+  getTutorWeekAdvertising(tutorId: string, weekId: string): Promise<TutorWeekAdvertising | undefined>;
+  setTutorWeekAdvertising(tutorId: string, weekId: string, cost: number): Promise<TutorWeekAdvertising>;
+  getAllTutorWeekAdvertising(): Promise<TutorWeekAdvertising[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -642,6 +649,32 @@ export class DatabaseStorage implements IStorage {
   async unmarkTutorPaid(weekId: string, tutorId: string): Promise<void> {
     await db.delete(weekTutorPaid)
       .where(and(eq(weekTutorPaid.weekId, weekId), eq(weekTutorPaid.tutorId, tutorId)));
+  }
+
+  // Tutor Week Advertising
+  async getTutorWeekAdvertising(tutorId: string, weekId: string): Promise<TutorWeekAdvertising | undefined> {
+    const [rec] = await db.select().from(tutorWeekAdvertising)
+      .where(and(eq(tutorWeekAdvertising.tutorId, tutorId), eq(tutorWeekAdvertising.weekId, weekId)));
+    return rec;
+  }
+
+  async setTutorWeekAdvertising(tutorId: string, weekId: string, cost: number): Promise<TutorWeekAdvertising> {
+    const existing = await this.getTutorWeekAdvertising(tutorId, weekId);
+    if (existing) {
+      const [rec] = await db.update(tutorWeekAdvertising)
+        .set({ advertisingCostUsd: String(cost) })
+        .where(and(eq(tutorWeekAdvertising.tutorId, tutorId), eq(tutorWeekAdvertising.weekId, weekId)))
+        .returning();
+      return rec;
+    }
+    const [rec] = await db.insert(tutorWeekAdvertising)
+      .values({ tutorId, weekId, advertisingCostUsd: String(cost) })
+      .returning();
+    return rec;
+  }
+
+  async getAllTutorWeekAdvertising(): Promise<TutorWeekAdvertising[]> {
+    return db.select().from(tutorWeekAdvertising);
   }
 }
 

@@ -4,8 +4,9 @@ import { useParams, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, ChevronDown, ChevronRight, Image } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, Image, Pencil, Check, X } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Week } from "@shared/schema";
 
@@ -26,6 +27,7 @@ type SettlementsMatrix = {
   tutors: Array<{ id: string; name: string; commissionPercent: string; advertisingCostUsd?: string }>;
   matrix: Record<string, Record<string, MatrixCell>>;
   weekPaidMap: Record<string, string[]>;
+  tutorWeekAdvMap: Record<string, Record<string, number>>;
 };
 
 type Payment = {
@@ -126,6 +128,8 @@ function WeekPayments({ tutorId, weekId }: { tutorId: string; weekId: string }) 
 export default function TutorDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [expandedWeek, setExpandedWeek] = useState<string | null>(null);
+  const [editingAdv, setEditingAdv] = useState<string | null>(null);
+  const [advInput, setAdvInput] = useState("");
 
   const { data: matrixData, isLoading } = useQuery<SettlementsMatrix>({
     queryKey: ["/api/admin/settlements/matrix"],
@@ -146,6 +150,15 @@ export default function TutorDetailPage() {
     mutationFn: ({ weekId }: { weekId: string }) =>
       apiRequest("DELETE", `/api/admin/weeks/${weekId}/tutor-paid/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/settlements/matrix"] }),
+  });
+
+  const setAdvMutation = useMutation({
+    mutationFn: ({ weekId, cost }: { weekId: string; cost: number }) =>
+      apiRequest("PATCH", `/api/admin/tutors/${id}/week-advertising/${weekId}`, { advertisingCostUsd: cost }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settlements/matrix"] });
+      setEditingAdv(null);
+    },
   });
 
   if (isLoading) {
@@ -171,7 +184,7 @@ export default function TutorDetailPage() {
     );
   }
 
-  const advUsd = Number(tutor.advertisingCostUsd ?? 0);
+  const tutorWeekAdvMap = matrixData?.tutorWeekAdvMap ?? {};
   const tutorRows = weeks.map(w => ({ week: w, cell: matrix[tutor.id]?.[w.id] }));
 
   const currencyMap = new Map<string, { code: string; symbol: string }>();
@@ -212,7 +225,6 @@ export default function TutorDetailPage() {
               <CardTitle className="text-xl">{tutor.name}</CardTitle>
               <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                 <span>Comisión: <strong>{tutor.commissionPercent}%</strong></span>
-                {advUsd > 0 && <span>P.C: <strong>{fmtUsd(advUsd / 2)}</strong>/sem</span>}
               </div>
             </div>
             <div className="flex items-center gap-3 flex-wrap">
@@ -295,8 +307,50 @@ export default function TutorDetailPage() {
                           );
                         })}
                         <td className="p-3 text-right tabular-nums">{hasActivity ? fmt(cell?.grossIncome ?? 0) : "—"}</td>
-                        <td className="p-3 text-right tabular-nums text-muted-foreground/70 text-xs">
-                          {(cell?.tutorAdvertisingShare ?? 0) > 0 ? `−${fmt(cell!.tutorAdvertisingShare)}` : "—"}
+                        <td className="p-3 text-right tabular-nums text-muted-foreground/70 text-xs" onClick={e => e.stopPropagation()}>
+                          {editingAdv === week.id ? (
+                            <div className="flex items-center gap-1 justify-end">
+                              <Input
+                                className="h-6 w-20 text-xs text-right px-1"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={advInput}
+                                onChange={e => setAdvInput(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === "Enter") setAdvMutation.mutate({ weekId: week.id, cost: Number(advInput) });
+                                  if (e.key === "Escape") setEditingAdv(null);
+                                }}
+                                autoFocus
+                                data-testid={`input-adv-${week.id}`}
+                              />
+                              <button
+                                className="text-green-600 hover:text-green-700"
+                                onClick={() => setAdvMutation.mutate({ weekId: week.id, cost: Number(advInput) })}
+                                data-testid={`btn-adv-save-${week.id}`}
+                              ><Check className="w-3 h-3" /></button>
+                              <button
+                                className="text-muted-foreground hover:text-foreground"
+                                onClick={() => setEditingAdv(null)}
+                                data-testid={`btn-adv-cancel-${week.id}`}
+                              ><X className="w-3 h-3" /></button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 justify-end group">
+                              <span>
+                                {(cell?.tutorAdvertisingShare ?? 0) > 0 ? `−${fmt(cell!.tutorAdvertisingShare)}` : "—"}
+                              </span>
+                              <button
+                                className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                                onClick={() => {
+                                  const current = tutorWeekAdvMap[tutor.id]?.[week.id] ?? 0;
+                                  setAdvInput(String(current));
+                                  setEditingAdv(week.id);
+                                }}
+                                data-testid={`btn-adv-edit-${week.id}`}
+                              ><Pencil className="w-3 h-3" /></button>
+                            </div>
+                          )}
                         </td>
                         <td className="p-3 text-right tabular-nums font-medium">{hasActivity ? fmt(cell?.netIncome ?? 0) : "—"}</td>
                         <td className="p-3 text-right tabular-nums font-bold text-purple-600 dark:text-purple-400">

@@ -688,6 +688,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // Per-tutor payment tracking per week
+  // Per-tutor per-week advertising cost
+  app.patch("/api/admin/tutors/:tutorId/week-advertising/:weekId", requireAdmin, async (req, res) => {
+    try {
+      const cost = Number(req.body.advertisingCostUsd ?? 0);
+      const rec = await storage.setTutorWeekAdvertising(req.params.tutorId, req.params.weekId, cost);
+      res.json(rec);
+    } catch (e) {
+      res.status(500).json({ message: "Error" });
+    }
+  });
+
   app.post("/api/admin/weeks/:weekId/tutor-paid/:tutorId", requireAdmin, async (req, res) => {
     try {
       const record = await storage.markTutorPaid(req.params.weekId, req.params.tutorId);
@@ -816,6 +827,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         tutorAdvertisingShare: number; paymentCount: number;
       }>> = {};
 
+      // Load all per-week advertising overrides once
+      const allTutorWeekAdv = await storage.getAllTutorWeekAdvertising();
+      const tutorWeekAdvMap: Record<string, Record<string, number>> = {};
+      for (const r of allTutorWeekAdv) {
+        if (!tutorWeekAdvMap[r.tutorId]) tutorWeekAdvMap[r.tutorId] = {};
+        tutorWeekAdvMap[r.tutorId][r.weekId] = Number(r.advertisingCostUsd);
+      }
+
       for (const week of allWeeks) {
         const weekPayments = await storage.getPaymentsByWeek(week.id);
         const verifiedPayments = weekPayments.filter(p => p.status === "verified");
@@ -848,9 +867,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
           const commission = Number(tutor.commissionPercent) / 100;
           const tutorIsActive = tutor.isActive !== false && (!tutor.activatedAt || new Date(tutor.activatedAt) <= weekEndDate);
-          const hasPayments = tutorPayments.length > 0;
           const sharedAdvShare = tutorIsActive ? weekTutorAdShare : 0;
-          const ownAdvShare = tutorIsActive ? Number(tutor.advertisingCostUsd ?? 0) * usdRate * 0.5 : 0;
+          // Use per-week advertising override if set, otherwise 0 (NOT the global tutor value)
+          const weekOwnAdv = tutorWeekAdvMap[tutor.id]?.[week.id] ?? 0;
+          const ownAdvShare = tutorIsActive ? weekOwnAdv * usdRate * 0.5 : 0;
           const totalAdvShare = sharedAdvShare + ownAdvShare;
           const netIncome = grossIncome * commission;
           const tutorEarnings = netIncome - totalAdvShare;
@@ -897,7 +917,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       const safeTutors = tutors.map(({ password: _pw, ...safe }) => safe);
-      res.json({ weeks: allWeeks, tutors: safeTutors, matrix, currencyTotals: Object.values(currencyTotals), weekCurrencyTotals, weekPaidMap });
+      res.json({ weeks: allWeeks, tutors: safeTutors, matrix, currencyTotals: Object.values(currencyTotals), weekCurrencyTotals, weekPaidMap, tutorWeekAdvMap });
     } catch (error) {
       console.error("Error getting settlements matrix:", error);
       res.status(500).json({ message: "Error al obtener matriz" });
