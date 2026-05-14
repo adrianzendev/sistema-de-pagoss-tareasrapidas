@@ -393,12 +393,19 @@ export default function AdminDashboard() {
                             <div className="text-[9px] text-muted-foreground/70 font-normal tabular-nums leading-4">
                               {fmt(tutorsWithAnyPayment.reduce((sum, t) => sum + (matrix[t.id]?.[w.id]?.grossIncome ?? 0), 0))}
                             </div>
-                            <div className="text-[9px] text-muted-foreground/60 font-normal tabular-nums leading-4">
+                            <div className="text-[9px] text-muted-foreground/60 font-normal tabular-nums leading-4 flex items-center justify-end gap-1">
                               {(() => {
                                 const total = tutorsWithAnyPayment.reduce(
                                   (sum, t) => sum + (matrix[t.id]?.[w.id]?.tutorAdvertisingShare ?? 0), 0
                                 );
-                                return total > 0 ? `−${fmt(total)}` : "—";
+                                if (total <= 0) return "—";
+                                const usd = total / usdRate;
+                                return (
+                                  <>
+                                    <span className="text-muted-foreground/40">−USD {usd.toFixed(2)}</span>
+                                    <span>{`−${fmt(total)}`}</span>
+                                  </>
+                                );
                               })()}
                             </div>
                             <div className={`font-bold leading-4 ${colTutor >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>
