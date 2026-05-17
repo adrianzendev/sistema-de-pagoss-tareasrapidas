@@ -645,16 +645,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       const now = new Date();
-      const dayOfWeek = now.getDay();
-      const sunday = new Date(now);
-      sunday.setDate(now.getDate() - dayOfWeek);
-      sunday.setHours(0, 0, 0, 0);
-      
-      const saturday = new Date(sunday);
-      saturday.setDate(sunday.getDate() + 6);
-      
-      const startDate = sunday.toISOString().split('T')[0];
-      const endDate = saturday.toISOString().split('T')[0];
+      const dayOfWeek = now.getDay(); // 0=Dom, 1=Lun, ..., 6=Sab
+      const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - daysFromMonday);
+      monday.setHours(0, 0, 0, 0);
+
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+
+      const startDate = monday.toISOString().split('T')[0];
+      const endDate = sunday.toISOString().split('T')[0];
 
       const existing = await storage.getWeekByNumber(nextWeekNumber);
       if (existing) {
@@ -1077,11 +1078,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + 6);
       } else {
-        // First week: use current week (Sunday to Saturday)
+        // First week: use current week (Monday to Sunday)
         const today = new Date();
-        const dayOfWeek = today.getDay();
+        const dayOfWeek = today.getDay(); // 0=Dom, 1=Lun, ..., 6=Sab
+        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
         startDate = new Date(today);
-        startDate.setDate(today.getDate() - dayOfWeek);
+        startDate.setDate(today.getDate() - daysFromMonday);
         endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + 6);
       }
