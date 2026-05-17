@@ -386,7 +386,10 @@ export default function AdminDashboard() {
                     const colAgency = tutorsWithAnyPayment.reduce(
                       (sum, t) => sum + (matrix[t.id]?.[w.id]?.agencyEarnings ?? 0), 0
                     );
-                    const anyPayments = tutorsWithAnyPayment.some(t => (matrix[t.id]?.[w.id]?.paymentCount ?? 0) > 0);
+                    const anyPayments = tutorsWithAnyPayment.some(t =>
+                      (matrix[t.id]?.[w.id]?.paymentCount ?? 0) > 0 ||
+                      (matrix[t.id]?.[w.id]?.tutorAdvertisingShare ?? 0) > 0
+                    );
                     const wkCurrencies = Object.values(weekCurrencyTotals[w.id] ?? {});
                     return (
                       <div key={w.id} className="p-2 text-right text-xs border-r border-border last:border-r-0">
