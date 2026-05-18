@@ -106,7 +106,7 @@ export function AppSidebar() {
   return (
     <>
       <Sidebar>
-        <SidebarHeader className="p-4">
+        <SidebarHeader className="p-4 pb-3">
           <div className="flex items-center gap-3">
             <img src="/favicon.png" alt="TR Pagos" className="h-10 w-10 rounded-md object-contain" />
             <div className="flex flex-col">
@@ -116,6 +116,29 @@ export function AppSidebar() {
               </span>
             </div>
           </div>
+          {isTutor && (
+            <button
+              onClick={() => {
+                if (!hasOpenWeek) {
+                  toast({ title: "Semana cerrada", description: "No hay una semana abierta para registrar pagos.", variant: "destructive" });
+                  return;
+                }
+                setIsNewPaymentOpen(true);
+              }}
+              data-testid="nav-nuevo-pago-top"
+              className={`mt-3 w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors
+                ${hasOpenWeek
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "bg-muted text-muted-foreground opacity-60 cursor-default"
+                }`}
+            >
+              {hasOpenWeek ? <PlusCircle className="h-4 w-4 shrink-0" /> : <Lock className="h-4 w-4 shrink-0" />}
+              <span className="flex-1 text-left">Nuevo Pago</span>
+              {hasOpenWeek && currentWeek && (
+                <span className="text-[10px] font-mono opacity-80">S{currentWeek.weekNumber}</span>
+              )}
+            </button>
+          )}
         </SidebarHeader>
 
         <SidebarContent>
@@ -147,27 +170,6 @@ export function AppSidebar() {
                   );
                 })}
 
-                {isTutor && (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      onClick={() => {
-                        if (!hasOpenWeek) {
-                          toast({ title: "Semana cerrada", description: "No hay una semana abierta para registrar pagos.", variant: "destructive" });
-                          return;
-                        }
-                        setIsNewPaymentOpen(true);
-                      }}
-                      data-testid="nav-nuevo-pago"
-                      className={!hasOpenWeek && currentWeek !== undefined ? "opacity-60" : ""}
-                    >
-                      {hasOpenWeek ? <PlusCircle className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                      <span className="flex-1">Nuevo Pago</span>
-                      {hasOpenWeek && currentWeek && (
-                        <span className="text-[10px] text-muted-foreground font-mono">S{currentWeek.weekNumber}</span>
-                      )}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
