@@ -77,25 +77,10 @@ export default function TutorPaymentsPage() {
     <div className="space-y-4 relative pb-24">
       <Card>
         <CardHeader className="pb-2">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <CardTitle className="text-lg">Historial de Pagos</CardTitle>
-              <CardDescription>
-                {selectedWeek ? `Semana S${selectedWeek.weekNumber}` : "Todos los pagos registrados"}
-              </CardDescription>
-            </div>
-            <Button
-              size="sm"
-              onClick={() => setIsNewPaymentOpen(true)}
-              disabled={!currentWeek || currentWeek.status !== "open"}
-              data-testid="button-nuevo-pago-panel"
-              className="shrink-0"
-            >
-              {currentWeek?.status === "open" ? <PlusCircle className="h-4 w-4 mr-1" /> : <Lock className="h-4 w-4 mr-1" />}
-              Nuevo Pago
-              {currentWeek && <span className="ml-1 text-[10px] opacity-80 font-mono">S{currentWeek.weekNumber}</span>}
-            </Button>
-          </div>
+          <CardTitle className="text-lg">Historial de Pagos</CardTitle>
+          <CardDescription>
+            {selectedWeek ? `Semana S${selectedWeek.weekNumber}` : "Todos los pagos registrados"}
+          </CardDescription>
         </CardHeader>
 
         <div className="border-t bg-muted/30 p-2">
