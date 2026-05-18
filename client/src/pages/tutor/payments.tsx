@@ -172,9 +172,15 @@ export default function TutorPaymentsPage() {
             <FileText className="h-8 w-8 text-muted-foreground" />
           </div>
           <h3 className="font-medium text-lg">No hay pagos</h3>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-sm mb-4">
             {activeWeekId ? "No hay pagos en esta semana" : "Registra tu primer pago"}
           </p>
+          {currentWeek?.status === "open" && (
+            <Button onClick={() => setIsNewPaymentOpen(true)} data-testid="button-nuevo-pago-empty">
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Nuevo Pago
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
