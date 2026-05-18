@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, ChevronLeft, ChevronRight, Calendar, Phone, RotateCcw } from "lucide-react";
+import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, ChevronLeft, ChevronRight, Calendar, Phone, RotateCcw, PlusCircle, Lock } from "lucide-react";
+import { NewPaymentModal } from "@/components/new-payment-modal";
 
 const statusConfig: Record<string, { label: string; variant: "secondary" | "default" | "destructive" | "outline"; icon: typeof Clock; className: string }> = {
   pending: { label: "Pendiente", variant: "secondary", icon: Clock, className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" },
@@ -22,6 +23,7 @@ export default function TutorPaymentsPage() {
   const { user } = useAuth();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
+  const [isNewPaymentOpen, setIsNewPaymentOpen] = useState(false);
   const [tabScrollPos, setTabScrollPos] = useState<number | null>(null);
 
   const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
@@ -75,10 +77,25 @@ export default function TutorPaymentsPage() {
     <div className="space-y-4 relative pb-24">
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Historial de Pagos</CardTitle>
-          <CardDescription>
-            {selectedWeek ? `Semana S${selectedWeek.weekNumber}` : "Todos los pagos registrados"}
-          </CardDescription>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle className="text-lg">Historial de Pagos</CardTitle>
+              <CardDescription>
+                {selectedWeek ? `Semana S${selectedWeek.weekNumber}` : "Todos los pagos registrados"}
+              </CardDescription>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setIsNewPaymentOpen(true)}
+              disabled={!currentWeek || currentWeek.status !== "open"}
+              data-testid="button-nuevo-pago-panel"
+              className="shrink-0"
+            >
+              {currentWeek?.status === "open" ? <PlusCircle className="h-4 w-4 mr-1" /> : <Lock className="h-4 w-4 mr-1" />}
+              Nuevo Pago
+              {currentWeek && <span className="ml-1 text-[10px] opacity-80 font-mono">S{currentWeek.weekNumber}</span>}
+            </Button>
+          </div>
         </CardHeader>
 
         <div className="border-t bg-muted/30 p-2">
@@ -242,6 +259,8 @@ export default function TutorPaymentsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <NewPaymentModal open={isNewPaymentOpen} onOpenChange={setIsNewPaymentOpen} />
     </div>
   );
 }
