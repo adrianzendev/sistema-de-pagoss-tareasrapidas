@@ -77,31 +77,10 @@ export default function TutorPaymentsPage() {
     <div className="space-y-4 relative pb-24">
       <Card>
         <CardHeader className="pb-2">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <CardTitle className="text-lg">Historial de Pagos</CardTitle>
-              <CardDescription>
-                {selectedWeek ? `Semana S${selectedWeek.weekNumber}` : "Todos los pagos registrados"}
-              </CardDescription>
-            </div>
-            <button
-              onClick={() => {
-                if (!currentWeek || currentWeek.status !== "open") return;
-                setIsNewPaymentOpen(true);
-              }}
-              disabled={!currentWeek || currentWeek.status !== "open"}
-              data-testid="button-nuevo-pago-header"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium shrink-0 transition-colors
-                ${currentWeek?.status === "open"
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "bg-muted text-muted-foreground opacity-60 cursor-default"
-                }`}
-            >
-              {currentWeek?.status === "open" ? <PlusCircle className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-              Nuevo Pago
-              {currentWeek && <span className="text-[10px] font-mono opacity-80">S{currentWeek.weekNumber}</span>}
-            </button>
-          </div>
+          <CardTitle className="text-lg">Historial de Pagos</CardTitle>
+          <CardDescription>
+            {selectedWeek ? `Semana S${selectedWeek.weekNumber}` : "Todos los pagos registrados"}
+          </CardDescription>
         </CardHeader>
 
         <div className="border-t bg-muted/30 p-2">
@@ -165,6 +144,25 @@ export default function TutorPaymentsPage() {
           <span>Verificados: <strong className="text-green-600">{filteredPayments?.filter((p) => p.status === "verified").length ?? 0}</strong></span>
         </div>
       </Card>
+
+      {/* Botón Nuevo Pago — primer lugar fijo */}
+      <button
+        onClick={() => {
+          if (!currentWeek || currentWeek.status !== "open") return;
+          setIsNewPaymentOpen(true);
+        }}
+        disabled={!currentWeek || currentWeek.status !== "open"}
+        data-testid="button-nuevo-pago-first"
+        className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed text-sm font-medium transition-colors
+          ${currentWeek?.status === "open"
+            ? "border-primary/40 text-primary hover:bg-primary/5 hover:border-primary"
+            : "border-muted text-muted-foreground opacity-50 cursor-default"
+          }`}
+      >
+        {currentWeek?.status === "open" ? <PlusCircle className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
+        Nuevo Pago
+        {currentWeek && <span className="text-[11px] font-mono opacity-70">S{currentWeek.weekNumber}</span>}
+      </button>
 
       {isLoading ? (
         <div className="space-y-3">
