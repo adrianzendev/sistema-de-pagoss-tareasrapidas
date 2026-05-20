@@ -264,27 +264,6 @@ export default function TutorPaymentsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Botón flotante siempre visible */}
-      <div className="fixed bottom-6 right-6 z-30">
-        <button
-          onClick={() => {
-            if (!currentWeek || currentWeek.status !== "open") return;
-            setIsNewPaymentOpen(true);
-          }}
-          disabled={!currentWeek || currentWeek.status !== "open"}
-          data-testid="fab-nuevo-pago"
-          className={`flex items-center gap-2 px-4 py-3 rounded-full shadow-lg text-sm font-medium transition-all
-            ${currentWeek?.status === "open"
-              ? "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95"
-              : "bg-muted text-muted-foreground cursor-default opacity-60"
-            }`}
-        >
-          {currentWeek?.status === "open" ? <PlusCircle className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
-          <span>Nuevo Pago</span>
-          {currentWeek && <span className="text-[10px] font-mono opacity-80">S{currentWeek.weekNumber}</span>}
-        </button>
-      </div>
-
       <NewPaymentModal open={isNewPaymentOpen} onOpenChange={setIsNewPaymentOpen} />
     </div>
   );
