@@ -8,6 +8,7 @@ import { insertUserSchema, insertCurrencySchema, insertPaymentSchema, createTuto
 import { z } from "zod";
 import { db, pool } from "./db";
 import { users, currencies, payments } from "@shared/schema";
+import { nowPeru, toDateStr } from "./utils/peru-time";
 import { eq, sql } from "drizzle-orm";
 import { getVapidPublicKey, notifyPaymentStatusChange, notifyNewPaymentRequest } from "./push";
 
@@ -644,18 +645,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         nextWeekNumber = Math.max(...existingWeeks.map(w => w.weekNumber)) + 1;
       }
 
-      const now = new Date();
-      const dayOfWeek = now.getDay(); // 0=Dom, 1=Lun, ..., 6=Sab
+      const now = nowPeru(); // hora Perú UTC-5
+      const dayOfWeek = now.getUTCDay(); // 0=Dom, 1=Lun, ..., 6=Sab (sobre fecha Perú)
       const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
       const monday = new Date(now);
-      monday.setDate(now.getDate() - daysFromMonday);
-      monday.setHours(0, 0, 0, 0);
+      monday.setUTCDate(now.getUTCDate() - daysFromMonday);
 
       const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
+      sunday.setUTCDate(monday.getUTCDate() + 6);
 
-      const startDate = monday.toISOString().split('T')[0];
-      const endDate = sunday.toISOString().split('T')[0];
+      const startDate = toDateStr(monday);
+      const endDate = toDateStr(sunday);
 
       const existing = await storage.getWeekByNumber(nextWeekNumber);
       if (existing) {
@@ -1078,14 +1078,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + 6);
       } else {
-        // First week: use current week (Monday to Sunday)
-        const today = new Date();
-        const dayOfWeek = today.getDay(); // 0=Dom, 1=Lun, ..., 6=Sab
+        // Primera semana: usar semana actual en hora Perú (lunes a domingo)
+        const today = nowPeru(); // hora Perú UTC-5
+        const dayOfWeek = today.getUTCDay(); // 0=Dom, 1=Lun, ..., 6=Sab
         const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
         startDate = new Date(today);
-        startDate.setDate(today.getDate() - daysFromMonday);
+        startDate.setUTCDate(today.getUTCDate() - daysFromMonday);
         endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + 6);
+        endDate.setUTCDate(startDate.getUTCDate() + 6);
       }
 
       const prevSharedAdv = existingWeeks.length > 0

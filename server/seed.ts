@@ -2,6 +2,7 @@ import { db } from "./db";
 import { users, currencies, payments, blacklist, clients, normalizePhone, weeks, agencySettings } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
+import { todayPeru, toDateStr } from "./utils/peru-time";
 
 async function ensureUser(standardPwd: string, data: { username: string; role: "admin" | "tutor" | "verifier"; name: string; email: string; commissionPercent: string }) {
   const [existing] = await db.select().from(users).where(eq(users.username, data.username));
@@ -28,16 +29,16 @@ async function ensureWeek(data: { weekNumber: number; startDate: string; endDate
 }
 
 async function autoGenerateWeeksUntilToday() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayPeru(); // Fecha actual en hora Perú (UTC-5)
 
   const allWeeks = await db.select().from(weeks).orderBy(sql`week_number ASC`);
   if (allWeeks.length === 0) return;
 
-  // If there's already a week covering today, do nothing — don't create future weeks
+  // Si ya hay una semana que cubre hoy, no hacer nada
   const covered = allWeeks.find(w => w.startDate <= today && w.endDate >= today);
   if (covered) return;
 
-  // No week covers today → extend from the last week until today is covered
+  // No hay semana activa → extender desde la última hasta cubrir hoy
   let lastWeek = allWeeks[allWeeks.length - 1];
 
   while (lastWeek.endDate < today) {
@@ -48,8 +49,8 @@ async function autoGenerateWeeksUntilToday() {
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + 6);
 
-    const startStr = startDate.toISOString().split('T')[0];
-    const endStr = endDate.toISOString().split('T')[0];
+    const startStr = toDateStr(startDate);
+    const endStr = toDateStr(endDate);
 
     const [existing] = await db.select().from(weeks).where(eq(weeks.weekNumber, nextNumber));
     if (!existing) {
@@ -60,7 +61,7 @@ async function autoGenerateWeeksUntilToday() {
         status: "open",
         advertisingCost: "0.00",
       }).returning();
-      console.log(`Auto-generated week S${nextNumber} (${startStr} → ${endStr})`);
+      console.log(`Auto-generated week S${nextNumber} (${startStr} → ${endStr}) [Peru time: ${today}]`);
       lastWeek = created;
     } else {
       lastWeek = existing;
