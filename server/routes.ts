@@ -399,8 +399,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.delete("/api/admin/currencies/:id", requireAdmin, async (req, res) => {
-    await storage.deleteCurrency(req.params.id);
-    res.status(204).send();
+    try {
+      const inUse = await storage.isCurrencyInUse(req.params.id);
+      if (inUse) {
+        return res.status(409).json({ message: "No se puede eliminar esta divisa porque tiene pagos registrados. Primero elimina o reasigna esos pagos." });
+      }
+      await storage.deleteCurrency(req.params.id);
+      res.status(204).send();
+    } catch (err) {
+      res.status(500).json({ message: "Error al eliminar divisa" });
+    }
   });
 
   // Admin: Blacklist

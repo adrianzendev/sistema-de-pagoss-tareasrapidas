@@ -54,6 +54,7 @@ export interface IStorage {
   createCurrency(currency: InsertCurrency): Promise<Currency>;
   updateCurrency(id: string, currency: Partial<InsertCurrency>): Promise<Currency | undefined>;
   deleteCurrency(id: string): Promise<void>;
+  isCurrencyInUse(id: string): Promise<boolean>;
 
   // Payments
   getPayments(period?: string): Promise<PaymentWithDetails[]>;
@@ -204,6 +205,13 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCurrency(id: string): Promise<void> {
     await db.delete(currencies).where(eq(currencies.id, id));
+  }
+
+  async isCurrencyInUse(id: string): Promise<boolean> {
+    const result = await db.select({ count: sql<number>`count(*)::int` })
+      .from(payments)
+      .where(eq(payments.currencyId, id));
+    return (result[0]?.count ?? 0) > 0;
   }
 
   // Payments
