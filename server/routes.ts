@@ -1097,8 +1097,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const ownAdvPen = tutorPayments.length > 0 ? ownAdvUsd * usdRate * 0.5 : 0;
 
           const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
-          const tutorsWithPayments = new Set(verifiedPayments.map(p => p.tutorId));
-          const activeTutorCount = tutorsWithPayments.size || 1;
+          const weekEnd = new Date(week.endDate);
+          const activeTutorCount = tutors.filter(t => {
+            if (!t.isActive) return false;
+            if (!t.activatedAt) return true;
+            return new Date(t.activatedAt) <= weekEnd;
+          }).length || 1;
           const sharedAdvPen = tutorPayments.length > 0
             ? (sharedAdvertisingUsd * usdRate * 0.5) / activeTutorCount
             : 0;
