@@ -229,6 +229,11 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
                 <span className="font-mono">× {s.commissionPercent / 100}</span>
               </div>
 
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Comisión agencia ({100 - s.commissionPercent}%)</span>
+                <span className="font-mono">× {(100 - s.commissionPercent) / 100}</span>
+              </div>
+
               <div className="border-t pt-1 flex items-center justify-between font-semibold">
                 <span>= Ingresos tutor</span>
                 <span className={`font-mono ${isNegative ? "text-destructive" : "text-success"}`}>{pen(s.tutorEarnings)}</span>
