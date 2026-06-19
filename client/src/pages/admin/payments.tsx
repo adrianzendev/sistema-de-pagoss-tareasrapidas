@@ -37,10 +37,10 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const statusLabels = {
-  pending: { label: "Pendiente", variant: "secondary" as const, icon: Clock },
-  verified: { label: "Verificado", variant: "default" as const, icon: CheckCircle },
-  rejected: { label: "Rechazado", variant: "destructive" as const, icon: XCircle },
-  refunded: { label: "Reembolsado", variant: "outline" as const, icon: XCircle },
+  pending:  { label: "Pendiente",   icon: Clock,        className: "bg-secondary text-secondary-foreground" },
+  verified: { label: "Verificado",  icon: CheckCircle,  className: "bg-success/10 text-success" },
+  rejected: { label: "Rechazado",   icon: XCircle,      className: "bg-destructive/10 text-destructive" },
+  refunded: { label: "Reembolsado", icon: RotateCcw,    className: "bg-muted text-muted-foreground" },
 };
 
 type WeekGroup = {
@@ -385,7 +385,7 @@ export default function PaymentsPage() {
                               )}
                             </TableCell>
                             <TableCell className="py-3">
-                              <Badge variant={status.variant} className="gap-1 text-[10px] px-1.5 py-0.5">
+                              <Badge className={`gap-1 text-[10px] px-1.5 py-0.5 ${status.className}`}>
                                 <StatusIcon className="h-2.5 w-2.5" />
                                 {status.label}
                               </Badge>
