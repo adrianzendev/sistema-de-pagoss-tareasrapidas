@@ -59,6 +59,7 @@ export interface IStorage {
   getPayments(period?: string): Promise<PaymentWithDetails[]>;
   getPaymentById(id: string): Promise<Payment | undefined>;
   getPaymentsByTutor(tutorId: string): Promise<PaymentWithDetails[]>;
+  getPaymentsInRange(startDate: string, endDate: string): Promise<PaymentWithDetails[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePaymentStatus(id: string, status: string, verifiedBy: string, notes?: string): Promise<Payment | undefined>;
   movePaymentToWeek(id: string, weekId: string): Promise<Payment | undefined>;
@@ -251,6 +252,22 @@ export class DatabaseStorage implements IStorage {
     }
 
     return paymentDetails;
+  }
+
+  async getPaymentsInRange(startDate: string, endDate: string): Promise<PaymentWithDetails[]> {
+    const allCurrencies = await db.select().from(currencies);
+    const currencyMap: Record<string, Currency> = {};
+    for (const c of allCurrencies) currencyMap[c.id] = c;
+
+    const result = await db
+      .select()
+      .from(payments)
+      .where(
+        sql`DATE(${payments.createdAt}::timestamptz AT TIME ZONE 'America/Lima') BETWEEN ${startDate}::date AND ${endDate}::date`
+      )
+      .orderBy(desc(payments.createdAt));
+
+    return result.map(p => ({ ...p, currency: currencyMap[p.currencyId] }));
   }
 
   async createPayment(insertPayment: InsertPayment): Promise<Payment> {

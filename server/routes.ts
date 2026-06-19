@@ -856,11 +856,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         tutorWeekAdvMap[r.tutorId][r.weekId] = Number(r.advertisingCostUsd);
       }
 
-      // Fetch all payments for the relevant weeks in one pass
-      const allWeekPaymentsMap: Record<string, typeof allCurrencies[0] extends never ? any : any[]> = {};
-      await Promise.all(allWeeks.map(async (week) => {
-        allWeekPaymentsMap[week.id] = await storage.getPaymentsByWeek(week.id);
-      }));
+      // Fetch all payments for the relevant weeks in one query
+      const oldestWeek = allWeeks[allWeeks.length - 1];
+      const newestWeek = allWeeks[0];
+      const rangePayments = allWeeks.length > 0
+        ? await storage.getPaymentsInRange(oldestWeek.startDate, newestWeek.endDate)
+        : [];
+      const allWeekPaymentsMap: Record<string, any[]> = {};
+      for (const week of allWeeks) {
+        allWeekPaymentsMap[week.id] = rangePayments.filter(p => {
+          if (!p.createdAt) return false;
+          const d = new Date(p.createdAt).toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
+          return d >= week.startDate && d <= week.endDate;
+        });
+      }
 
       // Fetch all paid-tutor records in one query
       const allPaidRecords = await storage.getAllWeekPaidTutors();
@@ -1081,9 +1090,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       const allTutorWeekAdv = await storage.getAllTutorWeekAdvertising();
 
-      const weeklySettlements = await Promise.all(
-        allWeeks.slice(0, 12).map(async (week) => {
-          const weekPayments = await storage.getPaymentsByWeek(week.id);
+      const slicedWeeks = allWeeks.slice(0, 12);
+      const oldestSettlementWeek = slicedWeeks[slicedWeeks.length - 1];
+      const newestSettlementWeek = slicedWeeks[0];
+      const allRangePayments = slicedWeeks.length > 0
+        ? await storage.getPaymentsInRange(oldestSettlementWeek.startDate, newestSettlementWeek.endDate)
+        : [];
+
+      const weeklySettlements = slicedWeeks.map((week) => {
+          const weekPayments = allRangePayments.filter(p => {
+            if (!p.createdAt) return false;
+            const d = new Date(p.createdAt).toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
+            return d >= week.startDate && d <= week.endDate;
+          });
           const verifiedPayments = weekPayments.filter(p => p.status === "verified");
           const tutorPayments = verifiedPayments.filter(p => p.tutorId === user.id);
 
@@ -1134,8 +1153,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             agencyEarnings,
             payments: tutorPayments,
           };
-        })
-      );
+        });
 
       res.json({
         settlements: weeklySettlements,
