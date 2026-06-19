@@ -131,7 +131,7 @@ function WeekSeparatorRow({ group }: { group: WeekGroup }) {
   const hasVerified = group.verifiedTotals.length > 0;
   return (
     <TableRow className="hover:bg-transparent border-0" data-testid={`week-header-${group.weekLabel}`}>
-      <TableCell colSpan={8} className="py-2 px-1">
+      <TableCell colSpan={9} className="py-2 px-1">
         <div className="flex items-start gap-2">
           <div className="flex items-center gap-1.5 min-w-0 pt-0.5">
             <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -333,6 +333,7 @@ export default function PaymentsPage() {
                     <TableHead>Comprobante</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Verificación</TableHead>
+                    <TableHead>Verificado por</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -391,6 +392,12 @@ export default function PaymentsPage() {
                               ) : (
                                 <span className="text-xs">—</span>
                               )}
+                            </TableCell>
+                            <TableCell className="text-sm whitespace-nowrap" data-testid={`cell-verifier-${payment.id}`}>
+                              {payment.verifier?.name
+                                ? <span className="font-medium">{payment.verifier.name}</span>
+                                : <span className="text-muted-foreground text-xs">—</span>
+                              }
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">
