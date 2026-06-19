@@ -37,12 +37,16 @@ type WeekSettlement = {
   settlements: Array<{
     tutorId: string;
     tutorName: string;
+    autoVerificaPagos: boolean;
     commissionPercent: number;
     grossIncome: number;
+    grossDirect: number;
+    grossRegular: number;
     tutorAdvertisingShare: number;
     netIncome: number;
     tutorEarnings: number;
     agencyEarnings: number;
+    netTransfer: number;
     payments: any[];
   }>;
   totals: {
@@ -491,24 +495,36 @@ export default function WeeksPage() {
                       <TableHead className="text-right">− Pub. S/</TableHead>
                       <TableHead className="text-right font-semibold">Gan. Tutor S/</TableHead>
                       <TableHead className="text-right font-semibold">Gan. Agencia S/</TableHead>
+                      <TableHead className="text-right font-semibold">Transf. neta</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {settlement.settlements.map((s) => (
-                      <TableRow key={s.tutorId}>
-                        <TableCell className="font-medium">{s.tutorName}</TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="outline">{s.commissionPercent}%</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">{formatCurrency(s.grossIncome)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(s.netIncome)}</TableCell>
-                        <TableCell className="text-right">
-                          {s.tutorAdvertisingShare > 0 ? `-${formatCurrency(s.tutorAdvertisingShare)}` : "—"}
-                        </TableCell>
-                        <TableCell className="text-right font-bold">{formatCurrency(s.tutorEarnings)}</TableCell>
-                        <TableCell className="text-right font-bold">{formatCurrency(s.agencyEarnings)}</TableCell>
-                      </TableRow>
-                    ))}
+                    {settlement.settlements.map((s) => {
+                      const owesAgency = s.netTransfer < 0;
+                      return (
+                        <TableRow key={s.tutorId}>
+                          <TableCell className="font-medium">{s.tutorName}</TableCell>
+                          <TableCell className="text-right">
+                            <Badge variant="outline">{s.commissionPercent}%</Badge>
+                          </TableCell>
+                          <TableCell className="text-right">{formatCurrency(s.grossIncome)}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(s.netIncome)}</TableCell>
+                          <TableCell className="text-right">
+                            {s.tutorAdvertisingShare > 0 ? `-${formatCurrency(s.tutorAdvertisingShare)}` : "—"}
+                          </TableCell>
+                          <TableCell className="text-right font-bold">{formatCurrency(s.tutorEarnings)}</TableCell>
+                          <TableCell className="text-right font-bold">{formatCurrency(s.agencyEarnings)}</TableCell>
+                          <TableCell className="text-right" data-testid={`cell-net-transfer-${s.tutorId}`}>
+                            <div className={`text-xs font-semibold ${owesAgency ? "text-destructive" : "text-success"}`}>
+                              {owesAgency
+                                ? `🔴 Tutor paga S/${formatCurrency(Math.abs(s.netTransfer))}`
+                                : `✅ Agencia paga S/${formatCurrency(s.netTransfer)}`
+                              }
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               ) : (

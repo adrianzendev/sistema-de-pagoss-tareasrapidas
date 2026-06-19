@@ -836,15 +836,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
 
         let grossIncome = 0;
+        let grossDirect = 0;
         let currencyCommissionHalf = 0;
         tutorPayments.forEach(p => {
           const currency = allCurrencies.find(c => c.id === p.currencyId);
           const rate = Number((p as any).exchangeRateSnapshot ?? currency?.exchangeRate ?? 1);
           const rawAmountPen = Number(p.amount) * rate;
           grossIncome += rawAmountPen;
+          if (currency?.code === "DIRECTO") grossDirect += rawAmountPen;
           currencyCommissionHalf += rawAmountPen * (Number(currency?.commissionPercent ?? 0) / 100) * 0.5;
         });
 
+        const grossRegular = grossIncome - grossDirect;
         const commission = Number(tutor.commissionPercent) / 100;
         const isActiveForWeek = tutor.isActive !== false && (!tutor.activatedAt || new Date(tutor.activatedAt) <= weekEnd);
         const sharedAdvShare = isActiveForWeek ? tutorAdvertisingShare : 0;
@@ -855,12 +858,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const tutorEarnings = netIncome - totalAdvShare - currencyCommissionHalf;
         const agencyEarnings = grossIncome * (1 - commission) - totalAdvShare - currencyCommissionHalf;
 
+        // netTransfer: positive = agency owes tutor, negative = tutor owes agency
+        const tutorEarningsFromRegular = grossRegular * commission - totalAdvShare - currencyCommissionHalf;
+        const agencyEarningsFromDirect = grossDirect * (1 - commission);
+        const netTransfer = tutorEarningsFromRegular - agencyEarningsFromDirect;
+
         return {
           week,
           tutorId: tutor.id,
           tutorName: tutor.name,
+          autoVerificaPagos: !!(tutor as any).autoVerificaPagos,
           commissionPercent: Number(tutor.commissionPercent),
           grossIncome,
+          grossDirect,
+          grossRegular,
           advertisingCost: totalAdvShare,
           tutorAdvertisingShare: totalAdvShare,
           sharedAdvertisingShare: sharedAdvShare,
@@ -869,6 +880,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           netIncome,
           tutorEarnings,
           agencyEarnings,
+          netTransfer,
           payments: tutorPayments,
         };
       }).filter(s => s.payments.length > 0 || s.grossIncome > 0 || s.tutorAdvertisingShare > 0);
