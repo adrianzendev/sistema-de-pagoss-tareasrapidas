@@ -5,11 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, ChevronLeft, ChevronRight, Calendar, Phone, RotateCcw, PlusCircle, Lock, TrendingUp, Megaphone, DollarSign, Coins } from "lucide-react";
+import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, Calendar, Phone, RotateCcw, PlusCircle, Lock, TrendingUp, Megaphone, DollarSign, Coins } from "lucide-react";
 import { NewPaymentModal } from "@/components/new-payment-modal";
 import { VerifiedPaymentModal } from "@/components/verified-payment-modal";
 
@@ -135,7 +136,6 @@ export default function TutorPaymentsPage() {
   const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
   const [isNewPaymentOpen, setIsNewPaymentOpen] = useState(false);
   const [isVerifiedPaymentOpen, setIsVerifiedPaymentOpen] = useState(false);
-  const [tabScrollPos, setTabScrollPos] = useState<number | null>(null);
 
   const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
     queryKey: ["/api/tutor/payments"],
@@ -177,19 +177,24 @@ export default function TutorPaymentsPage() {
     : [];
 
   const selectedWeek = sortedWeeks.find(w => w.id === activeWeekId);
-  const maxVisibleTabs = 6;
-
-  const defaultScrollPos = useMemo(() => {
-    if (!currentWeek) return 0;
-    const idx = sortedWeeks.findIndex(w => w.id === currentWeek.id);
-    return Math.max(0, Math.min(idx, sortedWeeks.length - maxVisibleTabs));
-  }, [sortedWeeks, currentWeek]);
-
-  const effectiveScrollPos = tabScrollPos ?? defaultScrollPos;
-  const visibleWeeks = sortedWeeks.slice(effectiveScrollPos, effectiveScrollPos + maxVisibleTabs);
 
   return (
     <div className="space-y-4 relative pb-24">
+
+      {/* Saludo de bienvenida */}
+      <div className="px-1">
+        <h1 className="text-xl font-bold text-foreground">
+          Bienvenido, {user?.name?.split(" ")[0]} 👋
+        </h1>
+        {currentWeek ? (
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Semana S{currentWeek.weekNumber} · {format(new Date(currentWeek.startDate + "T12:00:00"), "d MMM", { locale: es })} – {format(new Date(currentWeek.endDate + "T12:00:00"), "d MMM yyyy", { locale: es })}
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground mt-0.5">Sin semana activa</p>
+        )}
+      </div>
+
       {/* Resumen semana actual */}
       {settlementData && (
         <CurrentWeekSummaryCard
@@ -200,66 +205,35 @@ export default function TutorPaymentsPage() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Historial de Pagos</CardTitle>
-          <CardDescription>
-            {selectedWeek ? `Semana S${selectedWeek.weekNumber}` : "Todos los pagos registrados"}
-          </CardDescription>
-        </CardHeader>
-
-        <div className="border-t bg-muted/30 p-2">
-          <div className="flex items-center gap-1">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 shrink-0"
-              onClick={() => setTabScrollPos(Math.max(0, effectiveScrollPos - 1))}
-              disabled={effectiveScrollPos === 0}
-              data-testid="button-scroll-tabs-left"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-
-            <div className="flex items-center gap-1 overflow-hidden flex-1">
-              {visibleWeeks.map((week) => {
-                const isCurrent = currentWeek?.id === week.id;
-                const isPast = isWeekPast(week);
-                return (
-                  <button
-                    key={week.id}
-                    onClick={() => setSelectedWeekId(week.id)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
-                      activeWeekId === week.id
-                        ? isCurrent
-                          ? "bg-success text-success-foreground"
-                          : "bg-primary text-primary-foreground"
-                        : isPast
-                          ? "bg-muted/30 text-muted-foreground/60 hover:bg-muted/50"
-                          : isCurrent
-                            ? "bg-success/10 text-success hover:bg-success/20"
-                            : "bg-muted/50 text-muted-foreground hover:bg-muted"
-                    }`}
-                    data-testid={`tab-week-${week.weekNumber}`}
-                  >
-                    S{week.weekNumber}
-                    {isCurrent && <span className="ml-1 text-[9px]">●</span>}
-                  </button>
-                );
-              })}
-
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-base">Historial de Pagos</CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                {selectedWeek ? `${filteredPayments?.length ?? 0} pago${filteredPayments?.length !== 1 ? "s" : ""} en S${selectedWeek.weekNumber}` : "Selecciona una semana"}
+              </CardDescription>
             </div>
-
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 shrink-0"
-              onClick={() => setTabScrollPos(Math.min(sortedWeeks.length - maxVisibleTabs, effectiveScrollPos + 1))}
-              disabled={effectiveScrollPos >= sortedWeeks.length - maxVisibleTabs}
-              data-testid="button-scroll-tabs-right"
+            <Select
+              value={activeWeekId ?? ""}
+              onValueChange={(val) => setSelectedWeekId(val)}
+              data-testid="select-week"
             >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+              <SelectTrigger className="w-44 h-8 text-xs" data-testid="trigger-select-week">
+                <SelectValue placeholder="Semana…" />
+              </SelectTrigger>
+              <SelectContent>
+                {[...sortedWeeks].reverse().map((week) => {
+                  const isCurrent = currentWeek?.id === week.id;
+                  return (
+                    <SelectItem key={week.id} value={week.id} data-testid={`option-week-${week.weekNumber}`}>
+                      <span className="font-mono">S{week.weekNumber}</span>
+                      {isCurrent && <span className="ml-2 text-[10px] text-success font-medium">● actual</span>}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </div>
-        </div>
+        </CardHeader>
 
         <div className="px-4 py-2 border-t bg-muted/30 flex flex-wrap gap-4 text-xs text-muted-foreground">
           <span>Total: <strong className="text-foreground">{filteredPayments?.length ?? 0}</strong></span>
