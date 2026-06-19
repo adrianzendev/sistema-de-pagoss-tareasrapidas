@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { es } from "date-fns/locale";
@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -17,13 +17,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CheckCircle, XCircle, Clock, ImageIcon, ShieldCheck, Calendar } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Image as ImageIcon, ShieldCheck, Calendar, Phone, RotateCcw } from "lucide-react";
 
-const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: any }> = {
-  pending: { label: "Pendiente", variant: "secondary", icon: Clock },
-  verified: { label: "Verificado", variant: "default", icon: CheckCircle },
-  rejected: { label: "Rechazado", variant: "destructive", icon: XCircle },
-  refunded: { label: "Reembolsado", variant: "outline", icon: XCircle },
+const statusConfig: Record<string, { label: string; icon: any; className: string }> = {
+  pending:  { label: "Pendiente",   icon: Clock,        className: "bg-secondary text-secondary-foreground" },
+  verified: { label: "Verificado",  icon: CheckCircle,  className: "bg-success/10 text-success" },
+  rejected: { label: "Rechazado",   icon: XCircle,      className: "bg-destructive/10 text-destructive" },
+  refunded: { label: "Reembolsado", icon: RotateCcw,    className: "bg-muted text-muted-foreground" },
 };
 
 type WeekGroup = {
@@ -36,7 +36,6 @@ type WeekGroup = {
 
 function groupPaymentsByWeek(payments: PaymentWithDetails[], weeks: Week[]): WeekGroup[] {
   const sortedWeeks = [...weeks].sort((a, b) => b.weekNumber - a.weekNumber);
-
   const groups: WeekGroup[] = [];
   const assigned = new Set<string>();
 
@@ -45,14 +44,10 @@ function groupPaymentsByWeek(payments: PaymentWithDetails[], weeks: Week[]): Wee
     const end = endOfDay(parseISO(week.endDate));
     const weekPayments = payments.filter(p => {
       if (assigned.has(p.id)) return false;
-      const date = new Date(p.createdAt);
-      return isWithinInterval(date, { start, end });
+      return isWithinInterval(new Date(p.createdAt), { start, end });
     });
     if (weekPayments.length === 0) continue;
     weekPayments.forEach(p => assigned.add(p.id));
-
-    const startLabel = format(start, "d MMM", { locale: es });
-    const endLabel = format(end, "d MMM", { locale: es });
 
     const verifiedMap: Record<string, number> = {};
     for (const p of weekPayments) {
@@ -60,15 +55,12 @@ function groupPaymentsByWeek(payments: PaymentWithDetails[], weeks: Week[]): Wee
         verifiedMap[p.currency.code] = (verifiedMap[p.currency.code] ?? 0) + Number(p.amount);
       }
     }
-    const verifiedTotals = Object.entries(verifiedMap).map(([code, total]) => ({ code, total }));
-    const pendingCount = weekPayments.filter(p => p.status === "pending").length;
-
     groups.push({
       weekLabel: `S${week.weekNumber}`,
-      dateRange: `${startLabel} – ${endLabel}`,
+      dateRange: `${format(start, "d MMM", { locale: es })} – ${format(end, "d MMM", { locale: es })}`,
       payments: weekPayments,
-      verifiedTotals,
-      pendingCount,
+      verifiedTotals: Object.entries(verifiedMap).map(([code, total]) => ({ code, total })),
+      pendingCount: weekPayments.filter(p => p.status === "pending").length,
     });
   }
 
@@ -92,119 +84,36 @@ function groupPaymentsByWeek(payments: PaymentWithDetails[], weeks: Week[]): Wee
   return groups;
 }
 
-type TutorRow = {
-  tutorId: string;
-  tutorName: string;
-  verifiedByCurrency: { code: string; total: number }[];
-  pendingByCurrency: { code: string; total: number }[];
-  pendingCount: number;
-};
-
-function buildTutorRows(payments: PaymentWithDetails[]): TutorRow[] {
-  const map = new Map<string, TutorRow>();
-  for (const p of payments) {
-    const id = p.tutorId;
-    if (!map.has(id)) {
-      map.set(id, { tutorId: id, tutorName: p.tutor?.name ?? "Tutor", verifiedByCurrency: [], pendingByCurrency: [], pendingCount: 0 });
-    }
-    const row = map.get(id)!;
-    if (p.status === "verified" && p.currency?.code) {
-      const existing = row.verifiedByCurrency.find(v => v.code === p.currency!.code);
-      if (existing) existing.total += Number(p.amount);
-      else row.verifiedByCurrency.push({ code: p.currency.code, total: Number(p.amount) });
-    }
-    if (p.status === "pending" && p.currency?.code) {
-      const existing = row.pendingByCurrency.find(v => v.code === p.currency!.code);
-      if (existing) existing.total += Number(p.amount);
-      else row.pendingByCurrency.push({ code: p.currency.code, total: Number(p.amount) });
-      row.pendingCount++;
-    }
-  }
-  return Array.from(map.values()).sort((a, b) => a.tutorName.localeCompare(b.tutorName));
-}
-
-function formatCurrencyList(items: { code: string; total: number }[]) {
-  if (items.length === 0) return <span className="text-muted-foreground/50">—</span>;
+function WeekSeparatorRow({ group, colSpan, showPending }: { group: WeekGroup; colSpan: number; showPending?: boolean }) {
   return (
-    <span>
-      {items.map((v, i) => (
-        <span key={v.code}>
-          {i > 0 && <span className="text-muted-foreground"> · </span>}
-          <span className="font-mono">{v.code}</span>{" "}
-          {v.total.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
-        </span>
-      ))}
-    </span>
-  );
-}
-
-function TutorSummaryTable({ payments }: { payments: PaymentWithDetails[] }) {
-  const rows = buildTutorRows(payments);
-  if (rows.length === 0) return null;
-  const hasVerified = rows.some(r => r.verifiedByCurrency.length > 0);
-  const hasPending = rows.some(r => r.pendingCount > 0);
-  return (
-    <div className="rounded-md border bg-muted/20 overflow-hidden mb-2">
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="border-b bg-muted/40">
-            <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Tutor</th>
-            {hasVerified && <th className="text-right px-3 py-1.5 font-medium text-muted-foreground">Verificado</th>}
-            {hasPending && <th className="text-right px-3 py-1.5 font-medium text-muted-foreground">Pendiente</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.tutorId} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-              <td className="px-3 py-1.5 font-medium">{row.tutorName}</td>
-              {hasVerified && (
-                <td className="px-3 py-1.5 text-right text-success">
-                  {formatCurrencyList(row.verifiedByCurrency)}
-                </td>
-              )}
-              {hasPending && (
-                <td className="px-3 py-1.5 text-right text-warning">
-                  {formatCurrencyList(row.pendingByCurrency)}
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function WeekSeparator({ group, showPending }: { group: WeekGroup; showPending?: boolean }) {
-  const hasVerified = group.verifiedTotals.length > 0;
-  return (
-    <div className="flex items-center gap-2 px-1 py-1.5" data-testid={`week-header-${group.weekLabel}`}>
-      <div className="flex items-center gap-1.5 min-w-0">
-        <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className="text-sm font-semibold text-foreground">{group.weekLabel}</span>
-        {group.dateRange && (
-          <span className="text-xs text-muted-foreground">{group.dateRange}</span>
-        )}
-      </div>
-      <div className="flex-1 h-px bg-border" />
-      <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
-        {showPending && group.pendingCount > 0 && (
-          <span className="font-medium text-warning">
-            {group.pendingCount} pendiente{group.pendingCount !== 1 ? "s" : ""}
-          </span>
-        )}
-        {hasVerified && (
-          <span className="font-medium text-success">
-            ✓ {group.verifiedTotals.map(v =>
-              `${v.code} ${v.total.toLocaleString("es-PE", { minimumFractionDigits: 2 })}`
-            ).join(" · ")}
-          </span>
-        )}
-        {!hasVerified && !showPending && (
-          <span className="italic">sin verificados</span>
-        )}
-      </div>
-    </div>
+    <TableRow className="hover:bg-transparent border-0" data-testid={`week-header-${group.weekLabel}`}>
+      <TableCell colSpan={colSpan} className="py-2 px-1">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="text-sm font-semibold text-foreground">{group.weekLabel}</span>
+            {group.dateRange && (
+              <span className="text-xs text-muted-foreground">{group.dateRange}</span>
+            )}
+          </div>
+          <div className="flex-1 h-px bg-border" />
+          <div className="flex items-center gap-2 shrink-0 text-xs">
+            {showPending && group.pendingCount > 0 && (
+              <span className="font-medium text-warning">
+                {group.pendingCount} pendiente{group.pendingCount !== 1 ? "s" : ""}
+              </span>
+            )}
+            {group.verifiedTotals.length > 0 && (
+              <span className="font-medium text-success">
+                ✓ {group.verifiedTotals.map(v =>
+                  `${v.code} ${v.total.toLocaleString("es-PE", { minimumFractionDigits: 2 })}`
+                ).join(" · ")}
+              </span>
+            )}
+          </div>
+        </div>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -234,34 +143,16 @@ export default function VerifierPaymentsPage() {
     },
   });
 
-  const handleAction = () => {
-    if (!actionPayment) return;
-    updateMutation.mutate({
-      id: actionPayment.payment.id,
-      status: actionPayment.action,
-    });
-  };
-
   const pendingPayments = payments?.filter(p => p.status === "pending") ?? [];
   const processedPayments = payments?.filter(p => p.status !== "pending") ?? [];
-
   const pendingGroups = groupPaymentsByWeek(pendingPayments, weeks);
   const processedGroups = groupPaymentsByWeek(processedPayments, weeks);
 
-  const getStatusBadge = (status: string) => {
-    const config = statusConfig[status] ?? statusConfig.pending;
-    const Icon = config.icon;
-    return (
-      <Badge variant={config.variant} className="text-[10px] px-1.5 py-0" data-testid={`badge-status-${status}`}>
-        <Icon className="h-3 w-3 mr-0.5" />
-        {config.label}
-      </Badge>
-    );
-  };
-
   return (
     <div className="space-y-6">
-      <Card>
+
+      {/* Pending */}
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5" />
@@ -271,162 +162,198 @@ export default function VerifierPaymentsPage() {
             {pendingPayments.length} pagos esperando verificación
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-0 divide-y divide-border px-4 py-2">
               {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-24 w-full" />
+                <div key={i} className="flex items-center gap-4 py-3">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-8 w-8 rounded" />
+                  <Skeleton className="h-7 w-20 rounded" />
+                </div>
               ))}
             </div>
           ) : pendingPayments.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-10 text-muted-foreground text-sm px-4 pb-4">
               No hay pagos pendientes de verificación
             </div>
           ) : (
-            <div className="space-y-4">
-              {pendingGroups.map((group) => (
-                <div key={group.weekLabel} className="space-y-2">
-                  <WeekSeparator group={group} showPending />
-                  <TutorSummaryTable payments={group.payments} />
-                  <div className="space-y-3">
-                    {group.payments.map((payment) => (
-                      <div
-                        key={payment.id}
-                        className="border rounded-lg p-4 space-y-3"
-                        data-testid={`card-payment-${payment.id}`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-sm">{payment.tutor?.name ?? "Tutor"}</span>
-                              {getStatusBadge(payment.status)}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="text-xs w-32">Fecha</TableHead>
+                    <TableHead className="text-xs">Tutor</TableHead>
+                    <TableHead className="text-xs">Teléfono</TableHead>
+                    <TableHead className="text-right text-xs">Monto</TableHead>
+                    <TableHead className="text-center text-xs">Comprobante</TableHead>
+                    <TableHead className="text-right text-xs">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingGroups.map((group) => (
+                    <Fragment key={group.weekLabel}>
+                      <WeekSeparatorRow group={group} colSpan={6} showPending />
+                      {group.payments.map((payment) => (
+                        <TableRow key={payment.id} data-testid={`card-payment-${payment.id}`} className="hover:bg-muted/30">
+                          <TableCell className="py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Calendar className="h-3 w-3 shrink-0" />
+                              <div>
+                                <div className="text-foreground">{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
+                                <div>{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
+                              </div>
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              Cliente: <span className="font-mono">{payment.clientNumber}</span>
+                          </TableCell>
+                          <TableCell className="py-3 text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
+                          <TableCell className="py-3">
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
+                              <span className="font-mono">{payment.clientNumber}</span>
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              {payment.createdAt && format(new Date(payment.createdAt), "dd/MM/yyyy hh:mm a", { locale: es })}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-bold text-lg">
+                          </TableCell>
+                          <TableCell className="py-3 text-right">
+                            <span className="font-semibold text-sm tabular-nums">
                               {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground ml-1">{payment.currency?.code}</span>
+                          </TableCell>
+                          <TableCell className="py-3 text-center">
+                            {payment.proofImage ? (
+                              <button
+                                onClick={() => setPreviewImage(payment.proofImage!)}
+                                className="inline-flex items-center justify-center w-8 h-8 rounded overflow-hidden border bg-muted hover:opacity-80 transition-opacity mx-auto"
+                                data-testid={`button-proof-${payment.id}`}
+                              >
+                                <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
+                              </button>
+                            ) : (
+                              <div className="inline-flex items-center justify-center w-8 h-8 rounded border bg-muted/30 mx-auto">
+                                <ImageIcon className="h-3.5 w-3.5 text-muted-foreground/40" />
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-3 text-right">
+                            <div className="flex justify-end gap-0.5">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0"
+                                onClick={() => setActionPayment({ payment, action: "verified" })}
+                                data-testid={`button-verify-${payment.id}`}
+                              >
+                                <CheckCircle className="h-4 w-4 text-success" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0"
+                                onClick={() => setActionPayment({ payment, action: "rejected" })}
+                                data-testid={`button-reject-${payment.id}`}
+                              >
+                                <XCircle className="h-4 w-4 text-destructive" />
+                              </Button>
                             </div>
-                            <div className="text-xs text-muted-foreground font-mono">
-                              {payment.currency?.code}
-                            </div>
-                          </div>
-                        </div>
-
-                        {payment.proofImage && (
-                          <button
-                            onClick={() => setPreviewImage(payment.proofImage!)}
-                            className="w-16 h-16 rounded overflow-hidden border bg-white dark:bg-gray-800 hover:opacity-80 transition-opacity"
-                            data-testid={`button-proof-${payment.id}`}
-                          >
-                            <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
-                          </button>
-                        )}
-
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="default"
-                            onClick={() => setActionPayment({ payment, action: "verified" })}
-                            data-testid={`button-verify-${payment.id}`}
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Verificar
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => setActionPayment({ payment, action: "rejected" })}
-                            data-testid={`button-reject-${payment.id}`}
-                          >
-                            <XCircle className="h-4 w-4 mr-1" />
-                            Rechazar
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </Fragment>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
       </Card>
 
+      {/* History */}
       {processedPayments.length > 0 && (
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle>Historial</CardTitle>
-            <CardDescription>
-              {processedPayments.length} pagos procesados
-            </CardDescription>
+            <CardDescription>{processedPayments.length} pagos procesados</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {processedGroups.map((group) => (
-                <div key={group.weekLabel} className="space-y-2">
-                  <WeekSeparator group={group} />
-                  <TutorSummaryTable payments={group.payments} />
-                  <div className="space-y-2">
-                    {group.payments.map((payment) => (
-                      <div
-                        key={payment.id}
-                        className="flex items-center justify-between border rounded-lg p-3 gap-2"
-                        data-testid={`card-history-${payment.id}`}
-                      >
-                        <div className="space-y-0.5 flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">{payment.tutor?.name}</span>
-                            {getStatusBadge(payment.status)}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Cliente: {payment.clientNumber}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Enviado: {payment.createdAt && format(new Date(payment.createdAt), "dd/MM/yy HH:mm", { locale: es })}
-                            {payment.verifiedAt && (
-                              <span className="ml-2 text-success">
-                                · Verif: {format(new Date(payment.verifiedAt), "dd/MM/yy HH:mm", { locale: es })}
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="text-xs w-32">Fecha</TableHead>
+                    <TableHead className="text-xs">Tutor</TableHead>
+                    <TableHead className="text-xs">Teléfono</TableHead>
+                    <TableHead className="text-right text-xs">Monto</TableHead>
+                    <TableHead className="text-center text-xs">Comprobante</TableHead>
+                    <TableHead className="text-xs">Estado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {processedGroups.map((group) => (
+                    <Fragment key={group.weekLabel}>
+                      <WeekSeparatorRow group={group} colSpan={6} />
+                      {group.payments.map((payment) => {
+                        const status = statusConfig[payment.status] ?? statusConfig.pending;
+                        const StatusIcon = status.icon;
+                        return (
+                          <TableRow key={payment.id} data-testid={`card-history-${payment.id}`} className="hover:bg-muted/30">
+                            <TableCell className="py-3 whitespace-nowrap">
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Calendar className="h-3 w-3 shrink-0" />
+                                <div>
+                                  <div className="text-foreground">{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
+                                  <div>{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3 text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
+                            <TableCell className="py-3">
+                              <div className="flex items-center gap-1.5 text-xs">
+                                <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                <span className="font-mono">{payment.clientNumber}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3 text-right">
+                              <span className="font-semibold text-sm tabular-nums">
+                                {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
                               </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          {payment.proofImage ? (
-                            <button
-                              onClick={() => setPreviewImage(payment.proofImage!)}
-                              className="w-12 h-12 rounded overflow-hidden border bg-muted hover:opacity-80 transition-opacity"
-                              data-testid={`button-proof-history-${payment.id}`}
-                            >
-                              <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
-                            </button>
-                          ) : (
-                            <div className="w-12 h-12 rounded border bg-muted/30 flex items-center justify-center">
-                              <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
-                            </div>
-                          )}
-                          <div className="text-right">
-                            <div className="font-medium">
-                              {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
-                            </div>
-                            <div className="text-xs text-muted-foreground font-mono">{payment.currency?.code}</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                              <span className="text-[10px] text-muted-foreground ml-1">{payment.currency?.code}</span>
+                            </TableCell>
+                            <TableCell className="py-3 text-center">
+                              {payment.proofImage ? (
+                                <button
+                                  onClick={() => setPreviewImage(payment.proofImage!)}
+                                  className="inline-flex items-center justify-center w-8 h-8 rounded overflow-hidden border bg-muted hover:opacity-80 transition-opacity mx-auto"
+                                  data-testid={`button-proof-history-${payment.id}`}
+                                >
+                                  <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
+                                </button>
+                              ) : (
+                                <div className="inline-flex items-center justify-center w-8 h-8 rounded border bg-muted/30 mx-auto">
+                                  <ImageIcon className="h-3.5 w-3.5 text-muted-foreground/40" />
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <Badge className={`gap-1 text-[10px] px-1.5 py-0.5 ${status.className}`}>
+                                <StatusIcon className="h-2.5 w-2.5" />
+                                {status.label}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </Fragment>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
         </Card>
       )}
 
+      {/* Confirm action dialog */}
       <Dialog open={!!actionPayment} onOpenChange={(open) => { if (!open) setActionPayment(null); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -436,7 +363,7 @@ export default function VerifierPaymentsPage() {
             <DialogDescription>
               {actionPayment?.action === "verified"
                 ? "Confirma que este pago ha sido recibido correctamente"
-                : "Indica el motivo del rechazo"}
+                : "Confirma el rechazo de este pago"}
             </DialogDescription>
           </DialogHeader>
           {actionPayment && (
@@ -452,14 +379,11 @@ export default function VerifierPaymentsPage() {
                   Cliente: {actionPayment.payment.clientNumber}
                 </div>
               </div>
-
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setActionPayment(null)}>
-                  Cancelar
-                </Button>
+                <Button variant="outline" onClick={() => setActionPayment(null)}>Cancelar</Button>
                 <Button
                   variant={actionPayment.action === "verified" ? "default" : "destructive"}
-                  onClick={handleAction}
+                  onClick={() => updateMutation.mutate({ id: actionPayment.payment.id, status: actionPayment.action })}
                   disabled={updateMutation.isPending}
                   data-testid="button-confirm-action"
                 >
@@ -471,6 +395,7 @@ export default function VerifierPaymentsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Preview image dialog */}
       <Dialog open={!!previewImage} onOpenChange={(open) => { if (!open) setPreviewImage(null); }}>
         <DialogContent className="sm:max-w-lg p-2 max-h-[90vh] flex flex-col">
           <DialogHeader className="flex-shrink-0 px-2 pt-2">
@@ -483,6 +408,7 @@ export default function VerifierPaymentsPage() {
           )}
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }
