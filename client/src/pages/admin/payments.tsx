@@ -215,6 +215,7 @@ function WeekSection({
     },
     enabled: expanded,
     staleTime: Infinity,
+    gcTime: Infinity,
   });
 
   const start = parseISO(week.startDate);

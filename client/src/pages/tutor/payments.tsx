@@ -332,6 +332,7 @@ export default function TutorPaymentsPage() {
     },
     enabled: !!activeWeekId,
     staleTime: Infinity,
+    gcTime: Infinity,
   });
 
   const filteredPayments = payments ?? [];
