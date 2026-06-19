@@ -111,7 +111,7 @@ export async function seedDatabase() {
     await ensureCurrency({ code: "EUR", name: "Euro", exchangeRate: "4.0500" });
     await ensureCurrency({ code: "MXN", name: "Peso Mexicano", exchangeRate: "0.1900" });
     await ensureCurrency({ code: "COP", name: "Peso Colombiano", exchangeRate: "0.0009" });
-    await ensureCurrency({ code: "ARS", name: "Peso Argentino", exchangeRate: "0.0040" });
+
 
     // === LINK VERIFIERS TO CURRENCIES ===
     const [adrianUser] = await db.select().from(users).where(eq(users.username, "adrian"));
