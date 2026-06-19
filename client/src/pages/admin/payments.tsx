@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   Search, CheckCircle, XCircle, Clock, Image as ImageIcon,
@@ -45,6 +45,8 @@ function PaymentTable({
   setMovePayment: (v: { id: string; weekId: string }) => void;
   updateMutation: any;
 }) {
+  const [actionPayment, setActionPayment] = useState<PaymentWithDetails | null>(null);
+
   const filtered = search
     ? payments.filter(p =>
         p.tutor?.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -61,6 +63,7 @@ function PaymentTable({
   }
 
   return (
+    <>
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
@@ -83,10 +86,21 @@ function PaymentTable({
             return (
               <TableRow key={payment.id} data-testid={`row-payment-${payment.id}`} className="hover:bg-muted/30">
                 <TableCell className="py-3">
-                  <Badge className={`gap-1 text-[10px] px-1.5 py-0.5 ${status.className}`}>
-                    <StatusIcon className="h-2.5 w-2.5" />
-                    {status.label}
-                  </Badge>
+                  {payment.status === "pending" ? (
+                    <button
+                      onClick={() => setActionPayment(payment)}
+                      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium bg-warning/10 text-warning hover:bg-warning/20 border border-warning/30 transition-colors cursor-pointer"
+                      data-testid={`button-status-${payment.id}`}
+                    >
+                      <Clock className="h-3 w-3" />
+                      Pendiente
+                    </button>
+                  ) : (
+                    <Badge className={`gap-1 text-[10px] px-1.5 py-0.5 ${status.className}`}>
+                      <StatusIcon className="h-2.5 w-2.5" />
+                      {status.label}
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell className="py-3 text-right">
                   <span className="font-semibold text-sm tabular-nums">
@@ -184,6 +198,50 @@ function PaymentTable({
         </TableBody>
       </Table>
     </div>
+
+    <Dialog open={!!actionPayment} onOpenChange={(open) => { if (!open) setActionPayment(null); }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Actualizar estado del pago</DialogTitle>
+          <DialogDescription>Elige una acción para este pago</DialogDescription>
+        </DialogHeader>
+        {actionPayment && (
+          <div className="space-y-4">
+            <div className="border rounded-lg p-3 bg-muted/50">
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">{actionPayment.tutor?.name}</span>
+                <span className="font-mono font-bold">
+                  {Number(actionPayment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })} {actionPayment.currency?.code}
+                </span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">Cliente: {actionPayment.clientNumber}</div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                className="gap-2 bg-success/10 text-success hover:bg-success/20 border border-success/30"
+                variant="ghost"
+                onClick={() => { updateMutation.mutate({ id: actionPayment.id, status: "verified" }); setActionPayment(null); }}
+                disabled={updateMutation.isPending}
+                data-testid="button-action-verify"
+              >
+                <CheckCircle className="h-4 w-4" /> Verificar
+              </Button>
+              <Button
+                className="gap-2 bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30"
+                variant="ghost"
+                onClick={() => { updateMutation.mutate({ id: actionPayment.id, status: "rejected" }); setActionPayment(null); }}
+                disabled={updateMutation.isPending}
+                data-testid="button-action-reject"
+              >
+                <XCircle className="h-4 w-4" /> Rechazar
+              </Button>
+            </div>
+            <Button variant="outline" className="w-full" onClick={() => setActionPayment(null)}>Cancelar</Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 
