@@ -286,7 +286,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // Admin: Payments
   app.get("/api/admin/payments", requireAdmin, async (req, res) => {
-    const period = req.query.period as string || "all";
+    const weekId = req.query.weekId as string | undefined;
+    if (weekId) {
+      const payments = await storage.getPaymentsByWeek(weekId);
+      return res.json(payments);
+    }
+    const period = req.query.period as string || "week";
     const payments = await storage.getPayments(period);
     res.json(payments);
   });
@@ -567,6 +572,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const user = await storage.getUser(req.session.userId!);
     if (!user || user.role !== "tutor") {
       return res.status(403).json({ message: "Acceso denegado" });
+    }
+    const weekId = req.query.weekId as string | undefined;
+    if (weekId) {
+      const pays = await storage.getPaymentsByTutorAndWeek(user.id, weekId);
+      return res.json(pays);
     }
     const payments = await storage.getPaymentsByTutor(user.id);
     res.json(payments);
@@ -1383,7 +1393,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // Verifier routes
   app.get("/api/verifier/payments", requireVerifier, async (req, res) => {
-    const verifierPayments = await storage.getPaymentsByVerifier(req.session.userId!);
+    const weekId = req.query.weekId as string | undefined;
+    const verifierPayments = await storage.getPaymentsByVerifier(req.session.userId!, weekId);
     res.json(verifierPayments);
   });
 

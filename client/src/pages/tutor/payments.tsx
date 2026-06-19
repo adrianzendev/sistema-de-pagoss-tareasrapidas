@@ -306,10 +306,6 @@ export default function TutorPaymentsPage() {
   const [isNewPaymentOpen, setIsNewPaymentOpen] = useState(false);
   const [isVerifiedPaymentOpen, setIsVerifiedPaymentOpen] = useState(false);
 
-  const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
-    queryKey: ["/api/tutor/payments"],
-  });
-
   const { data: weeks } = useQuery<Week[]>({
     queryKey: ["/api/weeks"],
   });
@@ -320,30 +316,25 @@ export default function TutorPaymentsPage() {
 
   const sortedWeeks = [...(weeks ?? [])].sort((a, b) => a.weekNumber - b.weekNumber);
 
-  const isPaymentInWeek = (payment: PaymentWithDetails, week: Week) => {
-    if (!payment.createdAt) return false;
-    const paymentDate = new Date(payment.createdAt);
-    const startDate = new Date(week.startDate + "T00:00:00");
-    const endDate = new Date(week.endDate + "T23:59:59");
-    return paymentDate >= startDate && paymentDate <= endDate;
-  };
-
-  const getWeekForPayment = (payment: PaymentWithDetails) => {
-    return sortedWeeks.find(w => isPaymentInWeek(payment, w));
-  };
-
   const today = new Date().toISOString().split("T")[0];
   const currentWeek = sortedWeeks.find(w => w.startDate <= today && w.endDate >= today);
   const isWeekPast = (week: Week) => week.endDate < today;
 
   const activeWeekId = selectedWeekId ?? currentWeek?.id ?? sortedWeeks[sortedWeeks.length - 1]?.id ?? null;
 
-  const filteredPayments = activeWeekId
-    ? payments?.filter(p => {
-        const week = sortedWeeks.find(w => w.id === activeWeekId);
-        return week ? isPaymentInWeek(p, week) : false;
-      })
-    : [];
+  const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
+    queryKey: ["/api/tutor/payments", "week", activeWeekId],
+    queryFn: async () => {
+      if (!activeWeekId) return [];
+      const res = await fetch(`/api/tutor/payments?weekId=${activeWeekId}`);
+      if (!res.ok) throw new Error("Error al cargar pagos");
+      return res.json();
+    },
+    enabled: !!activeWeekId,
+    staleTime: Infinity,
+  });
+
+  const filteredPayments = payments ?? [];
 
   const selectedWeek = sortedWeeks.find(w => w.id === activeWeekId);
 

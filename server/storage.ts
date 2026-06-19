@@ -65,7 +65,7 @@ export interface IStorage {
   updatePaymentStatus(id: string, status: string, verifiedBy: string, notes?: string): Promise<Payment | undefined>;
   movePaymentToWeek(id: string, weekId: string): Promise<Payment | undefined>;
   deletePayment(id: string): Promise<void>;
-  getPaymentsByVerifier(verifierId: string): Promise<PaymentWithDetails[]>;
+  getPaymentsByVerifier(verifierId: string, weekId?: string): Promise<PaymentWithDetails[]>;
   getCurrenciesByVerifier(verifierId: string): Promise<Currency[]>;
 
   // Blacklist
@@ -330,17 +330,34 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(currencies).where(eq(currencies.verifierId, verifierId));
   }
 
-  async getPaymentsByVerifier(verifierId: string): Promise<PaymentWithDetails[]> {
+  async getPaymentsByVerifier(verifierId: string, weekId?: string): Promise<PaymentWithDetails[]> {
     const verifierCurrencies = await this.getCurrenciesByVerifier(verifierId);
     const currencyIds = verifierCurrencies.map(c => c.id);
     if (currencyIds.length === 0) return [];
+
+    let whereClause = inArray(payments.currencyId, currencyIds);
+
+    if (weekId) {
+      const [week] = await db.select().from(weeks).where(eq(weeks.id, weekId));
+      if (week) {
+        const start = new Date(week.startDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(week.endDate);
+        end.setHours(23, 59, 59, 999);
+        whereClause = and(
+          inArray(payments.currencyId, currencyIds),
+          gte(payments.createdAt, start),
+          lte(payments.createdAt, end)
+        ) as any;
+      }
+    }
 
     const rows = await db
       .select({ payment: payments, tutor: users, currency: currencies })
       .from(payments)
       .leftJoin(users, eq(payments.tutorId, users.id))
       .leftJoin(currencies, eq(payments.currencyId, currencies.id))
-      .where(inArray(payments.currencyId, currencyIds))
+      .where(whereClause)
       .orderBy(desc(payments.createdAt));
 
     return rows.map(r => ({ ...r.payment, tutor: r.tutor ?? undefined, currency: r.currency ?? undefined }));
