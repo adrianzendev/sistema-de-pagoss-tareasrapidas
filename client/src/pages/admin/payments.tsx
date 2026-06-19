@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Search, CheckCircle, XCircle, Clock, Image as ImageIcon,
   FileSpreadsheet, Calendar, RotateCcw, Trash2, ArrowLeftRight, ChevronDown, ChevronRight,
+  ChevronLeft, X,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -32,14 +33,14 @@ const statusLabels: Record<string, { label: string; icon: any; className: string
 function PaymentTable({
   payments,
   search,
-  setPreviewImage,
+  setPreviewPayment,
   setDeleteId,
   setMovePayment,
   updateMutation,
 }: {
   payments: PaymentWithDetails[];
   search: string;
-  setPreviewImage: (v: string) => void;
+  setPreviewPayment: (v: { payment: PaymentWithDetails; list: PaymentWithDetails[] }) => void;
   setDeleteId: (v: string) => void;
   setMovePayment: (v: { id: string; weekId: string }) => void;
   updateMutation: any;
@@ -96,7 +97,7 @@ function PaymentTable({
                 <TableCell className="py-3 text-center">
                   {payment.proofImage ? (
                     <button
-                      onClick={() => setPreviewImage(payment.proofImage!)}
+                      onClick={() => setPreviewPayment({ payment, list: filtered.filter(p => p.proofImage) })}
                       className="inline-flex items-center justify-center w-8 h-8 rounded overflow-hidden border bg-muted hover:opacity-80 transition-opacity mx-auto"
                       data-testid={`button-view-proof-${payment.id}`}
                     >
@@ -190,7 +191,7 @@ function WeekSection({
   week,
   isCurrentWeek,
   search,
-  setPreviewImage,
+  setPreviewPayment,
   setDeleteId,
   setMovePayment,
   updateMutation,
@@ -198,7 +199,7 @@ function WeekSection({
   week: Week;
   isCurrentWeek: boolean;
   search: string;
-  setPreviewImage: (v: string) => void;
+  setPreviewPayment: (v: { payment: PaymentWithDetails; list: PaymentWithDetails[] }) => void;
   setDeleteId: (v: string) => void;
   setMovePayment: (v: { id: string; weekId: string }) => void;
   updateMutation: any;
@@ -262,7 +263,7 @@ function WeekSection({
             <PaymentTable
               payments={payments ?? []}
               search={search}
-              setPreviewImage={setPreviewImage}
+              setPreviewPayment={setPreviewPayment}
               setDeleteId={setDeleteId}
               setMovePayment={setMovePayment}
               updateMutation={updateMutation}
@@ -276,7 +277,7 @@ function WeekSection({
 
 export default function PaymentsPage() {
   const [search, setSearch] = useState("");
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewCtx, setPreviewCtx] = useState<{ payment: PaymentWithDetails; list: PaymentWithDetails[] } | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [movePayment, setMovePayment] = useState<{ id: string; weekId: string } | null>(null);
   const { toast } = useToast();
@@ -384,7 +385,7 @@ export default function PaymentsPage() {
               week={week}
               isCurrentWeek={week.id === currentWeekId}
               search={search}
-              setPreviewImage={setPreviewImage}
+              setPreviewPayment={setPreviewCtx}
               setDeleteId={setDeleteId}
               setMovePayment={setMovePayment}
               updateMutation={updateMutation}
@@ -393,18 +394,71 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle>Comprobante de Pago</DialogTitle>
-          </DialogHeader>
-          {previewImage && (
-            <div className="overflow-y-auto flex-1">
-              <img src={previewImage} alt="Comprobante" className="w-full rounded-lg" />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {(() => {
+        const list = previewCtx?.list ?? [];
+        const currentIdx = previewCtx ? list.findIndex(p => p.id === previewCtx.payment.id) : -1;
+        const hasPrev = currentIdx > 0;
+        const hasNext = currentIdx < list.length - 1;
+        const navigate = (delta: number) => {
+          const next = list[currentIdx + delta];
+          if (next) setPreviewCtx(c => c ? { ...c, payment: next } : null);
+        };
+        const p = previewCtx?.payment;
+        return (
+          <Dialog open={!!previewCtx} onOpenChange={(open) => { if (!open) setPreviewCtx(null); }}>
+            <DialogContent className="sm:max-w-lg p-0 max-h-[92vh] flex flex-col gap-0 overflow-hidden [&>button]:hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+                <div>
+                  <p className="font-semibold text-sm">{p?.tutor?.name ?? "—"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {p && Number(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })} {p?.currency?.code}
+                    {p?.clientNumber && <span className="ml-2 font-mono">{p.clientNumber}</span>}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1">
+                  {list.length > 1 && (
+                    <span className="text-xs text-muted-foreground mr-1">{currentIdx + 1} / {list.length}</span>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(-1)} disabled={!hasPrev} data-testid="button-prev-proof">
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(1)} disabled={!hasNext} data-testid="button-next-proof">
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setPreviewCtx(null)} data-testid="button-close-proof">
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+              <div className="overflow-y-auto flex-1 p-3">
+                {p?.proofImage && <img src={p.proofImage} alt="Comprobante" className="w-full rounded-lg" />}
+              </div>
+              {p?.status === "pending" && (
+                <div className="flex gap-2 p-3 border-t shrink-0">
+                  <Button
+                    className="flex-1 gap-2 bg-success/10 text-success hover:bg-success/20 border border-success/30"
+                    variant="ghost"
+                    onClick={() => { updateMutation.mutate({ id: p.id, status: "verified" }); setPreviewCtx(null); }}
+                    disabled={updateMutation.isPending}
+                    data-testid="button-proof-verify"
+                  >
+                    <CheckCircle className="h-4 w-4" /> Verificar
+                  </Button>
+                  <Button
+                    className="flex-1 gap-2 bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30"
+                    variant="ghost"
+                    onClick={() => { updateMutation.mutate({ id: p.id, status: "rejected" }); setPreviewCtx(null); }}
+                    disabled={updateMutation.isPending}
+                    data-testid="button-proof-reject"
+                  >
+                    <XCircle className="h-4 w-4" /> Rechazar
+                  </Button>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
 
       <AlertDialog open={!!movePayment} onOpenChange={() => setMovePayment(null)}>
         <AlertDialogContent>
