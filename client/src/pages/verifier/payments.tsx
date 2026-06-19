@@ -185,11 +185,11 @@ export default function VerifierPaymentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="text-xs w-32">Fecha</TableHead>
+                    <TableHead className="text-xs">Monto</TableHead>
+                    <TableHead className="text-center text-xs">Img</TableHead>
                     <TableHead className="text-xs">Tutor</TableHead>
+                    <TableHead className="text-xs w-32">Fecha</TableHead>
                     <TableHead className="text-xs">Teléfono</TableHead>
-                    <TableHead className="text-right text-xs">Monto</TableHead>
-                    <TableHead className="text-center text-xs">Comprobante</TableHead>
                     <TableHead className="text-right text-xs">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -199,22 +199,6 @@ export default function VerifierPaymentsPage() {
                       <WeekSeparatorRow group={group} colSpan={6} showPending />
                       {group.payments.map((payment) => (
                         <TableRow key={payment.id} data-testid={`card-payment-${payment.id}`} className="hover:bg-muted/30">
-                          <TableCell className="py-3 whitespace-nowrap">
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <Calendar className="h-3 w-3 shrink-0" />
-                              <div>
-                                <div className="text-foreground">{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
-                                <div>{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-3 text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
-                          <TableCell className="py-3">
-                            <div className="flex items-center gap-1.5 text-xs">
-                              <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
-                              <span className="font-mono">{payment.clientNumber}</span>
-                            </div>
-                          </TableCell>
                           <TableCell className="py-3 text-right">
                             <span className="font-semibold text-sm tabular-nums">
                               {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
@@ -235,6 +219,22 @@ export default function VerifierPaymentsPage() {
                                 <ImageIcon className="h-3.5 w-3.5 text-muted-foreground/40" />
                               </div>
                             )}
+                          </TableCell>
+                          <TableCell className="py-3 text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
+                          <TableCell className="py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Calendar className="h-3 w-3 shrink-0" />
+                              <div>
+                                <div className="text-foreground">{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
+                                <div>{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-3">
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
+                              <span className="font-mono">{payment.clientNumber}</span>
+                            </div>
                           </TableCell>
                           <TableCell className="py-3 text-right">
                             <div className="flex justify-end gap-0.5">
@@ -281,12 +281,12 @@ export default function VerifierPaymentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="text-xs w-32">Fecha</TableHead>
-                    <TableHead className="text-xs">Tutor</TableHead>
-                    <TableHead className="text-xs">Teléfono</TableHead>
-                    <TableHead className="text-right text-xs">Monto</TableHead>
-                    <TableHead className="text-center text-xs">Comprobante</TableHead>
                     <TableHead className="text-xs">Estado</TableHead>
+                    <TableHead className="text-right text-xs">Monto</TableHead>
+                    <TableHead className="text-center text-xs">Img</TableHead>
+                    <TableHead className="text-xs">Tutor</TableHead>
+                    <TableHead className="text-xs w-32">Fecha</TableHead>
+                    <TableHead className="text-xs">Teléfono</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -298,21 +298,11 @@ export default function VerifierPaymentsPage() {
                         const StatusIcon = status.icon;
                         return (
                           <TableRow key={payment.id} data-testid={`card-history-${payment.id}`} className="hover:bg-muted/30">
-                            <TableCell className="py-3 whitespace-nowrap">
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Calendar className="h-3 w-3 shrink-0" />
-                                <div>
-                                  <div className="text-foreground">{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
-                                  <div>{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-3 text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
                             <TableCell className="py-3">
-                              <div className="flex items-center gap-1.5 text-xs">
-                                <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
-                                <span className="font-mono">{payment.clientNumber}</span>
-                              </div>
+                              <Badge className={`gap-1 text-[10px] px-1.5 py-0.5 ${status.className}`}>
+                                <StatusIcon className="h-2.5 w-2.5" />
+                                {status.label}
+                              </Badge>
                             </TableCell>
                             <TableCell className="py-3 text-right">
                               <span className="font-semibold text-sm tabular-nums">
@@ -335,11 +325,21 @@ export default function VerifierPaymentsPage() {
                                 </div>
                               )}
                             </TableCell>
+                            <TableCell className="py-3 text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
+                            <TableCell className="py-3 whitespace-nowrap">
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Calendar className="h-3 w-3 shrink-0" />
+                                <div>
+                                  <div className="text-foreground">{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
+                                  <div>{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
+                                </div>
+                              </div>
+                            </TableCell>
                             <TableCell className="py-3">
-                              <Badge className={`gap-1 text-[10px] px-1.5 py-0.5 ${status.className}`}>
-                                <StatusIcon className="h-2.5 w-2.5" />
-                                {status.label}
-                              </Badge>
+                              <div className="flex items-center gap-1.5 text-xs">
+                                <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                <span className="font-mono">{payment.clientNumber}</span>
+                              </div>
                             </TableCell>
                           </TableRow>
                         );

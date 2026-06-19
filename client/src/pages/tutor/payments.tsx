@@ -483,12 +483,12 @@ export default function TutorPaymentsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead className="text-xs">Estado</TableHead>
+                  <TableHead className="text-right text-xs">Monto</TableHead>
+                  <TableHead className="text-center text-xs">Img</TableHead>
                   <TableHead className="w-10 text-xs">#</TableHead>
                   <TableHead className="text-xs">Fecha y hora</TableHead>
                   <TableHead className="text-xs">Teléfono</TableHead>
-                  <TableHead className="text-right text-xs">Monto</TableHead>
-                  <TableHead className="text-center text-xs">Comprobante</TableHead>
-                  <TableHead className="text-xs">Estado</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -497,22 +497,11 @@ export default function TutorPaymentsPage() {
                   const StatusIcon = status.icon;
                   return (
                     <TableRow key={payment.id} data-testid={`payment-card-${payment.id}`} className="hover:bg-muted/30">
-                      <TableCell className="text-xs font-bold text-muted-foreground py-3">
-                        #{index + 1}
-                      </TableCell>
                       <TableCell className="py-3">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3 shrink-0" />
-                          <span className="text-foreground">
-                            {payment.createdAt && format(new Date(payment.createdAt), "dd/MM/yyyy HH:mm", { locale: es })}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <div className="flex items-center gap-1.5 text-xs">
-                          <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
-                          <span className="font-mono">{payment.clientNumber}</span>
-                        </div>
+                        <Badge className={`gap-1 text-[10px] px-1.5 py-0.5 ${status.className}`} data-testid={`badge-status-${payment.id}`}>
+                          <StatusIcon className="h-2.5 w-2.5" />
+                          {status.label}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-right py-3">
                         <span className="font-semibold text-sm tabular-nums">
@@ -535,11 +524,22 @@ export default function TutorPaymentsPage() {
                           </div>
                         )}
                       </TableCell>
+                      <TableCell className="text-xs font-bold text-muted-foreground py-3">
+                        #{index + 1}
+                      </TableCell>
                       <TableCell className="py-3">
-                        <Badge className={`gap-1 text-[10px] px-1.5 py-0.5 ${status.className}`} data-testid={`badge-status-${payment.id}`}>
-                          <StatusIcon className="h-2.5 w-2.5" />
-                          {status.label}
-                        </Badge>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Calendar className="h-3 w-3 shrink-0" />
+                          <span className="text-foreground">
+                            {payment.createdAt && format(new Date(payment.createdAt), "dd/MM/yyyy HH:mm", { locale: es })}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
+                          <span className="font-mono">{payment.clientNumber}</span>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
