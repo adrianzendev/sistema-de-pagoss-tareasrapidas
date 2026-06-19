@@ -66,6 +66,34 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
         </Badge>
       </div>
       <CardContent className="py-3 px-4 space-y-1.5">
+
+        {/* Desglose por divisa — solo pagos verificados */}
+        {(() => {
+          const byCode: Record<string, number> = {};
+          s.payments.forEach(p => {
+            const code = p.currency?.code ?? "?";
+            byCode[code] = (byCode[code] ?? 0) + Number(p.amount);
+          });
+          const entries = Object.entries(byCode);
+          if (entries.length === 0) return null;
+          return (
+            <div className="bg-muted/40 rounded-md px-3 py-2 space-y-1" data-testid="summary-currency-breakdown">
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium uppercase tracking-wide mb-1">
+                <Coins className="h-3 w-3" />
+                Ingresos por divisa
+              </div>
+              {entries.map(([code, total]) => (
+                <div key={code} className="flex items-center justify-between text-xs">
+                  <span className="font-mono text-muted-foreground">{code}</span>
+                  <span className="font-mono font-medium tabular-nums">
+                    {total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
         <div className="flex items-center justify-between text-sm" data-testid="summary-gross-income">
           <span className="text-muted-foreground flex items-center gap-1.5">
             <DollarSign className="h-3.5 w-3.5" />
