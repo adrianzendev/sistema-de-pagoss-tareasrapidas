@@ -218,7 +218,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
               </div>
 
               <div className="flex items-center justify-between text-muted-foreground">
-                <span>Tu comisión ({s.commissionPercent}%)</span>
+                <span>Comisión tutor ({s.commissionPercent}%)</span>
                 <span className="font-mono">× {s.commissionPercent / 100}</span>
               </div>
 
@@ -228,7 +228,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
               </div>
 
               <div className="flex items-center justify-between text-muted-foreground">
-                <span>Parte agencia (30%)</span>
+                <span>Agencia ({100 - s.commissionPercent}%)</span>
                 <span className="font-mono">{pen(s.agencyEarnings)}</span>
               </div>
             </div>
