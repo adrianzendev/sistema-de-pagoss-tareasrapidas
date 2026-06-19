@@ -175,7 +175,7 @@ export default function WeeksPage() {
       case "closed":
         return <Badge variant="secondary" data-testid="badge-status-closed">Cerrada</Badge>;
       case "paid":
-        return <Badge className="bg-green-600" data-testid="badge-status-paid">Pagada</Badge>;
+        return <Badge className="bg-success" data-testid="badge-status-paid">Pagada</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -351,7 +351,7 @@ export default function WeeksPage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label className="flex items-center gap-1">
-                <DollarSign className="h-4 w-4 text-green-600" />
+                <DollarSign className="h-4 w-4 text-success" />
                 Publicidad (USD) — costo total
               </Label>
               <div className="relative">
@@ -437,8 +437,8 @@ export default function WeeksPage() {
           ) : settlement ? (
             <div className="space-y-4">
               {settlement.advertising.sharedAdvertisingUsd > 0 && (
-                <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg text-sm">
-                  <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">Publicidad Compartida</p>
+                <div className="p-3 bg-primary/5 border border-primary/15 rounded-lg text-sm">
+                  <p className="font-medium text-primary mb-1">Publicidad Compartida</p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                     <div>
                       <span className="text-muted-foreground">Total USD:</span>
@@ -450,7 +450,7 @@ export default function WeeksPage() {
                     </div>
                     <div>
                       <span className="text-muted-foreground">Agencia paga:</span>
-                      <span className="font-mono font-bold ml-1 text-amber-600">S/{formatCurrency(settlement.advertising.agencyShare)}</span>
+                      <span className="font-mono font-bold ml-1 text-warning">S/{formatCurrency(settlement.advertising.agencyShare)}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Tutores pagan:</span>

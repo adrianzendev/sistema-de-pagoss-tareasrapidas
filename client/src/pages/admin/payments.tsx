@@ -143,7 +143,7 @@ function WeekSeparatorRow({ group }: { group: WeekGroup }) {
           <div className="flex-1 h-px bg-border mt-2.5" />
           <div className="flex flex-col items-end gap-0.5 shrink-0 text-xs text-muted-foreground">
             {group.pendingCount > 0 && (
-              <span className="font-medium text-amber-600 dark:text-amber-400">
+              <span className="font-medium text-warning">
                 {group.pendingCount} pendiente{group.pendingCount !== 1 ? "s" : ""}
               </span>
             )}
@@ -403,7 +403,7 @@ export default function PaymentsPage() {
                                       disabled={updateMutation.isPending}
                                       data-testid={`button-verify-${payment.id}`}
                                     >
-                                      <CheckCircle className="h-4 w-4 text-green-600" />
+                                      <CheckCircle className="h-4 w-4 text-success" />
                                     </Button>
                                     <Button
                                       size="sm"
@@ -412,7 +412,7 @@ export default function PaymentsPage() {
                                       disabled={updateMutation.isPending}
                                       data-testid={`button-reject-${payment.id}`}
                                     >
-                                      <XCircle className="h-4 w-4 text-red-600" />
+                                      <XCircle className="h-4 w-4 text-destructive" />
                                     </Button>
                                   </>
                                 )}
@@ -434,7 +434,7 @@ export default function PaymentsPage() {
                                   title="Mover a otra semana"
                                   data-testid={`button-move-payment-${payment.id}`}
                                 >
-                                  <ArrowLeftRight className="h-4 w-4 text-blue-500" />
+                                  <ArrowLeftRight className="h-4 w-4 text-primary" />
                                 </Button>
                                 <Button
                                   size="sm"

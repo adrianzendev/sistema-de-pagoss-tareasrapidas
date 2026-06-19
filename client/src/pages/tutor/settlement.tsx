@@ -56,7 +56,7 @@ export default function TutorSettlementPage() {
       case "closed":
         return <Badge variant="secondary">Cerrada</Badge>;
       case "paid":
-        return <Badge className="bg-green-600">Pagada</Badge>;
+        return <Badge className="bg-success">Pagada</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }

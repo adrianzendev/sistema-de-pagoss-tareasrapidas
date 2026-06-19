@@ -101,7 +101,7 @@ function WeekPayments({ tutorId, weekId }: { tutorId: string; weekId: string }) 
             </td>
             <td className="px-3 py-2">
               {p.status === "verified" ? (
-                <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600">Verificado</Badge>
+                <Badge className="text-[9px] px-1 py-0 h-4 bg-success">Verificado</Badge>
               ) : p.status === "rejected" ? (
                 <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">Rechazado</Badge>
               ) : (
@@ -230,11 +230,11 @@ export default function TutorDetailPage() {
             <div className="flex items-center gap-3 flex-wrap">
               <div className="text-right">
                 <div className="text-[10px] text-muted-foreground uppercase">Cobrado</div>
-                <div className="text-sm font-bold text-green-600 dark:text-green-400">{fmt(totalPaid)}</div>
+                <div className="text-sm font-bold text-success">{fmt(totalPaid)}</div>
               </div>
               <div className="text-right">
                 <div className="text-[10px] text-muted-foreground uppercase">Pendiente</div>
-                <div className="text-sm font-bold text-amber-600 dark:text-amber-400">{fmt(totalPending)}</div>
+                <div className="text-sm font-bold text-warning">{fmt(totalPending)}</div>
               </div>
               <Badge variant="outline" className="text-xs">{totalPayments} pagos</Badge>
             </div>
@@ -249,7 +249,7 @@ export default function TutorDetailPage() {
                   <th className="text-left p-3 font-semibold">Semana</th>
                   <th className="text-left p-3 font-semibold text-[10px] text-muted-foreground">Estado</th>
                   {allCurrencies.map(c => (
-                    <th key={c.code} className="text-right p-3 font-semibold text-[10px] text-amber-600 dark:text-amber-400">{c.code}</th>
+                    <th key={c.code} className="text-right p-3 font-semibold text-[10px] text-warning">{c.code}</th>
                   ))}
                   <th className="text-right p-3 font-semibold">Bruto</th>
                   <th className="text-right p-3 font-semibold text-muted-foreground/70">Pub.</th>
@@ -291,7 +291,7 @@ export default function TutorDetailPage() {
                         </td>
                         <td className="p-3">
                           {week.status === "paid" ? (
-                            <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600">Cerrada</Badge>
+                            <Badge className="text-[9px] px-1 py-0 h-4 bg-success">Cerrada</Badge>
                           ) : week.status === "closed" ? (
                             <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">Cerrada</Badge>
                           ) : (
@@ -301,7 +301,7 @@ export default function TutorDetailPage() {
                         {allCurrencies.map(c => {
                           const entry = cell?.currencies?.find(x => x.code === c.code);
                           return (
-                            <td key={c.code} className="p-3 text-right tabular-nums text-xs text-amber-700 dark:text-amber-400">
+                            <td key={c.code} className="p-3 text-right tabular-nums text-xs text-warning">
                               {entry ? `${c.code} ${new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(entry.total)}` : "—"}
                             </td>
                           );
@@ -325,7 +325,7 @@ export default function TutorDetailPage() {
                                 data-testid={`input-adv-${week.id}`}
                               />
                               <button
-                                className="text-green-600 hover:text-green-700"
+                                className="text-success hover:text-success/80"
                                 onClick={() => setAdvMutation.mutate({ weekId: week.id, cost: Number(advInput) })}
                                 data-testid={`btn-adv-save-${week.id}`}
                               ><Check className="w-3 h-3" /></button>
@@ -363,7 +363,7 @@ export default function TutorDetailPage() {
                           {hasActivity ? (
                             isPaid ? (
                               <Badge
-                                className="text-[9px] px-1.5 py-0 h-4 bg-green-600 cursor-pointer hover:bg-green-700"
+                                className="text-[9px] px-1.5 py-0 h-4 bg-success cursor-pointer hover:bg-success/90"
                                 onClick={() => !isMutating && unmarkPaidMutation.mutate({ weekId: week.id })}
                               >Pagado</Badge>
                             ) : (
@@ -391,7 +391,7 @@ export default function TutorDetailPage() {
                   {allCurrencies.map(c => {
                     const total = tutorRows.reduce((s, r) => s + (r.cell?.currencies?.find(x => x.code === c.code)?.total ?? 0), 0);
                     return (
-                      <td key={c.code} className="p-3 text-right tabular-nums text-xs text-amber-700 dark:text-amber-400">
+                      <td key={c.code} className="p-3 text-right tabular-nums text-xs text-warning">
                         {`${c.code} ${new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(total)}`}
                       </td>
                     );
@@ -404,8 +404,8 @@ export default function TutorDetailPage() {
                   <td className="p-3 text-right tabular-nums text-success">{fmt(totalTutor)}</td>
                   <td className="p-3 text-right tabular-nums text-muted-foreground">{fmt(totalAgency)}</td>
                   <td className="p-3 text-center">
-                    <div className="text-[10px] text-green-600 dark:text-green-400">{fmt(totalPaid)} cobrado</div>
-                    <div className="text-[10px] text-amber-600 dark:text-amber-400">{fmt(totalPending)} pendiente</div>
+                    <div className="text-[10px] text-success">{fmt(totalPaid)} cobrado</div>
+                    <div className="text-[10px] text-warning">{fmt(totalPending)} pendiente</div>
                   </td>
                   <td className="p-3 text-right tabular-nums text-muted-foreground text-xs">{totalPayments}</td>
                 </tr>

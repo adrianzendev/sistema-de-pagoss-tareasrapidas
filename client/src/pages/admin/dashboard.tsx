@@ -81,9 +81,9 @@ export default function AdminDashboard() {
   }) => {
     const iconColors = {
       default: "text-primary",
-      success: "text-green-600 dark:text-green-400",
-      warning: "text-yellow-600 dark:text-yellow-400",
-      destructive: "text-red-600 dark:text-red-400",
+      success: "text-success",
+      warning: "text-warning",
+      destructive: "text-destructive",
     };
     return (
       <Card>
@@ -195,22 +195,22 @@ export default function AdminDashboard() {
             <CardDescription>En el periodo seleccionado</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-4 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-100 dark:border-yellow-900/30">
-              <Clock className="h-5 w-5 text-yellow-600" />
+            <div className="flex items-center gap-4 p-3 rounded-lg bg-warning/10 border border-warning/15">
+              <Clock className="h-5 w-5 text-warning" />
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Pendientes</p>
                 <p className="text-lg font-bold">{stats?.pendingPayments ?? 0}</p>
               </div>
             </div>
-            <div className="flex items-center gap-4 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-100 dark:border-green-900/30">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+            <div className="flex items-center gap-4 p-3 rounded-lg bg-success/10 border border-success/15">
+              <CheckCircle className="h-5 w-5 text-success" />
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Verificados</p>
                 <p className="text-lg font-bold">{stats?.verifiedPayments ?? 0}</p>
               </div>
             </div>
-            <div className="flex items-center gap-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30">
-              <XCircle className="h-5 w-5 text-red-600" />
+            <div className="flex items-center gap-4 p-3 rounded-lg bg-destructive/10 border border-destructive/15">
+              <XCircle className="h-5 w-5 text-destructive" />
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Rechazados</p>
                 <p className="text-lg font-bold">{stats?.rejectedPayments ?? 0}</p>
@@ -273,7 +273,7 @@ export default function AdminDashboard() {
                         </div>
                         {totalActive > 0 && paidCount > 0 && (
                           <div className="mt-1">
-                            <span className={`text-[9px] font-semibold ${paidCount === totalActive ? "text-green-600 dark:text-green-400" : "text-muted-foreground/60"}`}>
+                            <span className={`text-[9px] font-semibold ${paidCount === totalActive ? "text-success" : "text-muted-foreground/60"}`}>
                               {paidCount}/{totalActive} pagados
                             </span>
                           </div>
@@ -344,7 +344,7 @@ export default function AdminDashboard() {
                                 <div className="flex items-center justify-end gap-1 mt-0.5">
                                   <span className="text-[9px] text-muted-foreground/60">{cell?.paymentCount ?? 0} pg</span>
                                   {isTutorPaid && (
-                                    <Badge className="text-[8px] px-1 py-0 h-3.5 bg-green-600 leading-none">Pagado</Badge>
+                                    <Badge className="text-[8px] px-1 py-0 h-3.5 bg-success leading-none">Pagado</Badge>
                                   )}
                                 </div>
                               </>
