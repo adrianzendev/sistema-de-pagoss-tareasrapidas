@@ -39,6 +39,7 @@ interface NewPaymentModalProps {
 export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
   const { toast } = useToast();
   const [proofImage, setProofImage] = useState<string | null>(null);
+  const [proofImageError, setProofImageError] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [blacklistWarning, setBlacklistWarning] = useState<BlacklistCheck | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -159,6 +160,7 @@ export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
   const handleClose = () => {
     form.reset();
     setProofImage(null);
+    setProofImageError(false);
     setBlacklistWarning(null);
     setShowSuggestions(false);
     onOpenChange(false);
@@ -167,6 +169,7 @@ export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setProofImageError(false);
 
     if (!file.type.startsWith("image/")) {
       toast({ title: "Error", description: "Solo se permiten imágenes", variant: "destructive" });
@@ -221,7 +224,10 @@ export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
         )}
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => createMutation.mutate(data))} className="space-y-4">
+          <form onSubmit={form.handleSubmit((data) => {
+            if (!proofImage) { setProofImageError(true); return; }
+            createMutation.mutate(data);
+          })} className="space-y-4">
             <FormField
               control={form.control}
               name="clientNumber"
@@ -332,7 +338,9 @@ export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
             />
 
             <div className="space-y-2">
-              <FormLabel>Comprobante</FormLabel>
+              <FormLabel>
+                Comprobante <span className="text-destructive">*</span>
+              </FormLabel>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -354,7 +362,7 @@ export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
                     variant="destructive"
                     size="icon"
                     className="absolute top-2 right-2 h-6 w-6"
-                    onClick={() => setProofImage(null)}
+                    onClick={() => { setProofImage(null); setProofImageError(true); }}
                     data-testid="button-remove-image"
                   >
                     <X className="h-3 w-3" />
@@ -364,7 +372,7 @@ export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-24 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                  className={`w-full h-24 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-1 transition-colors ${proofImageError ? "border-destructive text-destructive" : "text-muted-foreground hover:border-primary hover:text-primary"}`}
                   disabled={isUploading}
                   data-testid="button-upload-image"
                 >
@@ -377,6 +385,9 @@ export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
                     </>
                   )}
                 </button>
+              )}
+              {proofImageError && (
+                <p className="text-sm font-medium text-destructive">El comprobante es obligatorio</p>
               )}
             </div>
 
