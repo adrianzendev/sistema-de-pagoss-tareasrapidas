@@ -1079,19 +1079,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const usdCurrency = allCurrencies.find(c => c.code === "USD");
       const usdRate = Number(usdCurrency?.exchangeRate ?? 1);
 
+      const allTutorWeekAdv = await storage.getAllTutorWeekAdvertising();
+
       const weeklySettlements = await Promise.all(
         allWeeks.slice(0, 12).map(async (week) => {
           const weekPayments = await storage.getPaymentsByWeek(week.id);
           const verifiedPayments = weekPayments.filter(p => p.status === "verified");
           const tutorPayments = verifiedPayments.filter(p => p.tutorId === user.id);
 
-          const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
-          const advertisingInSoles = sharedAdvertisingUsd * usdRate;
-          const tutorsWithPayments = new Set(verifiedPayments.map(p => p.tutorId));
-          const activeTutorCount = tutorsWithPayments.size || 1;
-          const tutorAdvertisingShare = tutorPayments.length > 0
-            ? (advertisingInSoles * 0.5) / activeTutorCount
-            : 0;
+          // Use per-tutor per-week advertising cost, fallback to tutor's default
+          const weekAdvRec = allTutorWeekAdv.find(r => r.tutorId === user.id && r.weekId === week.id);
+          const ownAdvUsd = weekAdvRec !== undefined
+            ? Number(weekAdvRec.advertisingCostUsd)
+            : Number(user.advertisingCostUsd ?? 0);
+          const tutorAdvertisingShare = ownAdvUsd * usdRate;
 
           let grossIncome = 0;
           tutorPayments.forEach(p => {
