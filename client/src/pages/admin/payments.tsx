@@ -424,7 +424,7 @@ export default function PaymentsPage() {
                                     disabled={updateMutation.isPending}
                                     data-testid={`button-refund-${payment.id}`}
                                   >
-                                    <RotateCcw className="h-4 w-4 text-orange-600" />
+                                    <RotateCcw className="h-4 w-4 text-warning" />
                                   </Button>
                                 )}
                                 <Button

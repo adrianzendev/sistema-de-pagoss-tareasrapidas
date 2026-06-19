@@ -300,7 +300,7 @@ export default function AdminDashboard() {
                       {/* Tutor name cell */}
                       <div className={`p-3 border-r border-border sticky left-0 z-10 ${rowIdx % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>
                         <Link href={`/admin/tutors/${tutor.id}/detail`}>
-                          <div className="font-semibold text-sm truncate text-purple-600 hover:underline cursor-pointer">{tutor.name}</div>
+                          <div className="font-semibold text-sm truncate text-primary hover:underline cursor-pointer">{tutor.name}</div>
                         </Link>
                         <div className="text-[10px] text-muted-foreground">{tutor.commissionPercent}%</div>
                         {Number(tutor.advertisingCostUsd ?? 0) > 0 && (() => {
@@ -335,10 +335,10 @@ export default function AdminDashboard() {
                           >
                             {showCell ? (
                               <>
-                                <div className={`text-xs font-bold ${tutorE >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>
+                                <div className={`text-xs font-bold ${tutorE >= 0 ? "text-success" : "text-destructive"}`}>
                                   {fmt(tutorE)}
                                 </div>
-                                <div className={`text-xs font-medium ${agencyE >= 0 ? "text-sky-500 dark:text-sky-400" : "text-red-500 dark:text-red-400"}`}>
+                                <div className={`text-xs font-medium ${agencyE >= 0 ? "text-muted-foreground" : "text-destructive"}`}>
                                   {fmt(agencyE)}
                                 </div>
                                 <div className="flex items-center justify-end gap-1 mt-0.5">
@@ -357,10 +357,10 @@ export default function AdminDashboard() {
 
                       {/* Total cell */}
                       <div className="p-2 text-right" data-testid={`total-${tutor.id}`}>
-                        <div className={`text-xs font-bold ${rowTotal >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>
+                        <div className={`text-xs font-bold ${rowTotal >= 0 ? "text-success" : "text-destructive"}`}>
                           {fmt(rowTotal)}
                         </div>
-                        <div className={`text-xs font-medium ${rowAgencyTotal >= 0 ? "text-sky-500 dark:text-sky-400" : "text-red-500 dark:text-red-400"}`}>
+                        <div className={`text-xs font-medium ${rowAgencyTotal >= 0 ? "text-muted-foreground" : "text-destructive"}`}>
                           {fmt(rowAgencyTotal)}
                         </div>
                       </div>
@@ -376,8 +376,8 @@ export default function AdminDashboard() {
                   <div className="p-2 border-r border-border sticky left-0 bg-muted/70 z-10 flex flex-col justify-center">
                     <div className="text-[9px] uppercase text-muted-foreground/70 font-normal leading-4">Total Bruto</div>
                     <div className="text-[9px] uppercase text-muted-foreground/60 font-normal leading-4">Publicidad Total</div>
-                    <div className="text-xs uppercase text-purple-600 dark:text-purple-400 leading-4">Tutores</div>
-                    <div className="text-xs uppercase text-sky-500 dark:text-sky-400 leading-4">Agencia</div>
+                    <div className="text-xs uppercase text-success leading-4">Tutores</div>
+                    <div className="text-xs uppercase text-muted-foreground leading-4">Agencia</div>
                   </div>
                   {weeks.map(w => {
                     const colTutor = tutorsWithAnyPayment.reduce(
@@ -416,10 +416,10 @@ export default function AdminDashboard() {
                                 );
                               })()}
                             </div>
-                            <div className={`font-bold leading-4 ${colTutor >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>
+                            <div className={`font-bold leading-4 ${colTutor >= 0 ? "text-success" : "text-destructive"}`}>
                               {fmt(colTutor)}
                             </div>
-                            <div className={`font-medium leading-4 ${colAgency >= 0 ? "text-sky-500 dark:text-sky-400" : "text-red-500 dark:text-red-400"}`}>
+                            <div className={`font-medium leading-4 ${colAgency >= 0 ? "text-muted-foreground" : "text-destructive"}`}>
                               {fmt(colAgency)}
                             </div>
                           </>
@@ -432,13 +432,13 @@ export default function AdminDashboard() {
                   <div className="p-2 text-right">
                     <div className={`text-xs font-bold ${
                       tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.tutorEarnings ?? 0), 0), 0) >= 0
-                        ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"
+                        ? "text-success" : "text-destructive"
                     }`}>
                       {fmt(tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.tutorEarnings ?? 0), 0), 0))}
                     </div>
                     <div className={`text-xs font-medium ${
                       tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.agencyEarnings ?? 0), 0), 0) >= 0
-                        ? "text-sky-500 dark:text-sky-400" : "text-red-500 dark:text-red-400"
+                        ? "text-muted-foreground" : "text-destructive"
                     }`}>
                       {fmt(tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.agencyEarnings ?? 0), 0), 0))}
                     </div>

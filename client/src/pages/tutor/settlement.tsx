@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calculator, TrendingUp, Calendar, Coins, DollarSign } from "lucide-react";
+import { Calculator, Calendar, Coins, DollarSign } from "lucide-react";
 import type { Week, PaymentWithDetails } from "@shared/schema";
 
 type TutorSettlement = {
@@ -133,12 +133,12 @@ export default function TutorSettlementPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-green-500/10">
-                <Calculator className="h-6 w-6 text-green-600" />
+              <div className="p-3 rounded-lg bg-success/10">
+                <Calculator className="h-6 w-6 text-success" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Mi Ganancia Total</p>
-                <p className="text-2xl font-bold text-green-600" data-testid="text-total-earnings">{formatCurrency(totals.tutorEarnings)}</p>
+                <p className="text-2xl font-bold text-success" data-testid="text-total-earnings">{formatCurrency(totals.tutorEarnings)}</p>
               </div>
             </div>
           </CardContent>
@@ -159,73 +159,73 @@ export default function TutorSettlementPage() {
           {settlements.length > 0 ? (
             <div className="overflow-x-auto">
               <div className="min-w-[860px]">
-                <div className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-b-2 border-gray-400 dark:border-gray-600 font-bold text-xs uppercase">
-                  <div className="bg-gray-300 dark:bg-gray-700 p-2 text-center border-r border-gray-400 dark:border-gray-600">#</div>
-                  <div className="bg-blue-200 dark:bg-blue-900 p-2 text-center border-r border-blue-300 dark:border-blue-700 text-blue-900 dark:text-blue-100">SEMANA</div>
-                  <div className="bg-purple-200 dark:bg-purple-900 p-2 text-center border-r border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-100">PERÍODO</div>
-                  <div className="bg-slate-200 dark:bg-slate-800 p-2 text-center border-r border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100">ESTADO</div>
-                  <div className="bg-cyan-200 dark:bg-cyan-900 p-2 text-center border-r border-cyan-300 dark:border-cyan-700 text-cyan-900 dark:text-cyan-100">PAGOS</div>
-                  <div className="bg-green-300 dark:bg-green-800 p-2 text-center border-r border-green-400 dark:border-green-700 text-green-900 dark:text-green-100">BRUTO</div>
-                  <div className="bg-blue-300 dark:bg-blue-900 p-2 text-center border-r border-blue-400 dark:border-blue-800 text-blue-900 dark:text-blue-100">× {commissionPercent}%</div>
-                  <div className="bg-pink-300 dark:bg-pink-900 p-2 text-center border-r border-pink-400 dark:border-pink-700 text-pink-900 dark:text-pink-100">− PUBLICIDAD</div>
-                  <div className="bg-emerald-400 dark:bg-emerald-800 p-2 text-center text-emerald-900 dark:text-emerald-100">GANANCIA</div>
+                <div className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-b-2 border-border font-bold text-xs uppercase">
+                  <div className="bg-muted/60 p-2 text-center border-r border-border text-muted-foreground">#</div>
+                  <div className="bg-primary/20 p-2 text-center border-r border-primary/25 text-primary">SEMANA</div>
+                  <div className="bg-muted/40 p-2 text-center border-r border-border text-muted-foreground">PERÍODO</div>
+                  <div className="bg-muted/40 p-2 text-center border-r border-border text-muted-foreground">ESTADO</div>
+                  <div className="bg-muted/40 p-2 text-center border-r border-border text-muted-foreground">PAGOS</div>
+                  <div className="bg-success/20 p-2 text-center border-r border-success/25 text-success">BRUTO</div>
+                  <div className="bg-primary/25 p-2 text-center border-r border-primary/30 text-primary">× {commissionPercent}%</div>
+                  <div className="bg-destructive/20 p-2 text-center border-r border-destructive/25 text-destructive">− PUBLICIDAD</div>
+                  <div className="bg-success/30 p-2 text-center text-success">GANANCIA</div>
                 </div>
 
                 {settlements.map((s, index) => (
                   <div
                     key={s.week.id}
-                    className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-b border-gray-200 dark:border-gray-700 text-sm"
+                    className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-b border-border text-sm"
                     data-testid={`row-settlement-${s.week.weekNumber}`}
                   >
-                    <div className="bg-gray-200 dark:bg-gray-800 p-2 text-center border-r border-gray-300 dark:border-gray-600 font-medium text-gray-600 dark:text-gray-400">
+                    <div className="bg-muted/20 p-2 text-center border-r border-border font-medium text-muted-foreground">
                       {index + 1}
                     </div>
-                    <div className="bg-blue-50 dark:bg-blue-950 p-2 text-center border-r border-blue-100 dark:border-blue-900 font-bold" data-testid={`text-week-${s.week.weekNumber}`}>
+                    <div className="bg-primary/5 p-2 text-center border-r border-primary/10 font-bold" data-testid={`text-week-${s.week.weekNumber}`}>
                       S{s.week.weekNumber}
                     </div>
-                    <div className="bg-purple-50 dark:bg-purple-950 p-2 text-center border-r border-purple-100 dark:border-purple-900 text-xs">
+                    <div className="bg-muted/10 p-2 text-center border-r border-border text-xs">
                       {formatDate(s.week.startDate)} - {formatDate(s.week.endDate)}
                     </div>
-                    <div className="bg-slate-50 dark:bg-slate-900 p-2 text-center border-r border-slate-100 dark:border-slate-800 flex items-center justify-center">
+                    <div className="bg-muted/10 p-2 text-center border-r border-border flex items-center justify-center">
                       {getStatusBadge(s.week.status)}
                     </div>
-                    <div className="bg-cyan-50 dark:bg-cyan-950 p-2 text-center border-r border-cyan-100 dark:border-cyan-900 font-medium" data-testid={`text-payments-${s.week.weekNumber}`}>
+                    <div className="bg-muted/10 p-2 text-center border-r border-border font-medium" data-testid={`text-payments-${s.week.weekNumber}`}>
                       {s.payments.length}
                     </div>
-                    <div className="bg-green-100 dark:bg-green-950 p-2 text-right border-r border-green-200 dark:border-green-900 font-medium text-green-800 dark:text-green-200" data-testid={`text-gross-${s.week.weekNumber}`}>
+                    <div className="bg-success/10 p-2 text-right border-r border-success/15 font-medium text-success" data-testid={`text-gross-${s.week.weekNumber}`}>
                       {formatCurrency(s.grossIncome)}
                     </div>
-                    <div className="bg-blue-50 dark:bg-blue-950 p-2 text-right border-r border-blue-100 dark:border-blue-900 font-medium text-blue-700 dark:text-blue-300" data-testid={`text-net-commission-${s.week.weekNumber}`}>
+                    <div className="bg-primary/5 p-2 text-right border-r border-primary/10 font-medium text-primary" data-testid={`text-net-commission-${s.week.weekNumber}`}>
                       {formatCurrency(s.netIncome)}
                     </div>
-                    <div className="bg-pink-100 dark:bg-pink-950 p-2 text-right border-r border-pink-200 dark:border-pink-900 font-medium text-pink-700 dark:text-pink-300" data-testid={`text-advertising-${s.week.weekNumber}`}>
+                    <div className="bg-destructive/10 p-2 text-right border-r border-destructive/15 font-medium text-destructive" data-testid={`text-advertising-${s.week.weekNumber}`}>
                       {s.tutorAdvertisingShare > 0 ? (
                         <span title={`$${formatCurrency(s.sharedAdvertisingUsd)} USD × TC ${formatCurrency(s.usdRate)}`}>
                           -{formatCurrency(s.tutorAdvertisingShare)}
                         </span>
                       ) : "—"}
                     </div>
-                    <div className="bg-emerald-100 dark:bg-emerald-950 p-2 text-right font-bold text-emerald-700 dark:text-emerald-300" data-testid={`text-earnings-${s.week.weekNumber}`}>
+                    <div className="bg-success/10 p-2 text-right font-bold text-success" data-testid={`text-earnings-${s.week.weekNumber}`}>
                       {formatCurrency(s.tutorEarnings)}
                     </div>
                   </div>
                 ))}
 
-                <div className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-t-2 border-gray-500 dark:border-gray-400 font-bold text-sm bg-gray-100 dark:bg-gray-800">
-                  <div className="bg-gray-300 dark:bg-gray-700 p-3 text-center border-r border-gray-400 dark:border-gray-600"></div>
-                  <div className="bg-gray-200 dark:bg-gray-800 p-3 border-r border-gray-300 dark:border-gray-700 col-span-4 text-right pr-4">
+                <div className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-t-2 border-border font-bold text-sm bg-muted/20">
+                  <div className="bg-muted/40 p-3 text-center border-r border-border"></div>
+                  <div className="bg-muted/30 p-3 border-r border-border col-span-4 text-right pr-4">
                     TOTALES:
                   </div>
-                  <div className="bg-green-200 dark:bg-green-900 p-3 text-right border-r border-green-300 dark:border-green-800 text-green-800 dark:text-green-200" data-testid="text-total-gross-row">
+                  <div className="bg-success/15 p-3 text-right border-r border-success/20 text-success" data-testid="text-total-gross-row">
                     {formatCurrency(totals.grossIncome)}
                   </div>
-                  <div className="bg-blue-100 dark:bg-blue-900 p-3 text-right border-r border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300" data-testid="text-total-net-row">
+                  <div className="bg-primary/10 p-3 text-right border-r border-primary/15 text-primary" data-testid="text-total-net-row">
                     {formatCurrency(totals.netIncome)}
                   </div>
-                  <div className="bg-pink-200 dark:bg-pink-900 p-3 text-right border-r border-pink-300 dark:border-pink-800 text-pink-700 dark:text-pink-300" data-testid="text-total-advertising-row">
+                  <div className="bg-destructive/15 p-3 text-right border-r border-destructive/20 text-destructive" data-testid="text-total-advertising-row">
                     {totals.advertisingCost > 0 ? `-${formatCurrency(totals.advertisingCost)}` : "—"}
                   </div>
-                  <div className="bg-emerald-300 dark:bg-emerald-800 p-3 text-right text-emerald-800 dark:text-emerald-200" data-testid="text-total-earnings-row">
+                  <div className="bg-success/25 p-3 text-right text-success" data-testid="text-total-earnings-row">
                     {formatCurrency(totals.tutorEarnings)}
                   </div>
                 </div>
@@ -247,17 +247,17 @@ export default function TutorSettlementPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-            <div className="p-3 rounded-lg bg-green-100 dark:bg-green-950 border border-green-200 dark:border-green-800">
-              <p className="font-bold text-green-800 dark:text-green-200">1. Ingreso Bruto</p>
-              <p className="text-green-700 dark:text-green-300 text-xs">Pagos verificados convertidos a PEN</p>
+            <div className="p-3 rounded-lg bg-success/10 border border-success/20">
+              <p className="font-bold text-success">1. Ingreso Bruto</p>
+              <p className="text-success/70 text-xs">Pagos verificados convertidos a PEN</p>
             </div>
-            <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
-              <p className="font-bold text-blue-800 dark:text-blue-200">2. Aplicar Comisión ({commissionPercent}%)</p>
-              <p className="text-blue-700 dark:text-blue-300 text-xs">Bruto × {commissionPercent}%</p>
+            <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+              <p className="font-bold text-primary">2. Aplicar Comisión ({commissionPercent}%)</p>
+              <p className="text-primary/70 text-xs">Bruto × {commissionPercent}%</p>
             </div>
-            <div className="p-3 rounded-lg bg-pink-100 dark:bg-pink-950 border border-pink-200 dark:border-pink-800">
-              <p className="font-bold text-pink-800 dark:text-pink-200">3. Restar Publicidad</p>
-              <p className="text-pink-700 dark:text-pink-300 text-xs">Publicidad USD × TC × 50% ÷ tutores activos</p>
+            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+              <p className="font-bold text-destructive">3. Restar Publicidad</p>
+              <p className="text-destructive/70 text-xs">Publicidad USD × TC × 50% ÷ tutores activos</p>
             </div>
           </div>
           <div className="mt-4 p-3 bg-muted rounded-lg text-center">

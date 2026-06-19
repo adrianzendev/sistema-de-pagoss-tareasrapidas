@@ -375,12 +375,12 @@ export default function WeeksPage() {
                     <span className="font-mono font-bold text-right">${formatCurrency(Number(sharedAdvertisingUsd))}</span>
                     <span className="text-muted-foreground">Total en soles:</span>
                     <span className="font-mono font-bold text-right">S/ {formatCurrency(advertisingInSoles)}</span>
-                    <span className="text-blue-600 dark:text-blue-400">Agencia paga (50%):</span>
-                    <span className="font-mono font-bold text-right text-blue-600 dark:text-blue-400">S/ {formatCurrency(advertisingInSoles * 0.5)}</span>
+                    <span className="text-primary">Agencia paga (50%):</span>
+                    <span className="font-mono font-bold text-right text-primary">S/ {formatCurrency(advertisingInSoles * 0.5)}</span>
                     <span className="text-destructive">Tutores pagan (50%):</span>
                     <span className="font-mono font-bold text-right text-destructive">S/ {formatCurrency(advertisingInSoles * 0.5)}</span>
-                    <span className="text-orange-600 dark:text-orange-400">Aprox. por tutor:</span>
-                    <span className="font-mono font-bold text-right text-orange-600 dark:text-orange-400">
+                    <span className="text-warning">Aprox. por tutor:</span>
+                    <span className="font-mono font-bold text-right text-warning">
                       S/ {formatCurrency((advertisingInSoles * 0.5) / tutorCount)}
                       <span className="font-normal ml-1 text-[10px] text-muted-foreground">({tutorCount} tutores)</span>
                     </span>

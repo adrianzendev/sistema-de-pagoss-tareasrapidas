@@ -254,8 +254,8 @@ export default function TutorDetailPage() {
                   <th className="text-right p-3 font-semibold">Bruto</th>
                   <th className="text-right p-3 font-semibold text-muted-foreground/70">Pub.</th>
                   <th className="text-right p-3 font-semibold">Neto</th>
-                  <th className="text-right p-3 font-semibold text-purple-600 dark:text-purple-400">Tutor</th>
-                  <th className="text-right p-3 font-semibold text-sky-500 dark:text-sky-400">Agencia</th>
+                  <th className="text-right p-3 font-semibold text-success">Tutor</th>
+                  <th className="text-right p-3 font-semibold text-muted-foreground">Agencia</th>
                   <th className="text-center p-3 font-semibold text-[10px] text-muted-foreground">Pago tutor</th>
                   <th className="text-right p-3 font-semibold text-muted-foreground text-[10px]">Pgs</th>
                 </tr>
@@ -353,10 +353,10 @@ export default function TutorDetailPage() {
                           )}
                         </td>
                         <td className="p-3 text-right tabular-nums font-medium">{hasActivity ? fmt(cell?.netIncome ?? 0) : "—"}</td>
-                        <td className="p-3 text-right tabular-nums font-bold text-purple-600 dark:text-purple-400">
+                        <td className="p-3 text-right tabular-nums font-bold text-success">
                           {hasActivity ? fmt(cell?.tutorEarnings ?? 0) : "—"}
                         </td>
-                        <td className="p-3 text-right tabular-nums font-medium text-sky-500 dark:text-sky-400">
+                        <td className="p-3 text-right tabular-nums font-medium text-muted-foreground">
                           {hasActivity ? fmt(cell?.agencyEarnings ?? 0) : "—"}
                         </td>
                         <td className="p-3 text-center" onClick={e => e.stopPropagation()}>
@@ -401,8 +401,8 @@ export default function TutorDetailPage() {
                     {totalAdv > 0 ? `−${fmt(totalAdv)}` : "—"}
                   </td>
                   <td className="p-3 text-right tabular-nums">{fmt(totalNet)}</td>
-                  <td className="p-3 text-right tabular-nums text-purple-600 dark:text-purple-400">{fmt(totalTutor)}</td>
-                  <td className="p-3 text-right tabular-nums text-sky-500 dark:text-sky-400">{fmt(totalAgency)}</td>
+                  <td className="p-3 text-right tabular-nums text-success">{fmt(totalTutor)}</td>
+                  <td className="p-3 text-right tabular-nums text-muted-foreground">{fmt(totalAgency)}</td>
                   <td className="p-3 text-center">
                     <div className="text-[10px] text-green-600 dark:text-green-400">{fmt(totalPaid)} cobrado</div>
                     <div className="text-[10px] text-amber-600 dark:text-amber-400">{fmt(totalPending)} pendiente</div>
