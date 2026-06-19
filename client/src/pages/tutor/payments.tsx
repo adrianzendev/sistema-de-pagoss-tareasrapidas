@@ -24,10 +24,13 @@ const statusConfig: Record<string, { label: string; variant: "secondary" | "defa
 type SettlementRow = {
   week: Week;
   grossIncome: number;
+  grossRegular: number;
+  grossDirect: number;
   advertisingCost: number;
   netIncome: number;
   tutorEarnings: number;
   agencyEarnings: number;
+  netTransfer: number;
   commissionPercent: number;
   payments: PaymentWithDetails[];
 };
@@ -82,6 +85,38 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
             {pen(s.tutorEarnings)}
           </span>
         </div>
+
+        {/* Balance de transferencia — quién le debe a quién */}
+        {(s.grossRegular > 0 || s.grossDirect > 0) && (() => {
+          const transfer = s.netTransfer;
+          const agencyOwes = transfer > 0;
+          const even = Math.abs(transfer) < 0.01;
+          return (
+            <div className={`rounded-md px-3 py-2.5 border ${
+              even ? "border-muted bg-muted/20" :
+              agencyOwes ? "border-success/30 bg-success/5" : "border-warning/30 bg-warning/5"
+            }`} data-testid="summary-net-transfer">
+              <div className="flex items-center justify-between">
+                <span className={`text-xs font-semibold ${even ? "text-muted-foreground" : agencyOwes ? "text-success" : "text-warning"}`}>
+                  {even ? "⚖️ Estamos al día" : agencyOwes ? "✅ La agencia te debe" : "🔴 Debes transferir a la agencia"}
+                </span>
+                {!even && (
+                  <span className={`font-mono text-sm font-bold ${agencyOwes ? "text-success" : "text-warning"}`}>
+                    {pen(Math.abs(transfer))}
+                  </span>
+                )}
+              </div>
+              {!even && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {agencyOwes
+                    ? `Agencia cobró PEN ${fmt2(s.grossRegular)} → te paga tu ${s.commissionPercent}% menos gastos`
+                    : `Tú cobraste PEN ${fmt2(s.grossDirect)} directo → le pagas a la agencia su ${100 - s.commissionPercent}%`
+                  }
+                </p>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Toggle detalles */}
         <button
