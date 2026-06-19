@@ -202,7 +202,7 @@ export default function VerifierPaymentsPage() {
                           <TableCell className="py-3">
                             <button
                               onClick={() => setActionPayment({ payment, action: "verified" })}
-                              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium bg-secondary text-secondary-foreground hover:bg-muted border border-border transition-colors cursor-pointer"
+                              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium bg-orange-100 text-orange-600 hover:bg-orange-200 border border-orange-300 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-700 transition-colors cursor-pointer"
                               data-testid={`button-status-${payment.id}`}
                             >
                               <Clock className="h-3 w-3" />
