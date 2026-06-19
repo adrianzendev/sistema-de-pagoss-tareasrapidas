@@ -29,6 +29,7 @@ export const currencies = pgTable("currencies", {
   code: text("code").notNull().unique(),
   name: text("name").notNull(),
   exchangeRate: decimal("exchange_rate", { precision: 12, scale: 4 }).notNull(),
+  commissionPercent: decimal("commission_percent", { precision: 5, scale: 2 }).notNull().default("0"),
   color: text("color").notNull().default("gray"),
   verifierId: varchar("verifier_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),

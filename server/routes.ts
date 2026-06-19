@@ -780,7 +780,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         tutorPayments.forEach(p => {
           const currency = allCurrencies.find(c => c.id === p.currencyId);
           const rate = Number((p as any).exchangeRateSnapshot ?? currency?.exchangeRate ?? 1);
-          grossIncome += Number(p.amount) * rate;
+          const currCommissionFactor = 1 - (Number(currency?.commissionPercent ?? 0) / 100);
+          grossIncome += Number(p.amount) * rate * currCommissionFactor;
         });
 
         const commission = Number(tutor.commissionPercent) / 100;
@@ -909,7 +910,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           tutorPayments.forEach(p => {
             const currency = allCurrencies.find(c => c.id === p.currencyId);
             const rate = Number((p as any).exchangeRateSnapshot ?? currency?.exchangeRate ?? 1);
-            grossIncome += Number(p.amount) * rate;
+            const currCommissionFactor = 1 - (Number(currency?.commissionPercent ?? 0) / 100);
+            grossIncome += Number(p.amount) * rate * currCommissionFactor;
             if (currency) {
               const sym = currency.code === "USD" ? "$" : currency.code === "PEN" ? "S/." : currency.code;
               if (!cellCurrencies[currency.id]) cellCurrencies[currency.id] = { code: currency.code, symbol: sym, total: 0 };
@@ -1040,7 +1042,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         tutorPayments.forEach(p => {
           const currency = allCurrencies.find(c => c.id === p.currencyId);
           const rate = Number(currency?.exchangeRate ?? 1);
-          grossIncomePen += Number(p.amount) * rate;
+          const currCommissionFactor = 1 - (Number(currency?.commissionPercent ?? 0) / 100);
+          grossIncomePen += Number(p.amount) * rate * currCommissionFactor;
         });
 
         const ownAdvUsd = weekAdvByTutor[tutor.id] ?? Number(tutor.advertisingCostUsd ?? 0);
@@ -1138,7 +1141,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           tutorPayments.forEach(p => {
             const currency = allCurrencies.find(c => c.id === p.currencyId);
             const rate = Number(currency?.exchangeRate ?? 1);
-            grossIncome += Number(p.amount) * rate;
+            const currCommissionFactor = 1 - (Number(currency?.commissionPercent ?? 0) / 100);
+            grossIncome += Number(p.amount) * rate * currCommissionFactor;
           });
 
           const netIncome = grossIncome * commission;

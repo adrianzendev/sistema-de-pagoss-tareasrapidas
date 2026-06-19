@@ -38,6 +38,10 @@ const currencySchema = z.object({
     const num = parseFloat(val);
     return !isNaN(num) && num > 0;
   }, "Tasa debe ser mayor a 0"),
+  commissionPercent: z.string().refine((val) => {
+    const num = parseFloat(val);
+    return !isNaN(num) && num >= 0 && num <= 100;
+  }, "Comisión debe estar entre 0 y 100"),
   color: z.string().min(1, "Color requerido"),
   verifierId: z.string().optional(),
 });
@@ -72,6 +76,7 @@ export default function CurrenciesPage() {
       code: "",
       name: "",
       exchangeRate: "1",
+      commissionPercent: "0",
       color: "white",
       verifierId: "",
     },
@@ -122,6 +127,7 @@ export default function CurrenciesPage() {
       code: currency.code,
       name: currency.name,
       exchangeRate: String(currency.exchangeRate),
+      commissionPercent: String(currency.commissionPercent ?? "0"),
       color: currency.color ?? "gray",
       verifierId: currency.verifierId ?? "",
     });
@@ -226,6 +232,26 @@ export default function CurrenciesPage() {
 
                 <FormField
                   control={form.control}
+                  name="commissionPercent"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Comisión %</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input {...field} type="number" step="0.01" min="0" max="100" placeholder="0" data-testid="input-currency-commission" />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">%</span>
+                        </div>
+                      </FormControl>
+                      <FormDescription className="text-xs">
+                        Comisión del titular de la cuenta bancaria (se descuenta del ingreso bruto).
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="verifierId"
                   render={({ field }) => (
                     <FormItem>
@@ -316,6 +342,7 @@ export default function CurrenciesPage() {
                     <TableHead>Nombre</TableHead>
                     <TableHead>Verificador</TableHead>
                     <TableHead className="text-right">Tipo de Cambio</TableHead>
+                    <TableHead className="text-right">Comisión</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -334,6 +361,11 @@ export default function CurrenciesPage() {
                       </TableCell>
                       <TableCell className="text-right font-mono">
                         {Number(currency.exchangeRate).toFixed(4)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono">
+                        {Number(currency.commissionPercent ?? 0) > 0
+                          ? <span className="text-warning font-semibold">{Number(currency.commissionPercent).toFixed(2)}%</span>
+                          : <span className="text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
