@@ -207,11 +207,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
 
               <div className="flex items-center justify-between text-destructive" data-testid="summary-advertising">
                 <span className="flex items-center gap-1.5">
-                  <Megaphone className="h-3 w-3" />
-                  <span className="flex flex-col leading-tight">
-                    <span>Publicidad tutor</span>
-                    <span className="text-[9px] text-muted-foreground font-normal">tu 50% del total</span>
-                  </span>
+                  <Megaphone className="h-3 w-3" /> Publicidad tutor
                 </span>
                 <span className="font-mono">− {pen(s.advertisingCost)}</span>
               </div>
