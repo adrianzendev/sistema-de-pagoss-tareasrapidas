@@ -23,6 +23,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+const weekPaymentsCache = new Map<string, PaymentWithDetails[]>();
+
 const statusLabels: Record<string, { label: string; icon: any; className: string }> = {
   pending:  { label: "Pendiente",   icon: Clock,        className: "bg-secondary text-secondary-foreground" },
   verified: { label: "Verificado",  icon: CheckCircle,  className: "bg-success/10 text-success" },
@@ -264,13 +266,16 @@ function WeekSection({
 }) {
   const [expanded, setExpanded] = useState(isCurrentWeek);
 
-  const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
+  const { data: payments } = useQuery<PaymentWithDetails[]>({
     queryKey: ["/api/admin/payments", "week", week.id],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/payments?weekId=${week.id}`);
+      const res = await fetch(`/api/admin/payments?weekId=${week.id}`, { credentials: "include" });
       if (!res.ok) throw new Error("Error al cargar pagos");
-      return res.json();
+      const data = await res.json();
+      weekPaymentsCache.set(week.id, data);
+      return data;
     },
+    initialData: () => weekPaymentsCache.get(week.id),
     enabled: expanded,
     staleTime: Infinity,
     gcTime: Infinity,
@@ -299,10 +304,10 @@ function WeekSection({
         {!expanded && (
           <span className="text-xs text-muted-foreground italic">clic para cargar</span>
         )}
-        {expanded && isLoading && (
+        {expanded && !payments && (
           <span className="text-xs text-muted-foreground">cargando…</span>
         )}
-        {expanded && !isLoading && payments && (
+        {expanded && payments && (
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span>{payments.length} pagos</span>
             {pendingCount > 0 && (
@@ -314,7 +319,7 @@ function WeekSection({
 
       {expanded && (
         <div className="border-t">
-          {isLoading ? (
+          {!payments ? (
             <div className="p-4 space-y-2">
               {[1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full" />)}
             </div>
