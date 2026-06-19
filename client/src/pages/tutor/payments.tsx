@@ -106,14 +106,51 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
                   </span>
                 )}
               </div>
-              {!even && (
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  {agencyOwes
-                    ? `Agencia cobró PEN ${fmt2(s.grossRegular)} → te paga tu ${s.commissionPercent}% menos gastos`
-                    : `Tú cobraste PEN ${fmt2(s.grossDirect)} directo → le pagas a la agencia su ${100 - s.commissionPercent}%`
-                  }
-                </p>
-              )}
+              {!even && (() => {
+                const commission = s.commissionPercent / 100;
+                const agencyCommission = s.grossDirect * (1 - commission);
+                const regularTutorGross = s.grossRegular * commission;
+                const uncoveredAdv = Math.max(0, s.advertisingCost - regularTutorGross);
+                if (agencyOwes) {
+                  // Agency pays tutor: (regular * 70% - adv) - (direct * 30%)
+                  return (
+                    <div className="mt-1.5 space-y-0.5 text-[10px] text-muted-foreground border-t border-success/20 pt-1.5">
+                      <div className="flex justify-between">
+                        <span>Tu comisión ({s.commissionPercent}%) sobre PEN {fmt2(s.grossRegular)}</span>
+                        <span className="font-mono text-success">+{fmt2(regularTutorGross)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Menos publicidad</span>
+                        <span className="font-mono text-destructive">−{fmt2(s.advertisingCost)}</span>
+                      </div>
+                      {agencyCommission > 0 && (
+                        <div className="flex justify-between">
+                          <span>Menos comisión agencia sobre tus cobros directos</span>
+                          <span className="font-mono text-destructive">−{fmt2(agencyCommission)}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                } else {
+                  // Tutor pays agency: (direct * 30%) + uncovered advertising
+                  return (
+                    <div className="mt-1.5 space-y-0.5 text-[10px] text-muted-foreground border-t border-warning/20 pt-1.5">
+                      {agencyCommission > 0 && (
+                        <div className="flex justify-between">
+                          <span>Comisión agencia ({100 - s.commissionPercent}%) sobre PEN {fmt2(s.grossDirect)}</span>
+                          <span className="font-mono">+{fmt2(agencyCommission)}</span>
+                        </div>
+                      )}
+                      {uncoveredAdv > 0 && (
+                        <div className="flex justify-between">
+                          <span>Publicidad sin cubrir por tus ingresos regulares</span>
+                          <span className="font-mono">+{fmt2(uncoveredAdv)}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+              })()}
             </div>
           );
         })()}
