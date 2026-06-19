@@ -269,7 +269,7 @@ export default function TutorPaymentsPage() {
       </Card>
 
       {/* Botones de pago */}
-      <div className={`flex gap-2 ${(user as any)?.autoVerificaPagos ? "flex-col sm:flex-row" : ""}`}>
+      <div className={`flex gap-2 ${user?.autoVerificaPagos ? "flex-col sm:flex-row" : ""}`}>
         <button
           onClick={() => {
             if (!currentWeek || currentWeek.status !== "open") return;
@@ -288,7 +288,7 @@ export default function TutorPaymentsPage() {
           {currentWeek && <span className="text-[11px] font-mono opacity-70">S{currentWeek.weekNumber}</span>}
         </button>
 
-        {(user as any)?.autoVerificaPagos && (
+        {user?.autoVerificaPagos && (
           <button
             onClick={() => {
               if (!currentWeek || currentWeek.status !== "open") return;
@@ -303,7 +303,7 @@ export default function TutorPaymentsPage() {
               }`}
           >
             {currentWeek?.status === "open" ? <CheckCircle className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
-            Pago Cobrado
+            Agregar Pago Verificado
             {currentWeek && <span className="text-[11px] font-mono opacity-70">S{currentWeek.weekNumber}</span>}
           </button>
         )}

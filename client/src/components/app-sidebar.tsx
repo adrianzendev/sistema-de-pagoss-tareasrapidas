@@ -143,7 +143,7 @@ export function AppSidebar() {
                 )}
               </button>
 
-              {(user as any)?.autoVerificaPagos && (
+              {user?.autoVerificaPagos && (
                 <button
                   onClick={() => {
                     if (!hasOpenWeek) {
@@ -160,7 +160,7 @@ export function AppSidebar() {
                     }`}
                 >
                   {hasOpenWeek ? <CheckCircle className="h-4 w-4 shrink-0" /> : <Lock className="h-4 w-4 shrink-0" />}
-                  <span className="flex-1 text-left">Pago Cobrado</span>
+                  <span className="flex-1 text-left">Agregar Pago Verificado</span>
                   {hasOpenWeek && currentWeek && (
                     <span className="text-[10px] font-mono opacity-80">S{currentWeek.weekNumber}</span>
                   )}

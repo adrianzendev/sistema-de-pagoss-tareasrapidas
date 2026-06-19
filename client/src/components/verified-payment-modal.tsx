@@ -140,6 +140,7 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tutor/payments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tutor/settlement"] });
       queryClient.invalidateQueries({ queryKey: ["/api/clients/search"] });
       toast({ title: "Pago verificado registrado", description: "El pago ha sido registrado como ya cobrado" });
       handleClose();
