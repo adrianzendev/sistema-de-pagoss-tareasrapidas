@@ -3,12 +3,12 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Currency, Week, Client } from "@shared/schema";
+import { Week, Client } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -17,12 +17,12 @@ import { Loader2, X, Image as ImageIcon, AlertTriangle, Calendar, Phone, CheckCi
 import { normalizePhone } from "@shared/schema";
 
 const paymentSchema = z.object({
-  amount: z.string().refine((val) => {
+  amountPen: z.string().refine((val) => {
     const num = parseFloat(val);
     return !isNaN(num) && num > 0;
   }, "Monto debe ser mayor a 0"),
-  currencyId: z.string().min(1, "Selecciona una divisa"),
   clientNumber: z.string().min(1, "Número de cliente requerido"),
+  notes: z.string().optional(),
 });
 
 type PaymentForm = z.infer<typeof paymentSchema>;
@@ -46,10 +46,6 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
-
-  const { data: currencies } = useQuery<Currency[]>({
-    queryKey: ["/api/currencies"],
-  });
 
   const { data: weeks } = useQuery<Week[]>({
     queryKey: ["/api/weeks"],
@@ -76,12 +72,10 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
 
   const form = useForm<PaymentForm>({
     resolver: zodResolver(paymentSchema),
-    defaultValues: { amount: "", currencyId: "", clientNumber: "" },
+    defaultValues: { amountPen: "", clientNumber: "", notes: "" },
   });
 
   const clientNumber = form.watch("clientNumber");
-  const selectedCurrencyId = form.watch("currencyId");
-  const selectedCurrency = currencies?.find(c => c.id === selectedCurrencyId);
 
   useEffect(() => {
     if (!clientNumber || clientNumber.length < 1) {
@@ -130,7 +124,12 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
       const res = await fetch("/api/tutor/payments/verified", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, proofImage }),
+        body: JSON.stringify({
+          amountPen: data.amountPen,
+          clientNumber: data.clientNumber,
+          notes: data.notes || undefined,
+          proofImage: proofImage || undefined,
+        }),
       });
       if (!res.ok) {
         const error = await res.json();
@@ -142,7 +141,7 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
       queryClient.invalidateQueries({ queryKey: ["/api/tutor/payments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/tutor/settlement"] });
       queryClient.invalidateQueries({ queryKey: ["/api/clients/search"] });
-      toast({ title: "Pago verificado registrado", description: "El pago ha sido registrado como ya cobrado" });
+      toast({ title: "Cobro registrado", description: "El pago ha sido registrado directamente como cobrado" });
       handleClose();
     },
     onError: (error: Error) => {
@@ -194,12 +193,12 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-success" />
-            Pago Verificado
+            Agregar Pago Verificado
           </DialogTitle>
-          <DialogDescription className="flex items-center gap-2">
+          <DialogDescription className="flex items-center gap-2 flex-wrap">
             <Badge className="bg-success/10 text-success border-0 text-xs">Ya cobrado</Badge>
             {currentOpenWeek
-              ? `Semana S${currentOpenWeek.weekNumber} — se registra directamente como verificado`
+              ? `Semana S${currentOpenWeek.weekNumber} — ingresa el monto en PEN`
               : "Se registrará directamente como verificado"
             }
           </DialogDescription>
@@ -217,6 +216,7 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit((data) => createMutation.mutate(data))} className="space-y-4">
+
             <FormField
               control={form.control}
               name="clientNumber"
@@ -276,39 +276,14 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
 
             <FormField
               control={form.control}
-              name="currencyId"
+              name="amountPen"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Divisa</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger data-testid="select-verified-currency">
-                        <SelectValue placeholder="Selecciona una divisa" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {currencies?.map((currency) => (
-                        <SelectItem key={currency.id} value={currency.id}>
-                          {currency.code} - {currency.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Monto</FormLabel>
+                  <FormLabel>Monto cobrado (PEN)</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium w-9 text-center">
-                        {selectedCurrency?.code || "$"}
+                        PEN
                       </div>
                       <Input
                         {...field}
@@ -320,6 +295,28 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
                         data-testid="input-verified-payment-amount"
                       />
                     </div>
+                  </FormControl>
+                  <FormDescription className="text-xs">
+                    Convierte el monto a soles y escríbelo aquí. No afecta las estadísticas de otras divisas.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Referencia (opcional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      placeholder="Ej: Cobrado en CAD, transferencia USDT, etc."
+                      className="resize-none h-16 text-sm"
+                      data-testid="input-verified-notes"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

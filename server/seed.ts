@@ -114,6 +114,9 @@ export async function seedDatabase() {
       await ensureCurrency({ code: "MXN", name: "Peso Mexicano", exchangeRate: "0.1900" });
       await ensureCurrency({ code: "COP", name: "Peso Colombiano", exchangeRate: "0.0009" });
     }
+    // Always ensure the DIRECTO system currency exists (used for auto-verified payments).
+    // It is never shown in the regular payment modal and never mixed with other currency stats.
+    await ensureCurrency({ code: "DIRECTO", name: "Cobro Directo (PEN)", exchangeRate: "1.0000" });
 
 
     // === LINK VERIFIERS TO CURRENCIES ===

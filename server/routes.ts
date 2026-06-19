@@ -354,8 +354,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // Admin: Currencies
   app.get("/api/currencies", requireAuth, async (req, res) => {
-    const currencies = await storage.getCurrencies();
-    res.json(currencies);
+    const all = await storage.getCurrencies();
+    res.json(all.filter(c => c.code !== "DIRECTO"));
   });
 
   app.post("/api/admin/currencies", requireAdmin, async (req, res) => {
@@ -585,18 +585,38 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (!currentWeek || currentWeek.status !== "open") {
         return res.status(400).json({ message: "No hay una semana abierta para la fecha actual." });
       }
-      const data = insertPaymentSchema.parse({ ...req.body, tutorId: user.id });
-      const currency = await storage.getCurrency(data.currencyId);
-      const normalized = normalizePhone(data.clientNumber);
+      // Validate incoming fields (amountPen + clientNumber only)
+      const amountPen = parseFloat(req.body.amountPen);
+      if (isNaN(amountPen) || amountPen <= 0) {
+        return res.status(400).json({ message: "Monto en PEN debe ser mayor a 0" });
+      }
+      const clientNumber: string = req.body.clientNumber || "";
+      if (!clientNumber.trim()) {
+        return res.status(400).json({ message: "Número de cliente requerido" });
+      }
+      const notes: string | undefined = req.body.notes || undefined;
+      const proofImage: string | undefined = req.body.proofImage || undefined;
+      // Always use the DIRECTO system currency — isolated from regular currency stats
+      const allCurrencies = await storage.getCurrencies();
+      const directoCurrency = allCurrencies.find(c => c.code === "DIRECTO");
+      if (!directoCurrency) {
+        return res.status(500).json({ message: "Divisa DIRECTO no configurada. Contacta al administrador." });
+      }
+      const normalized = normalizePhone(clientNumber);
       if (normalized) {
         const existingClient = await storage.getClientByNormalizedPhone(normalized);
         if (!existingClient) {
-          await storage.createClient({ phoneNumber: data.clientNumber, normalizedPhone: normalized });
+          await storage.createClient({ phoneNumber: clientNumber, normalizedPhone: normalized });
         }
       }
       const payment = await storage.createPayment({
-        ...data,
-        exchangeRateSnapshot: currency ? String(currency.exchangeRate) : null,
+        tutorId: user.id,
+        amount: String(amountPen),
+        currencyId: directoCurrency.id,
+        clientNumber,
+        proofImage: proofImage ?? null,
+        exchangeRateSnapshot: "1.0000",
+        notes: notes ?? null,
         status: "verified",
         verifiedAt: new Date(),
         verifiedBy: user.id,
