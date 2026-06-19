@@ -777,11 +777,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
 
         let grossIncome = 0;
+        let currencyCommissionHalf = 0;
         tutorPayments.forEach(p => {
           const currency = allCurrencies.find(c => c.id === p.currencyId);
           const rate = Number((p as any).exchangeRateSnapshot ?? currency?.exchangeRate ?? 1);
-          const currCommissionFactor = 1 - (Number(currency?.commissionPercent ?? 0) / 100);
-          grossIncome += Number(p.amount) * rate * currCommissionFactor;
+          const rawAmountPen = Number(p.amount) * rate;
+          grossIncome += rawAmountPen;
+          currencyCommissionHalf += rawAmountPen * (Number(currency?.commissionPercent ?? 0) / 100) * 0.5;
         });
 
         const commission = Number(tutor.commissionPercent) / 100;
@@ -791,8 +793,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const ownAdvShare = isActiveForWeek ? ownAdvUsd * usdRate * 0.5 : 0;
         const totalAdvShare = sharedAdvShare + ownAdvShare;
         const netIncome = grossIncome * commission;
-        const tutorEarnings = netIncome - totalAdvShare;
-        const agencyEarnings = grossIncome * (1 - commission) - totalAdvShare;
+        const tutorEarnings = netIncome - totalAdvShare - currencyCommissionHalf;
+        const agencyEarnings = grossIncome * (1 - commission) - totalAdvShare - currencyCommissionHalf;
 
         return {
           week,
@@ -906,12 +908,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
 
           let grossIncome = 0;
+          let currencyCommissionHalf = 0;
           const cellCurrencies: Record<string, { code: string; symbol: string; total: number }> = {};
           tutorPayments.forEach(p => {
             const currency = allCurrencies.find(c => c.id === p.currencyId);
             const rate = Number((p as any).exchangeRateSnapshot ?? currency?.exchangeRate ?? 1);
-            const currCommissionFactor = 1 - (Number(currency?.commissionPercent ?? 0) / 100);
-            grossIncome += Number(p.amount) * rate * currCommissionFactor;
+            const rawAmountPen = Number(p.amount) * rate;
+            grossIncome += rawAmountPen;
+            currencyCommissionHalf += rawAmountPen * (Number(currency?.commissionPercent ?? 0) / 100) * 0.5;
             if (currency) {
               const sym = currency.code === "USD" ? "$" : currency.code === "PEN" ? "S/." : currency.code;
               if (!cellCurrencies[currency.id]) cellCurrencies[currency.id] = { code: currency.code, symbol: sym, total: 0 };
@@ -926,9 +930,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const ownAdvShare = tutorIsActive ? weekOwnAdv * usdRate * 0.5 : 0;
           const totalAdvShare = sharedAdvShare + ownAdvShare;
           const netIncome = grossIncome * commission;
-          const tutorEarnings = netIncome - totalAdvShare;
+          const tutorEarnings = netIncome - totalAdvShare - currencyCommissionHalf;
 
-          const agencyEarnings = grossIncome * (1 - commission) - totalAdvShare;
+          const agencyEarnings = grossIncome * (1 - commission) - totalAdvShare - currencyCommissionHalf;
 
           if (!matrix[tutor.id]) matrix[tutor.id] = {};
           matrix[tutor.id][week.id] = {
@@ -1039,11 +1043,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const isActive = tutor.isActive !== false && (!tutor.activatedAt || new Date(tutor.activatedAt) <= weekEnd);
 
         let grossIncomePen = 0;
+        let currencyCommissionHalfPen = 0;
         tutorPayments.forEach(p => {
           const currency = allCurrencies.find(c => c.id === p.currencyId);
           const rate = Number(currency?.exchangeRate ?? 1);
-          const currCommissionFactor = 1 - (Number(currency?.commissionPercent ?? 0) / 100);
-          grossIncomePen += Number(p.amount) * rate * currCommissionFactor;
+          const rawAmountPen = Number(p.amount) * rate;
+          grossIncomePen += rawAmountPen;
+          currencyCommissionHalfPen += rawAmountPen * (Number(currency?.commissionPercent ?? 0) / 100) * 0.5;
         });
 
         const ownAdvUsd = weekAdvByTutor[tutor.id] ?? Number(tutor.advertisingCostUsd ?? 0);
@@ -1052,7 +1058,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const totalAdvPen = sharedAdv + ownAdvPen;
 
         const netIncomePen = grossIncomePen * commission;
-        const tutorEarningsPen = netIncomePen - totalAdvPen;
+        const tutorEarningsPen = netIncomePen - totalAdvPen - currencyCommissionHalfPen;
 
         return {
           tutorId: tutor.id,
@@ -1138,16 +1144,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const tutorAdvertisingShare = ownAdvPen + sharedAdvPen;
 
           let grossIncome = 0;
+          let currencyCommissionHalf = 0;
           tutorPayments.forEach(p => {
             const currency = allCurrencies.find(c => c.id === p.currencyId);
             const rate = Number(currency?.exchangeRate ?? 1);
-            const currCommissionFactor = 1 - (Number(currency?.commissionPercent ?? 0) / 100);
-            grossIncome += Number(p.amount) * rate * currCommissionFactor;
+            const rawAmountPen = Number(p.amount) * rate;
+            grossIncome += rawAmountPen;
+            currencyCommissionHalf += rawAmountPen * (Number(currency?.commissionPercent ?? 0) / 100) * 0.5;
           });
 
           const netIncome = grossIncome * commission;
-          const tutorEarnings = netIncome - tutorAdvertisingShare;
-          const agencyEarnings = grossIncome * (1 - commission) - tutorAdvertisingShare;
+          const tutorEarnings = netIncome - tutorAdvertisingShare - currencyCommissionHalf;
+          const agencyEarnings = grossIncome * (1 - commission) - tutorAdvertisingShare - currencyCommissionHalf;
 
           return {
             week,
