@@ -1094,7 +1094,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const ownAdvUsd = weekAdvRec !== undefined
             ? Number(weekAdvRec.advertisingCostUsd)
             : Number(user.advertisingCostUsd ?? 0);
-          const ownAdvPen = tutorPayments.length > 0 ? ownAdvUsd * usdRate * 0.5 : 0;
+          const ownAdvPen = ownAdvUsd * usdRate * 0.5;
 
           const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
           const weekEnd = new Date(week.endDate);
@@ -1103,9 +1103,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             if (!t.activatedAt) return true;
             return new Date(t.activatedAt) <= weekEnd;
           }).length || 1;
-          const sharedAdvPen = tutorPayments.length > 0
-            ? (sharedAdvertisingUsd * usdRate * 0.5) / activeTutorCount
-            : 0;
+          const sharedAdvPen = (sharedAdvertisingUsd * usdRate * 0.5) / activeTutorCount;
 
           const tutorAdvertisingShare = ownAdvPen + sharedAdvPen;
 
