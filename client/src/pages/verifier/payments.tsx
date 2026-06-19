@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CheckCircle, XCircle, Clock, Image as ImageIcon, ShieldCheck, Calendar, Phone, RotateCcw } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Image as ImageIcon, ShieldCheck, Calendar, Phone, RotateCcw, ChevronLeft, ChevronRight, X } from "lucide-react";
 
 const statusConfig: Record<string, { label: string; icon: any; className: string }> = {
   pending:  { label: "Pendiente",   icon: Clock,        className: "bg-secondary text-secondary-foreground" },
@@ -119,7 +119,7 @@ function WeekSeparatorRow({ group, colSpan, showPending }: { group: WeekGroup; c
 
 export default function VerifierPaymentsPage() {
   const { toast } = useToast();
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewPayment, setPreviewPayment] = useState<PaymentWithDetails | null>(null);
   const [actionPayment, setActionPayment] = useState<{ payment: PaymentWithDetails; action: "verified" | "rejected" } | null>(null);
 
   const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
@@ -218,7 +218,7 @@ export default function VerifierPaymentsPage() {
                           <TableCell className="py-3 text-center">
                             {payment.proofImage ? (
                               <button
-                                onClick={() => setPreviewImage(payment.proofImage!)}
+                                onClick={() => setPreviewPayment(payment)}
                                 className="inline-flex items-center justify-center w-8 h-8 rounded overflow-hidden border bg-muted hover:opacity-80 transition-opacity mx-auto"
                                 data-testid={`button-proof-${payment.id}`}
                               >
@@ -301,7 +301,7 @@ export default function VerifierPaymentsPage() {
                             <TableCell className="py-3 text-center">
                               {payment.proofImage ? (
                                 <button
-                                  onClick={() => setPreviewImage(payment.proofImage!)}
+                                  onClick={() => setPreviewPayment(payment)}
                                   className="inline-flex items-center justify-center w-8 h-8 rounded overflow-hidden border bg-muted hover:opacity-80 transition-opacity mx-auto"
                                   data-testid={`button-proof-history-${payment.id}`}
                                 >
@@ -392,18 +392,86 @@ export default function VerifierPaymentsPage() {
       </Dialog>
 
       {/* Preview image dialog */}
-      <Dialog open={!!previewImage} onOpenChange={(open) => { if (!open) setPreviewImage(null); }}>
-        <DialogContent className="sm:max-w-lg p-2 max-h-[90vh] flex flex-col">
-          <DialogHeader className="flex-shrink-0 px-2 pt-2">
-            <DialogTitle>Prueba de Pago</DialogTitle>
-          </DialogHeader>
-          {previewImage && (
-            <div className="overflow-y-auto flex-1 px-2 pb-2">
-              <img src={previewImage} alt="Prueba de pago" className="w-full rounded-lg" />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {(() => {
+        const paymentsWithImage = (payments ?? []).filter(p => p.proofImage);
+        const currentIdx = previewPayment ? paymentsWithImage.findIndex(p => p.id === previewPayment.id) : -1;
+        const hasPrev = currentIdx > 0;
+        const hasNext = currentIdx < paymentsWithImage.length - 1;
+        const navigate = (delta: number) => {
+          const next = paymentsWithImage[currentIdx + delta];
+          if (next) setPreviewPayment(next);
+        };
+        const isPending = previewPayment?.status === "pending";
+        return (
+          <Dialog open={!!previewPayment} onOpenChange={(open) => { if (!open) setPreviewPayment(null); }}>
+            <DialogContent className="sm:max-w-lg p-0 max-h-[92vh] flex flex-col gap-0 overflow-hidden [&>button]:hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+                <div>
+                  <p className="font-semibold text-sm">{previewPayment?.tutor?.name ?? "—"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {previewPayment && Number(previewPayment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })} {previewPayment?.currency?.code}
+                    {previewPayment?.clientNumber && <span className="ml-2 font-mono">{previewPayment.clientNumber}</span>}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground mr-2">
+                    {currentIdx + 1} / {paymentsWithImage.length}
+                  </span>
+                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(-1)} disabled={!hasPrev} data-testid="button-prev-payment">
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(1)} disabled={!hasNext} data-testid="button-next-payment">
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setPreviewPayment(null)} data-testid="button-close-preview">
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Image */}
+              <div className="overflow-y-auto flex-1 p-3">
+                {previewPayment?.proofImage && (
+                  <img src={previewPayment.proofImage} alt="Comprobante" className="w-full rounded-lg" />
+                )}
+              </div>
+
+              {/* Actions for pending */}
+              {isPending && (
+                <div className="flex gap-2 p-3 border-t shrink-0">
+                  <Button
+                    className="flex-1 gap-2 bg-success/10 text-success hover:bg-success/20 border border-success/30"
+                    variant="ghost"
+                    onClick={() => {
+                      updateMutation.mutate({ id: previewPayment!.id, status: "verified" });
+                      setPreviewPayment(null);
+                    }}
+                    disabled={updateMutation.isPending}
+                    data-testid="button-preview-verify"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Verificar
+                  </Button>
+                  <Button
+                    className="flex-1 gap-2 bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30"
+                    variant="ghost"
+                    onClick={() => {
+                      updateMutation.mutate({ id: previewPayment!.id, status: "rejected" });
+                      setPreviewPayment(null);
+                    }}
+                    disabled={updateMutation.isPending}
+                    data-testid="button-preview-reject"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Rechazar
+                  </Button>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
 
     </div>
   );
