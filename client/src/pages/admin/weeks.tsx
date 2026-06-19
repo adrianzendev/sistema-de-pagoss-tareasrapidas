@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Calendar, Plus, Settings, Eye, Trash2, Coins, DollarSign } from "lucide-react";
+import { Calendar, Plus, Settings, Eye, Trash2, Coins, DollarSign, AlertCircle } from "lucide-react";
 import type { Week, AgencySettings } from "@shared/schema";
 
 type WeekSettlement = {
@@ -513,7 +513,16 @@ export default function WeeksPage() {
                             {s.tutorAdvertisingShare > 0 ? `-${formatCurrency(s.tutorAdvertisingShare)}` : "—"}
                           </TableCell>
                           <TableCell className="text-right font-bold">{formatCurrency(s.tutorEarnings)}</TableCell>
-                          <TableCell className="text-right font-bold">{formatCurrency(s.agencyEarnings)}</TableCell>
+                          <TableCell className="text-right font-bold">
+                            <span className={`inline-flex items-center justify-end gap-1 ${s.agencyEarnings < 0 ? "text-destructive" : ""}`}>
+                              {s.agencyEarnings < 0 && (
+                                <span title={`La publicidad (S/${formatCurrency(s.tutorAdvertisingShare)}) supera los ingresos por comisión de la agencia (S/${formatCurrency(s.grossIncome * (1 - s.commissionPercent / 100))}) para este tutor. La semana tiene pérdida neta.`}>
+                                  <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0 cursor-help" />
+                                </span>
+                              )}
+                              {formatCurrency(s.agencyEarnings)}
+                            </span>
+                          </TableCell>
                           <TableCell className="text-right" data-testid={`cell-net-transfer-${s.tutorId}`}>
                             <div className={`text-xs font-semibold ${owesAgency ? "text-destructive" : "text-success"}`}>
                               {owesAgency

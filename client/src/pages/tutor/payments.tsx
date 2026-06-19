@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, Calendar, Phone, RotateCcw, PlusCircle, Lock, TrendingUp, Megaphone, DollarSign, Coins, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, Calendar, Phone, RotateCcw, PlusCircle, Lock, TrendingUp, Megaphone, DollarSign, Coins, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 import { NewPaymentModal } from "@/components/new-payment-modal";
 import { VerifiedPaymentModal } from "@/components/verified-payment-modal";
 
@@ -46,6 +46,7 @@ function pen(val: number) {
 
 function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: SettlementRow[]; currentWeek: Week | undefined }) {
   const [showDetails, setShowDetails] = useState(false);
+  const [showNegWarning, setShowNegWarning] = useState(false);
 
   if (!currentWeek) return null;
 
@@ -77,13 +78,29 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
 
       <CardContent className="py-3 px-4 space-y-1.5">
         {/* Ganancia estimada — siempre visible */}
-        <div className={`rounded-md px-3 py-2 flex items-center justify-between ${isNegative ? "bg-destructive/10" : "bg-success/10"}`} data-testid="summary-tutor-earnings">
-          <span className={`text-sm font-semibold ${isNegative ? "text-destructive" : "text-success"}`}>
-            Ganancia estimada
-          </span>
-          <span className={`font-mono text-base font-bold ${isNegative ? "text-destructive" : "text-success"}`}>
-            {pen(s.tutorEarnings)}
-          </span>
+        <div className={`rounded-md px-3 py-2 ${isNegative ? "bg-destructive/10" : "bg-success/10"}`} data-testid="summary-tutor-earnings">
+          <div className="flex items-center justify-between">
+            <span className={`text-sm font-semibold flex items-center gap-1.5 ${isNegative ? "text-destructive" : "text-success"}`}>
+              Ganancia estimada
+              {isNegative && (
+                <button
+                  onClick={() => setShowNegWarning(v => !v)}
+                  className="inline-flex items-center justify-center rounded-full w-4 h-4 bg-destructive/20 hover:bg-destructive/30 transition-colors"
+                  data-testid="button-neg-warning"
+                >
+                  <AlertCircle className="h-3 w-3 text-destructive" />
+                </button>
+              )}
+            </span>
+            <span className={`font-mono text-base font-bold ${isNegative ? "text-destructive" : "text-success"}`}>
+              {pen(s.tutorEarnings)}
+            </span>
+          </div>
+          {isNegative && showNegWarning && (
+            <div className="mt-2 text-xs text-destructive/80 bg-destructive/10 rounded px-2 py-1.5 border border-destructive/20" data-testid="text-neg-warning">
+              ⚠️ El costo de publicidad de esta semana (<strong>{pen(s.advertisingCost)}</strong>) supera tu comisión sobre los pagos regulares (<strong>{pen(s.grossRegular * s.commissionPercent / 100)}</strong>). Eso genera una ganancia negativa. Si tienes pagos DIRECTO, parte de esa diferencia puede quedar cubierta por lo que le debes a la agencia.
+            </div>
+          )}
         </div>
 
         {/* Balance de transferencia — quién le debe a quién */}
@@ -240,8 +257,15 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
               </div>
 
               <div className="flex items-center justify-between text-muted-foreground">
-                <span>Ingresos agencia ({100 - s.commissionPercent}%)</span>
-                <span className="font-mono">{pen(s.agencyEarnings)}</span>
+                <span className="flex items-center gap-1">
+                  Ingresos agencia ({100 - s.commissionPercent}%)
+                  {s.agencyEarnings < 0 && (
+                    <button onClick={() => setShowNegWarning(v => !v)} className="inline-flex">
+                      <AlertCircle className="h-3 w-3 text-destructive" />
+                    </button>
+                  )}
+                </span>
+                <span className={`font-mono ${s.agencyEarnings < 0 ? "text-destructive" : ""}`}>{pen(s.agencyEarnings)}</span>
               </div>
             </div>
 
