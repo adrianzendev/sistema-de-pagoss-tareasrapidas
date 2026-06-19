@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, Calendar, Phone, RotateCcw, PlusCircle, Lock, TrendingUp, Megaphone, DollarSign, Coins } from "lucide-react";
+import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, Calendar, Phone, RotateCcw, PlusCircle, Lock, TrendingUp, Megaphone, DollarSign, Coins, ChevronDown, ChevronUp } from "lucide-react";
 import { NewPaymentModal } from "@/components/new-payment-modal";
 import { VerifiedPaymentModal } from "@/components/verified-payment-modal";
 
@@ -27,6 +27,7 @@ type SettlementRow = {
   advertisingCost: number;
   netIncome: number;
   tutorEarnings: number;
+  agencyEarnings: number;
   commissionPercent: number;
   payments: PaymentWithDetails[];
 };
@@ -41,6 +42,8 @@ function pen(val: number) {
 }
 
 function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: SettlementRow[]; currentWeek: Week | undefined }) {
+  const [showDetails, setShowDetails] = useState(false);
+
   if (!currentWeek) return null;
 
   const s = settlements.find(r => r.week.id === currentWeek.id);
@@ -55,6 +58,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
   }
 
   const isNegative = s.tutorEarnings < 0;
+  const fmt2 = (n: number) => n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <Card className="overflow-hidden" data-testid="card-week-summary">
@@ -67,56 +71,9 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
           Solo verificados
         </Badge>
       </div>
+
       <CardContent className="py-3 px-4 space-y-1.5">
-
-        {/* Desglose por divisa — solo pagos verificados */}
-        {(() => {
-          const byCode: Record<string, number> = {};
-          s.payments.forEach(p => {
-            const code = p.currency?.code ?? "?";
-            byCode[code] = (byCode[code] ?? 0) + Number(p.amount);
-          });
-          const entries = Object.entries(byCode);
-          if (entries.length === 0) return null;
-          return (
-            <div className="bg-muted/40 rounded-md px-3 py-2 space-y-1" data-testid="summary-currency-breakdown">
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium uppercase tracking-wide mb-1">
-                <Coins className="h-3 w-3" />
-                Ingresos por divisa
-              </div>
-              {entries.map(([code, total]) => (
-                <div key={code} className="flex items-center justify-between text-xs">
-                  <span className="font-mono text-muted-foreground">{code}</span>
-                  <span className="font-mono font-medium tabular-nums">
-                    {total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-              ))}
-            </div>
-          );
-        })()}
-
-        <div className="flex items-center justify-between text-sm" data-testid="summary-gross-income">
-          <span className="text-muted-foreground flex items-center gap-1.5">
-            <DollarSign className="h-3.5 w-3.5" />
-            Ingresos brutos
-          </span>
-          <span className="font-mono font-medium">{pen(s.grossIncome)}</span>
-        </div>
-
-        <div className="flex items-center justify-between text-sm text-destructive" data-testid="summary-advertising">
-          <span className="flex items-center gap-1.5">
-            <Megaphone className="h-3.5 w-3.5" />
-            Gastos publicidad
-          </span>
-          <span className="font-mono">− {pen(s.advertisingCost)}</span>
-        </div>
-
-        <div className="border-t pt-1.5 flex items-center justify-between" data-testid="summary-net-income">
-          <span className="text-xs text-muted-foreground">Ingreso neto ({s.commissionPercent}%)</span>
-          <span className="font-mono text-xs text-muted-foreground">= {pen(s.netIncome)}</span>
-        </div>
-
+        {/* Ganancia estimada — siempre visible */}
         <div className={`rounded-md px-3 py-2 flex items-center justify-between ${isNegative ? "bg-destructive/10" : "bg-success/10"}`} data-testid="summary-tutor-earnings">
           <span className={`text-sm font-semibold ${isNegative ? "text-destructive" : "text-success"}`}>
             Ganancia estimada
@@ -125,6 +82,109 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
             {pen(s.tutorEarnings)}
           </span>
         </div>
+
+        {/* Toggle detalles */}
+        <button
+          onClick={() => setShowDetails(v => !v)}
+          className="w-full flex items-center justify-center gap-1.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          data-testid="button-toggle-details"
+        >
+          {showDetails ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          {showDetails ? "Ocultar detalles" : "Ver cálculo detallado"}
+        </button>
+
+        {/* Detalles expandibles */}
+        {showDetails && (
+          <div className="space-y-3 border-t pt-2">
+
+            {/* Desglose por divisa */}
+            {(() => {
+              const byCode: Record<string, number> = {};
+              s.payments.forEach(p => {
+                const code = p.currency?.code ?? "?";
+                byCode[code] = (byCode[code] ?? 0) + Number(p.amount);
+              });
+              const entries = Object.entries(byCode);
+              if (entries.length === 0) return null;
+              return (
+                <div className="bg-muted/40 rounded-md px-3 py-2 space-y-1" data-testid="summary-currency-breakdown">
+                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium uppercase tracking-wide mb-1">
+                    <Coins className="h-3 w-3" />
+                    Cobrado por divisa
+                  </div>
+                  {entries.map(([code, total]) => (
+                    <div key={code} className="flex items-center justify-between text-xs">
+                      <span className="font-mono text-muted-foreground">{code}</span>
+                      <span className="font-mono font-medium tabular-nums">{fmt2(total)}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
+            {/* Fórmula paso a paso */}
+            <div className="bg-muted/30 rounded-md px-3 py-2 space-y-1.5 text-xs" data-testid="summary-formula">
+              <div className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide mb-1">Cálculo</div>
+
+              <div className="flex items-center justify-between" data-testid="summary-gross-income">
+                <span className="text-muted-foreground flex items-center gap-1.5">
+                  <DollarSign className="h-3 w-3" /> Ingresos brutos
+                </span>
+                <span className="font-mono font-medium">{pen(s.grossIncome)}</span>
+              </div>
+
+              <div className="flex items-center justify-between text-destructive" data-testid="summary-advertising">
+                <span className="flex items-center gap-1.5">
+                  <Megaphone className="h-3 w-3" /> Publicidad
+                </span>
+                <span className="font-mono">− {pen(s.advertisingCost)}</span>
+              </div>
+
+              <div className="border-t pt-1 flex items-center justify-between text-muted-foreground" data-testid="summary-net-income">
+                <span>Base neta</span>
+                <span className="font-mono">= {pen(s.grossIncome - s.advertisingCost)}</span>
+              </div>
+
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Tu comisión ({s.commissionPercent}%)</span>
+                <span className="font-mono">× {s.commissionPercent / 100}</span>
+              </div>
+
+              <div className="border-t pt-1 flex items-center justify-between font-semibold">
+                <span>= Ganancia tutor</span>
+                <span className={`font-mono ${isNegative ? "text-destructive" : "text-success"}`}>{pen(s.tutorEarnings)}</span>
+              </div>
+
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Parte agencia (30%)</span>
+                <span className="font-mono">{pen(s.agencyEarnings)}</span>
+              </div>
+            </div>
+
+            {/* Lista de pagos */}
+            {s.payments.length > 0 && (
+              <div className="space-y-1" data-testid="summary-payments-list">
+                <div className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide px-1">Pagos incluidos ({s.payments.length})</div>
+                {s.payments.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between bg-muted/30 rounded px-2 py-1.5 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <span className="font-mono truncate text-muted-foreground">{p.clientNumber}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                      <span className="font-mono font-medium tabular-nums">
+                        {fmt2(Number(p.amount))}
+                      </span>
+                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 font-mono">
+                        {p.currency?.code ?? "?"}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
