@@ -327,7 +327,7 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
             />
 
             <div className="space-y-2">
-              <FormLabel>Comprobante (opcional)</FormLabel>
+              <FormLabel>Comprobante</FormLabel>
               <input
                 ref={fileInputRef}
                 type="file"

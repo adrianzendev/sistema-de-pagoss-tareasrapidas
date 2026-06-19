@@ -332,7 +332,7 @@ export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
             />
 
             <div className="space-y-2">
-              <FormLabel>Comprobante (opcional)</FormLabel>
+              <FormLabel>Comprobante</FormLabel>
               <input
                 ref={fileInputRef}
                 type="file"
