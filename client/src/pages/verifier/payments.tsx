@@ -185,12 +185,12 @@ export default function VerifierPaymentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="text-xs">Monto</TableHead>
+                    <TableHead className="text-xs">Estado</TableHead>
+                    <TableHead className="text-right text-xs">Monto</TableHead>
                     <TableHead className="text-center text-xs">Img</TableHead>
                     <TableHead className="text-xs">Tutor</TableHead>
                     <TableHead className="text-xs w-32">Fecha</TableHead>
                     <TableHead className="text-xs">Teléfono</TableHead>
-                    <TableHead className="text-right text-xs">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -199,6 +199,16 @@ export default function VerifierPaymentsPage() {
                       <WeekSeparatorRow group={group} colSpan={6} showPending />
                       {group.payments.map((payment) => (
                         <TableRow key={payment.id} data-testid={`card-payment-${payment.id}`} className="hover:bg-muted/30">
+                          <TableCell className="py-3">
+                            <button
+                              onClick={() => setActionPayment({ payment, action: "verified" })}
+                              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium bg-secondary text-secondary-foreground hover:bg-muted border border-border transition-colors cursor-pointer"
+                              data-testid={`button-status-${payment.id}`}
+                            >
+                              <Clock className="h-3 w-3" />
+                              Pendiente
+                            </button>
+                          </TableCell>
                           <TableCell className="py-3 text-right">
                             <span className="font-semibold text-sm tabular-nums">
                               {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
@@ -234,28 +244,6 @@ export default function VerifierPaymentsPage() {
                             <div className="flex items-center gap-1.5 text-xs">
                               <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
                               <span className="font-mono">{payment.clientNumber}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-3 text-right">
-                            <div className="flex justify-end gap-0.5">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 w-7 p-0"
-                                onClick={() => setActionPayment({ payment, action: "verified" })}
-                                data-testid={`button-verify-${payment.id}`}
-                              >
-                                <CheckCircle className="h-4 w-4 text-success" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 w-7 p-0"
-                                onClick={() => setActionPayment({ payment, action: "rejected" })}
-                                data-testid={`button-reject-${payment.id}`}
-                              >
-                                <XCircle className="h-4 w-4 text-destructive" />
-                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -357,20 +345,14 @@ export default function VerifierPaymentsPage() {
       <Dialog open={!!actionPayment} onOpenChange={(open) => { if (!open) setActionPayment(null); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {actionPayment?.action === "verified" ? "Verificar Pago" : "Rechazar Pago"}
-            </DialogTitle>
-            <DialogDescription>
-              {actionPayment?.action === "verified"
-                ? "Confirma que este pago ha sido recibido correctamente"
-                : "Confirma el rechazo de este pago"}
-            </DialogDescription>
+            <DialogTitle>Actualizar estado del pago</DialogTitle>
+            <DialogDescription>Elige una acción para este pago</DialogDescription>
           </DialogHeader>
           {actionPayment && (
             <div className="space-y-4">
               <div className="border rounded-lg p-3 bg-muted/50">
                 <div className="flex justify-between">
-                  <span className="text-sm">{actionPayment.payment.tutor?.name}</span>
+                  <span className="text-sm font-medium">{actionPayment.payment.tutor?.name}</span>
                   <span className="font-mono font-bold">
                     {Number(actionPayment.payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })} {actionPayment.payment.currency?.code}
                   </span>
@@ -379,17 +361,31 @@ export default function VerifierPaymentsPage() {
                   Cliente: {actionPayment.payment.clientNumber}
                 </div>
               </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setActionPayment(null)}>Cancelar</Button>
+              <div className="grid grid-cols-2 gap-3">
                 <Button
-                  variant={actionPayment.action === "verified" ? "default" : "destructive"}
-                  onClick={() => updateMutation.mutate({ id: actionPayment.payment.id, status: actionPayment.action })}
+                  className="gap-2 bg-success/10 text-success hover:bg-success/20 border border-success/30"
+                  variant="ghost"
+                  onClick={() => updateMutation.mutate({ id: actionPayment.payment.id, status: "verified" })}
                   disabled={updateMutation.isPending}
-                  data-testid="button-confirm-action"
+                  data-testid="button-confirm-verify"
                 >
-                  {updateMutation.isPending ? "Procesando..." : actionPayment.action === "verified" ? "Confirmar Verificación" : "Confirmar Rechazo"}
+                  <CheckCircle className="h-4 w-4" />
+                  Verificar
+                </Button>
+                <Button
+                  className="gap-2 bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30"
+                  variant="ghost"
+                  onClick={() => updateMutation.mutate({ id: actionPayment.payment.id, status: "rejected" })}
+                  disabled={updateMutation.isPending}
+                  data-testid="button-confirm-reject"
+                >
+                  <XCircle className="h-4 w-4" />
+                  Rechazar
                 </Button>
               </div>
+              <Button variant="outline" className="w-full" onClick={() => setActionPayment(null)}>
+                Cancelar
+              </Button>
             </div>
           )}
         </DialogContent>
