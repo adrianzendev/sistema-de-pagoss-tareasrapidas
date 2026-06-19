@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -452,11 +453,20 @@ export default function TutorPaymentsPage() {
       </div>
 
       {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-28 w-full rounded-lg" />
-          ))}
-        </div>
+        <Card>
+          <div className="space-y-0 divide-y divide-border">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-4 px-4 py-3">
+                <Skeleton className="h-4 w-6" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-8 w-8 rounded" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+            ))}
+          </div>
+        </Card>
       ) : filteredPayments?.length === 0 ? (
         <div className="text-center py-12">
           <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
@@ -468,70 +478,76 @@ export default function TutorPaymentsPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filteredPayments?.map((payment, index) => {
-            const status = statusConfig[payment.status] ?? statusConfig.pending;
-            const StatusIcon = status.icon;
-            const paymentWeek = getWeekForPayment(payment);
-
-            return (
-              <div
-                key={payment.id}
-                className="bg-card border rounded-lg p-4 shadow-sm"
-                data-testid={`payment-card-${payment.id}`}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-muted-foreground">#{index + 1}</span>
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5" data-testid={`badge-week-${payment.id}`}>
-                      S{selectedWeek?.weekNumber ?? paymentWeek?.weekNumber ?? "?"}
-                    </Badge>
-                  </div>
-                  <Badge className={`gap-1 text-[11px] px-2 py-0.5 ${status.className}`} data-testid={`badge-status-${payment.id}`}>
-                    <StatusIcon className="h-3 w-3" />
-                    {status.label}
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Calendar className="h-3.5 w-3.5 shrink-0" />
-                    <span className="text-foreground text-xs">
-                      {payment.createdAt && format(new Date(payment.createdAt), "dd/MM/yyyy hh:mm a", { locale: es })}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Phone className="h-3.5 w-3.5 shrink-0" />
-                    <span className="text-foreground text-xs font-mono">{payment.clientNumber}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <span className="text-foreground font-semibold">
-                      {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })} {payment.currency?.code ?? ""}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {payment.proofImage ? (
-                      <button
-                        onClick={() => setPreviewImage(payment.proofImage!)}
-                        className="w-14 h-14 rounded overflow-hidden border bg-muted hover:opacity-80 transition-opacity"
-                        data-testid={`button-proof-${payment.id}`}
-                      >
-                        <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
-                      </button>
-                    ) : (
-                      <div className="w-14 h-14 rounded border bg-muted/30 flex items-center justify-center">
-                        <ImageIcon className="h-5 w-5 text-muted-foreground/40" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead className="w-10 text-xs">#</TableHead>
+                  <TableHead className="text-xs">Fecha y hora</TableHead>
+                  <TableHead className="text-xs">Teléfono</TableHead>
+                  <TableHead className="text-right text-xs">Monto</TableHead>
+                  <TableHead className="text-center text-xs">Comprobante</TableHead>
+                  <TableHead className="text-xs">Estado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredPayments?.map((payment, index) => {
+                  const status = statusConfig[payment.status] ?? statusConfig.pending;
+                  const StatusIcon = status.icon;
+                  return (
+                    <TableRow key={payment.id} data-testid={`payment-card-${payment.id}`} className="hover:bg-muted/30">
+                      <TableCell className="text-xs font-bold text-muted-foreground py-3">
+                        #{index + 1}
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Calendar className="h-3 w-3 shrink-0" />
+                          <span className="text-foreground">
+                            {payment.createdAt && format(new Date(payment.createdAt), "dd/MM/yyyy HH:mm", { locale: es })}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
+                          <span className="font-mono">{payment.clientNumber}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right py-3">
+                        <span className="font-semibold text-sm tabular-nums">
+                          {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground ml-1">{payment.currency?.code ?? ""}</span>
+                      </TableCell>
+                      <TableCell className="text-center py-3">
+                        {payment.proofImage ? (
+                          <button
+                            onClick={() => setPreviewImage(payment.proofImage!)}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded overflow-hidden border bg-muted hover:opacity-80 transition-opacity mx-auto"
+                            data-testid={`button-proof-${payment.id}`}
+                          >
+                            <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
+                          </button>
+                        ) : (
+                          <div className="inline-flex items-center justify-center w-8 h-8 rounded border bg-muted/30 mx-auto">
+                            <ImageIcon className="h-3.5 w-3.5 text-muted-foreground/40" />
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <Badge className={`gap-1 text-[10px] px-1.5 py-0.5 ${status.className}`} data-testid={`badge-status-${payment.id}`}>
+                          <StatusIcon className="h-2.5 w-2.5" />
+                          {status.label}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
       )}
 
       <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
