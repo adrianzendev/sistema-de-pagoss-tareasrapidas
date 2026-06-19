@@ -220,7 +220,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
               </div>
 
               <div className="border-t pt-1 flex items-center justify-between text-muted-foreground" data-testid="summary-net-income">
-                <span>Base neta</span>
+                <span>Ingresos netos</span>
                 <span className="font-mono">= {pen(s.grossIncome - s.advertisingCost)}</span>
               </div>
 
