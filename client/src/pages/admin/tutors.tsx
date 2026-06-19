@@ -67,6 +67,7 @@ const createTutorSchema = z.object({
     return !isNaN(num) && num >= 0;
   }, "Debe ser un valor ≥ 0").default("0"),
   isActive: z.boolean().default(true),
+  autoVerificaPagos: z.boolean().default(false),
 });
 
 const editTutorSchema = z.object({
@@ -82,6 +83,7 @@ const editTutorSchema = z.object({
     return !isNaN(num) && num >= 0;
   }, "Debe ser un valor ≥ 0").default("0"),
   isActive: z.boolean().default(true),
+  autoVerificaPagos: z.boolean().default(false),
 });
 
 type CreateTutorForm = z.infer<typeof createTutorSchema>;
@@ -120,12 +122,12 @@ export default function TutorsPage() {
 
   const createForm = useForm<CreateTutorForm>({
     resolver: zodResolver(createTutorSchema),
-    defaultValues: { name: "", email: "", password: "", commissionPercent: "10", advertisingCostUsd: "0", isActive: true },
+    defaultValues: { name: "", email: "", password: "", commissionPercent: "10", advertisingCostUsd: "0", isActive: true, autoVerificaPagos: false },
   });
 
   const editForm = useForm<EditTutorForm>({
     resolver: zodResolver(editTutorSchema),
-    defaultValues: { name: "", email: "", password: "", commissionPercent: "10", advertisingCostUsd: "0", isActive: true },
+    defaultValues: { name: "", email: "", password: "", commissionPercent: "10", advertisingCostUsd: "0", isActive: true, autoVerificaPagos: false },
   });
 
   const createAdvWatch = createForm.watch("advertisingCostUsd");
@@ -155,6 +157,7 @@ export default function TutorsPage() {
         commissionPercent: data.commissionPercent,
         advertisingCostUsd: data.advertisingCostUsd,
         isActive: data.isActive,
+        autoVerificaPagos: data.autoVerificaPagos,
       };
       if (data.password) body.password = data.password;
       await apiRequest("PATCH", `/api/admin/tutors/${id}`, body);
@@ -194,6 +197,7 @@ export default function TutorsPage() {
       commissionPercent: tutor.commissionPercent,
       advertisingCostUsd: String(tutor.advertisingCostUsd ?? 0),
       isActive: tutor.isActive !== false,
+      autoVerificaPagos: (tutor as any).autoVerificaPagos === true,
     });
   };
 
@@ -325,6 +329,27 @@ export default function TutorsPage() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={createForm.control}
+                  name="autoVerificaPagos"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <FormLabel className="text-sm font-medium">Auto-verificar pagos</FormLabel>
+                        <FormDescription className="text-xs">
+                          El tutor puede registrar pagos directamente como verificados.
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="switch-tutor-auto-verifica"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
                 <div className="flex justify-end gap-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => { setIsOpen(false); createForm.reset(); }}>Cancelar</Button>
                   <Button type="submit" disabled={createMutation.isPending} data-testid="button-submit-tutor">
@@ -445,6 +470,27 @@ export default function TutorsPage() {
                           checked={field.value}
                           onCheckedChange={field.onChange}
                           data-testid="switch-edit-tutor-active"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="autoVerificaPagos"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <FormLabel className="text-sm font-medium">Auto-verificar pagos</FormLabel>
+                        <FormDescription className="text-xs">
+                          El tutor puede registrar pagos directamente como verificados.
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="switch-edit-tutor-auto-verifica"
                         />
                       </FormControl>
                     </FormItem>

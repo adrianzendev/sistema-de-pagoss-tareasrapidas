@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, ChevronLeft, ChevronRight, Calendar, Phone, RotateCcw, PlusCircle, Lock, TrendingUp, Megaphone, DollarSign, Coins } from "lucide-react";
 import { NewPaymentModal } from "@/components/new-payment-modal";
+import { VerifiedPaymentModal } from "@/components/verified-payment-modal";
 
 const statusConfig: Record<string, { label: string; variant: "secondary" | "default" | "destructive" | "outline"; icon: typeof Clock; className: string }> = {
   pending: { label: "Pendiente", variant: "secondary", icon: Clock, className: "bg-warning/10 text-warning" },
@@ -133,6 +134,7 @@ export default function TutorPaymentsPage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
   const [isNewPaymentOpen, setIsNewPaymentOpen] = useState(false);
+  const [isVerifiedPaymentOpen, setIsVerifiedPaymentOpen] = useState(false);
   const [tabScrollPos, setTabScrollPos] = useState<number | null>(null);
 
   const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
@@ -266,24 +268,46 @@ export default function TutorPaymentsPage() {
         </div>
       </Card>
 
-      {/* Botón Nuevo Pago — primer lugar fijo */}
-      <button
-        onClick={() => {
-          if (!currentWeek || currentWeek.status !== "open") return;
-          setIsNewPaymentOpen(true);
-        }}
-        disabled={!currentWeek || currentWeek.status !== "open"}
-        data-testid="button-nuevo-pago-first"
-        className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed text-sm font-medium transition-colors
-          ${currentWeek?.status === "open"
-            ? "border-primary/40 text-primary hover:bg-primary/5 hover:border-primary"
-            : "border-muted text-muted-foreground opacity-50 cursor-default"
-          }`}
-      >
-        {currentWeek?.status === "open" ? <PlusCircle className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
-        Nuevo Pago
-        {currentWeek && <span className="text-[11px] font-mono opacity-70">S{currentWeek.weekNumber}</span>}
-      </button>
+      {/* Botones de pago */}
+      <div className={`flex gap-2 ${(user as any)?.autoVerificaPagos ? "flex-col sm:flex-row" : ""}`}>
+        <button
+          onClick={() => {
+            if (!currentWeek || currentWeek.status !== "open") return;
+            setIsNewPaymentOpen(true);
+          }}
+          disabled={!currentWeek || currentWeek.status !== "open"}
+          data-testid="button-nuevo-pago-first"
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed text-sm font-medium transition-colors
+            ${currentWeek?.status === "open"
+              ? "border-primary/40 text-primary hover:bg-primary/5 hover:border-primary"
+              : "border-muted text-muted-foreground opacity-50 cursor-default"
+            }`}
+        >
+          {currentWeek?.status === "open" ? <PlusCircle className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
+          Nuevo Pago
+          {currentWeek && <span className="text-[11px] font-mono opacity-70">S{currentWeek.weekNumber}</span>}
+        </button>
+
+        {(user as any)?.autoVerificaPagos && (
+          <button
+            onClick={() => {
+              if (!currentWeek || currentWeek.status !== "open") return;
+              setIsVerifiedPaymentOpen(true);
+            }}
+            disabled={!currentWeek || currentWeek.status !== "open"}
+            data-testid="button-pago-verificado-first"
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed text-sm font-medium transition-colors
+              ${currentWeek?.status === "open"
+                ? "border-success/40 text-success hover:bg-success/5 hover:border-success"
+                : "border-muted text-muted-foreground opacity-50 cursor-default"
+              }`}
+          >
+            {currentWeek?.status === "open" ? <CheckCircle className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
+            Pago Cobrado
+            {currentWeek && <span className="text-[11px] font-mono opacity-70">S{currentWeek.weekNumber}</span>}
+          </button>
+        )}
+      </div>
 
       {isLoading ? (
         <div className="space-y-3">
@@ -386,6 +410,7 @@ export default function TutorPaymentsPage() {
       </Dialog>
 
       <NewPaymentModal open={isNewPaymentOpen} onOpenChange={setIsNewPaymentOpen} />
+      <VerifiedPaymentModal open={isVerifiedPaymentOpen} onOpenChange={setIsVerifiedPaymentOpen} />
     </div>
   );
 }

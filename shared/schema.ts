@@ -21,6 +21,7 @@ export const users = pgTable("users", {
   advertisingCostUsd: decimal("advertising_cost_usd", { precision: 10, scale: 2 }).notNull().default("0"),
   isActive: boolean("is_active").notNull().default(true),
   activatedAt: timestamp("activated_at"),
+  autoVerificaPagos: boolean("auto_verifica_pagos").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

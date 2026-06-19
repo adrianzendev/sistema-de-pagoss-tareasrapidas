@@ -182,7 +182,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.patch("/api/admin/tutors/:id", requireAdmin, async (req, res) => {
     try {
-      const { name, email, password: rawPassword, commissionPercent, isActive, advertisingCostUsd: advCost } = req.body;
+      const { name, email, password: rawPassword, commissionPercent, isActive, advertisingCostUsd: advCost, autoVerificaPagos } = req.body;
       const existing = await storage.getUser(req.params.id);
       if (!existing) return res.status(404).json({ message: "Tutor no encontrado" });
       const updateData: any = {};
@@ -197,6 +197,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
       if (rawPassword) updateData.password = await bcrypt.hash(rawPassword, 10);
       if (advCost !== undefined) updateData.advertisingCostUsd = String(Number(advCost));
+      if (autoVerificaPagos !== undefined) updateData.autoVerificaPagos = autoVerificaPagos;
       const [updated] = await db.update(users).set(updateData).where(eq(users.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Tutor no encontrado" });
       if (commissionPercent !== undefined && Number(commissionPercent) !== Number(existing.commissionPercent)) {
@@ -569,6 +570,44 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
     const payments = await storage.getPaymentsByTutor(user.id);
     res.json(payments);
+  });
+
+  app.post("/api/tutor/payments/verified", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user || user.role !== "tutor") {
+        return res.status(403).json({ message: "Acceso denegado" });
+      }
+      if (!user.autoVerificaPagos) {
+        return res.status(403).json({ message: "No tienes permiso para registrar pagos verificados directamente" });
+      }
+      const currentWeek = await storage.getCurrentWeek();
+      if (!currentWeek || currentWeek.status !== "open") {
+        return res.status(400).json({ message: "No hay una semana abierta para la fecha actual." });
+      }
+      const data = insertPaymentSchema.parse({ ...req.body, tutorId: user.id });
+      const currency = await storage.getCurrency(data.currencyId);
+      const normalized = normalizePhone(data.clientNumber);
+      if (normalized) {
+        const existingClient = await storage.getClientByNormalizedPhone(normalized);
+        if (!existingClient) {
+          await storage.createClient({ phoneNumber: data.clientNumber, normalizedPhone: normalized });
+        }
+      }
+      const payment = await storage.createPayment({
+        ...data,
+        exchangeRateSnapshot: currency ? String(currency.exchangeRate) : null,
+        status: "verified",
+        verifiedAt: new Date(),
+        verifiedBy: user.id,
+      });
+      res.status(201).json(payment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: "Error al crear pago" });
+    }
   });
 
   app.post("/api/tutor/payments", requireAuth, async (req, res) => {

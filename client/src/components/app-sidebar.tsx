@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { NewPaymentModal } from "@/components/new-payment-modal";
+import { VerifiedPaymentModal } from "@/components/verified-payment-modal";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -36,6 +37,7 @@ import {
   Phone,
   Lock,
   Activity,
+  CheckCircle,
 } from "lucide-react";
 
 const adminItems = [
@@ -76,6 +78,7 @@ export function AppSidebar() {
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const [isNewPaymentOpen, setIsNewPaymentOpen] = useState(false);
+  const [isVerifiedPaymentOpen, setIsVerifiedPaymentOpen] = useState(false);
 
   const isAdmin = user?.role === "admin";
   const isTutor = user?.role === "tutor";
@@ -117,27 +120,53 @@ export function AppSidebar() {
             </div>
           </div>
           {isTutor && (
-            <button
-              onClick={() => {
-                if (!hasOpenWeek) {
-                  toast({ title: "Semana cerrada", description: "No hay una semana abierta para registrar pagos.", variant: "destructive" });
-                  return;
-                }
-                setIsNewPaymentOpen(true);
-              }}
-              data-testid="nav-nuevo-pago-top"
-              className={`mt-3 w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors
-                ${hasOpenWeek
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "bg-muted text-muted-foreground opacity-60 cursor-default"
-                }`}
-            >
-              {hasOpenWeek ? <PlusCircle className="h-4 w-4 shrink-0" /> : <Lock className="h-4 w-4 shrink-0" />}
-              <span className="flex-1 text-left">Nuevo Pago</span>
-              {hasOpenWeek && currentWeek && (
-                <span className="text-[10px] font-mono opacity-80">S{currentWeek.weekNumber}</span>
+            <div className="mt-3 flex flex-col gap-1.5">
+              <button
+                onClick={() => {
+                  if (!hasOpenWeek) {
+                    toast({ title: "Semana cerrada", description: "No hay una semana abierta para registrar pagos.", variant: "destructive" });
+                    return;
+                  }
+                  setIsNewPaymentOpen(true);
+                }}
+                data-testid="nav-nuevo-pago-top"
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors
+                  ${hasOpenWeek
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "bg-muted text-muted-foreground opacity-60 cursor-default"
+                  }`}
+              >
+                {hasOpenWeek ? <PlusCircle className="h-4 w-4 shrink-0" /> : <Lock className="h-4 w-4 shrink-0" />}
+                <span className="flex-1 text-left">Nuevo Pago</span>
+                {hasOpenWeek && currentWeek && (
+                  <span className="text-[10px] font-mono opacity-80">S{currentWeek.weekNumber}</span>
+                )}
+              </button>
+
+              {(user as any)?.autoVerificaPagos && (
+                <button
+                  onClick={() => {
+                    if (!hasOpenWeek) {
+                      toast({ title: "Semana cerrada", description: "No hay una semana abierta para registrar pagos.", variant: "destructive" });
+                      return;
+                    }
+                    setIsVerifiedPaymentOpen(true);
+                  }}
+                  data-testid="nav-pago-verificado-top"
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors
+                    ${hasOpenWeek
+                      ? "bg-success/15 text-success hover:bg-success/25"
+                      : "bg-muted text-muted-foreground opacity-60 cursor-default"
+                    }`}
+                >
+                  {hasOpenWeek ? <CheckCircle className="h-4 w-4 shrink-0" /> : <Lock className="h-4 w-4 shrink-0" />}
+                  <span className="flex-1 text-left">Pago Cobrado</span>
+                  {hasOpenWeek && currentWeek && (
+                    <span className="text-[10px] font-mono opacity-80">S{currentWeek.weekNumber}</span>
+                  )}
+                </button>
               )}
-            </button>
+            </div>
           )}
         </SidebarHeader>
 
@@ -206,6 +235,7 @@ export function AppSidebar() {
       </Sidebar>
 
       <NewPaymentModal open={isNewPaymentOpen} onOpenChange={setIsNewPaymentOpen} />
+      <VerifiedPaymentModal open={isVerifiedPaymentOpen} onOpenChange={setIsVerifiedPaymentOpen} />
     </>
   );
 }
