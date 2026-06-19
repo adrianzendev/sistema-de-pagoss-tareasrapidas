@@ -104,13 +104,16 @@ export async function seedDatabase() {
     console.log("All passwords set to 123456");
 
     // === CURRENCIES ===
-    // Exchange rates = soles (PEN) per 1 unit of each currency
-    // PEN must always be 1.0 since amounts in soles need no conversion
-    await ensureCurrency({ code: "PEN", name: "Sol Peruano", exchangeRate: "1.0000" });
-    await ensureCurrency({ code: "USD", name: "Dólar Estadounidense", exchangeRate: "3.7500" });
-    await ensureCurrency({ code: "EUR", name: "Euro", exchangeRate: "4.0500" });
-    await ensureCurrency({ code: "MXN", name: "Peso Mexicano", exchangeRate: "0.1900" });
-    await ensureCurrency({ code: "COP", name: "Peso Colombiano", exchangeRate: "0.0009" });
+    // Only seed default currencies on first install (when none exist yet).
+    // Once the admin deletes a currency it must stay deleted.
+    const existingCurrencies = await db.select().from(currencies);
+    if (existingCurrencies.length === 0) {
+      await ensureCurrency({ code: "PEN", name: "Sol Peruano", exchangeRate: "1.0000" });
+      await ensureCurrency({ code: "USD", name: "Dólar Estadounidense", exchangeRate: "3.7500" });
+      await ensureCurrency({ code: "EUR", name: "Euro", exchangeRate: "4.0500" });
+      await ensureCurrency({ code: "MXN", name: "Peso Mexicano", exchangeRate: "0.1900" });
+      await ensureCurrency({ code: "COP", name: "Peso Colombiano", exchangeRate: "0.0009" });
+    }
 
 
     // === LINK VERIFIERS TO CURRENCIES ===
