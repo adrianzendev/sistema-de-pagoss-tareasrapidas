@@ -1087,12 +1087,23 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const verifiedPayments = weekPayments.filter(p => p.status === "verified");
           const tutorPayments = verifiedPayments.filter(p => p.tutorId === user.id);
 
-          // Use per-tutor per-week advertising cost, fallback to tutor's default
+          // Per-tutor override takes precedence; otherwise split the week's shared advertising
           const weekAdvRec = allTutorWeekAdv.find(r => r.tutorId === user.id && r.weekId === week.id);
-          const ownAdvUsd = weekAdvRec !== undefined
-            ? Number(weekAdvRec.advertisingCostUsd)
-            : Number(user.advertisingCostUsd ?? 0);
-          const tutorAdvertisingShare = ownAdvUsd * usdRate;
+          const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
+          const tutorsWithPayments = new Set(verifiedPayments.map(p => p.tutorId));
+          const activeTutorCount = tutorsWithPayments.size || 1;
+
+          let tutorAdvertisingShare: number;
+          if (weekAdvRec !== undefined) {
+            // Per-tutor per-week override
+            tutorAdvertisingShare = Number(weekAdvRec.advertisingCostUsd) * usdRate;
+          } else if (sharedAdvertisingUsd > 0 && tutorPayments.length > 0) {
+            // Shared week advertising: 50% to tutors side, split equally among active tutors
+            tutorAdvertisingShare = (sharedAdvertisingUsd * usdRate * 0.5) / activeTutorCount;
+          } else {
+            // Fallback to tutor's default advertising cost
+            tutorAdvertisingShare = Number(user.advertisingCostUsd ?? 0) * usdRate;
+          }
 
           let grossIncome = 0;
           tutorPayments.forEach(p => {
