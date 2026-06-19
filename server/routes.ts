@@ -979,6 +979,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
 
           let grossIncome = 0;
+          let grossDirect = 0;
           let currencyCommissionHalf = 0;
           const cellCurrencies: Record<string, { code: string; symbol: string; total: number }> = {};
           tutorPayments.forEach(p => {
@@ -986,6 +987,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             const rate = Number((p as any).exchangeRateSnapshot ?? currency?.exchangeRate ?? 1);
             const rawAmountPen = Number(p.amount) * rate;
             grossIncome += rawAmountPen;
+            if (currency?.code === "DIRECTO") grossDirect += rawAmountPen;
             currencyCommissionHalf += rawAmountPen * (Number(currency?.commissionPercent ?? 0) / 100) * 0.5;
             if (currency) {
               const sym = currency.code === "USD" ? "$" : currency.code === "PEN" ? "S/." : currency.code;
@@ -994,6 +996,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             }
           });
 
+          const grossRegular = grossIncome - grossDirect;
           const commission = Number(tutor.commissionPercent) / 100;
           const tutorIsActive = tutor.isActive !== false && (!tutor.activatedAt || new Date(tutor.activatedAt) <= weekEndDate);
           const sharedAdvShare = tutorIsActive ? weekTutorAdShare : 0;
@@ -1002,12 +1005,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const totalAdvShare = sharedAdvShare + ownAdvShare;
           const netIncome = grossIncome * commission;
           const tutorEarnings = netIncome - totalAdvShare - currencyCommissionHalf;
-
           const agencyEarnings = grossIncome * (1 - commission) - totalAdvShare - currencyCommissionHalf;
+          const tutorEarningsFromRegular = grossRegular * commission - totalAdvShare - currencyCommissionHalf;
+          const agencyEarningsFromDirect = grossDirect * (1 - commission);
+          const netTransfer = tutorEarningsFromRegular - agencyEarningsFromDirect;
 
           if (!matrix[tutor.id]) matrix[tutor.id] = {};
           matrix[tutor.id][week.id] = {
-            grossIncome, netIncome, tutorEarnings, agencyEarnings,
+            grossIncome, grossDirect, netIncome, tutorEarnings, agencyEarnings, netTransfer,
             tutorAdvertisingShare: totalAdvShare,
             paymentCount: tutorPayments.length,
             currencies: Object.values(cellCurrencies),

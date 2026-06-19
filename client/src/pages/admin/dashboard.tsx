@@ -25,9 +25,11 @@ interface DashboardStats {
 
 type MatrixCell = {
   grossIncome: number;
+  grossDirect: number;
   netIncome: number;
   tutorEarnings: number;
   agencyEarnings: number;
+  netTransfer: number;
   tutorAdvertisingShare: number;
   paymentCount: number;
 };
@@ -36,7 +38,7 @@ type CurrencyTotal = { code: string; name: string; symbol: string; total: number
 
 type SettlementsMatrix = {
   weeks: Week[];
-  tutors: Array<{ id: string; name: string; commissionPercent: string; advertisingCostUsd?: string }>;
+  tutors: Array<{ id: string; name: string; commissionPercent: string; advertisingCostUsd?: string; autoVerificaPagos?: boolean }>;
   matrix: Record<string, Record<string, MatrixCell>>;
   currencyTotals: CurrencyTotal[];
   weekPaidMap: Record<string, string[]>;
@@ -321,10 +323,11 @@ export default function AdminDashboard() {
                         const cell = matrix[tutor.id]?.[w.id];
                         const tutorE = cell?.tutorEarnings ?? 0;
                         const agencyE = cell?.agencyEarnings ?? 0;
+                        const netTransfer = cell?.netTransfer ?? 0;
                         const hasPayments = (cell?.paymentCount ?? 0) > 0;
                         const hasAdvCharge = (cell?.tutorAdvertisingShare ?? 0) > 0;
                         const showCell = hasPayments || hasAdvCharge;
-
+                        const isAutoVerif = !!(tutor as any).autoVerificaPagos;
                         const isTutorPaid = weekPaidMap[w.id]?.includes(tutor.id) ?? false;
                         return (
                           <div
@@ -341,6 +344,14 @@ export default function AdminDashboard() {
                                 <div className={`text-xs font-medium ${agencyE >= 0 ? "text-muted-foreground" : "text-destructive"}`}>
                                   {fmt(agencyE)}
                                 </div>
+                                {isAutoVerif && (
+                                  <div className={`text-[9px] font-semibold mt-0.5 ${netTransfer < 0 ? "text-destructive" : "text-success"}`}>
+                                    {netTransfer < 0
+                                      ? `→ te debe ${fmt(Math.abs(netTransfer))}`
+                                      : `← agencia paga ${fmt(netTransfer)}`
+                                    }
+                                  </div>
+                                )}
                                 <div className="flex items-center justify-end gap-1 mt-0.5">
                                   <span className="text-[9px] text-muted-foreground/60">{cell?.paymentCount ?? 0} pg</span>
                                   {isTutorPaid && (
