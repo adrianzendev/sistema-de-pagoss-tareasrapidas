@@ -212,6 +212,13 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
                 <span className="font-mono">− {pen(s.advertisingCost)}</span>
               </div>
 
+              <div className="flex items-center justify-between text-muted-foreground" data-testid="summary-advertising-agency">
+                <span className="flex items-center gap-1.5">
+                  <Megaphone className="h-3 w-3" /> Publicidad agencia
+                </span>
+                <span className="font-mono">− {pen(s.advertisingCost)}</span>
+              </div>
+
               <div className="border-t pt-1 flex items-center justify-between text-muted-foreground" data-testid="summary-net-income">
                 <span>Base neta</span>
                 <span className="font-mono">= {pen(s.grossIncome - s.advertisingCost)}</span>
