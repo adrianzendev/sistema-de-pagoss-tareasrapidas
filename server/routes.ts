@@ -1087,23 +1087,23 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const verifiedPayments = weekPayments.filter(p => p.status === "verified");
           const tutorPayments = verifiedPayments.filter(p => p.tutorId === user.id);
 
-          // Per-tutor override takes precedence; otherwise split the week's shared advertising
+          // Mirror the admin formula exactly:
+          // 1) Own advertising (per-week override or tutor default): tutor pays 50%
+          // 2) Shared week advertising: 50% split equally among active tutors
           const weekAdvRec = allTutorWeekAdv.find(r => r.tutorId === user.id && r.weekId === week.id);
+          const ownAdvUsd = weekAdvRec !== undefined
+            ? Number(weekAdvRec.advertisingCostUsd)
+            : Number(user.advertisingCostUsd ?? 0);
+          const ownAdvPen = tutorPayments.length > 0 ? ownAdvUsd * usdRate * 0.5 : 0;
+
           const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
           const tutorsWithPayments = new Set(verifiedPayments.map(p => p.tutorId));
           const activeTutorCount = tutorsWithPayments.size || 1;
+          const sharedAdvPen = tutorPayments.length > 0
+            ? (sharedAdvertisingUsd * usdRate * 0.5) / activeTutorCount
+            : 0;
 
-          let tutorAdvertisingShare: number;
-          if (weekAdvRec !== undefined) {
-            // Per-tutor per-week override
-            tutorAdvertisingShare = Number(weekAdvRec.advertisingCostUsd) * usdRate;
-          } else if (sharedAdvertisingUsd > 0 && tutorPayments.length > 0) {
-            // Shared week advertising: 50% to tutors side, split equally among active tutors
-            tutorAdvertisingShare = (sharedAdvertisingUsd * usdRate * 0.5) / activeTutorCount;
-          } else {
-            // Fallback to tutor's default advertising cost
-            tutorAdvertisingShare = Number(user.advertisingCostUsd ?? 0) * usdRate;
-          }
+          const tutorAdvertisingShare = ownAdvPen + sharedAdvPen;
 
           let grossIncome = 0;
           tutorPayments.forEach(p => {
