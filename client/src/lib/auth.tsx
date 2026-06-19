@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { User } from "@shared/schema";
 import { requestNotificationPermission, subscribeToPush, isPushSupported, unsubscribeFromPush } from "./pushNotifications";
+import { queryClient } from "./queryClient";
 
 interface AuthContextType {
   user: User | null;
@@ -76,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     await unsubscribeFromPush();
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    queryClient.clear();
     setUser(null);
   };
 
