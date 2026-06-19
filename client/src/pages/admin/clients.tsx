@@ -63,9 +63,9 @@ type ClientWithStats = {
 };
 
 const statusConfig: Record<string, { label: string; className: string; icon: any }> = {
-  verified: { label: "Verificado", className: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400", icon: CheckCircle },
-  rejected: { label: "Rechazado", className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400", icon: XCircle },
-  pending: { label: "Pendiente", className: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400", icon: Clock },
+  verified: { label: "Verificado", className: "bg-success/10 text-success", icon: CheckCircle },
+  rejected: { label: "Rechazado", className: "bg-destructive/10 text-destructive", icon: XCircle },
+  pending: { label: "Pendiente", className: "bg-warning/10 text-warning", icon: Clock },
 };
 
 export default function ClientsPage() {
@@ -237,14 +237,14 @@ export default function ClientsPage() {
         <Card>
           <CardContent className="pt-4 pb-4">
             <p className="text-xs text-muted-foreground mb-1">Verificados</p>
-            <p className="text-2xl font-bold text-green-600">{totalVerified}</p>
+            <p className="text-2xl font-bold text-success">{totalVerified}</p>
             <p className="text-xs text-muted-foreground">pagos aceptados</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 pb-4">
             <p className="text-xs text-muted-foreground mb-1">Rechazados</p>
-            <p className="text-2xl font-bold text-red-500">{totalRejected}</p>
+            <p className="text-2xl font-bold text-destructive">{totalRejected}</p>
             <p className="text-xs text-muted-foreground">pagos rechazados</p>
           </CardContent>
         </Card>
@@ -326,17 +326,17 @@ export default function ClientsPage() {
                             {stats.total} {stats.total === 1 ? "solicitud" : "solicitudes"}
                           </Badge>
                           {stats.verified > 0 && (
-                            <Badge className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0" data-testid={`badge-verified-${client.id}`}>
+                            <Badge className="text-xs bg-success/10 text-success border-0" data-testid={`badge-verified-${client.id}`}>
                               ✓ {stats.verified}
                             </Badge>
                           )}
                           {stats.rejected > 0 && (
-                            <Badge className="text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-0" data-testid={`badge-rejected-${client.id}`}>
+                            <Badge className="text-xs bg-destructive/10 text-destructive border-0" data-testid={`badge-rejected-${client.id}`}>
                               ✗ {stats.rejected}
                             </Badge>
                           )}
                           {stats.pending > 0 && (
-                            <Badge className="text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-0" data-testid={`badge-pending-${client.id}`}>
+                            <Badge className="text-xs bg-warning/10 text-warning border-0" data-testid={`badge-pending-${client.id}`}>
                               ⏳ {stats.pending}
                             </Badge>
                           )}

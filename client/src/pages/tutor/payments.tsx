@@ -13,10 +13,10 @@ import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, ChevronLeft,
 import { NewPaymentModal } from "@/components/new-payment-modal";
 
 const statusConfig: Record<string, { label: string; variant: "secondary" | "default" | "destructive" | "outline"; icon: typeof Clock; className: string }> = {
-  pending: { label: "Pendiente", variant: "secondary", icon: Clock, className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" },
-  verified: { label: "Verificado", variant: "default", icon: CheckCircle, className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" },
-  rejected: { label: "Rechazado", variant: "destructive", icon: XCircle, className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" },
-  refunded: { label: "Reembolsado", variant: "outline", icon: RotateCcw, className: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200" },
+  pending: { label: "Pendiente", variant: "secondary", icon: Clock, className: "bg-warning/10 text-warning" },
+  verified: { label: "Verificado", variant: "default", icon: CheckCircle, className: "bg-success/10 text-success" },
+  rejected: { label: "Rechazado", variant: "destructive", icon: XCircle, className: "bg-destructive/10 text-destructive" },
+  refunded: { label: "Reembolsado", variant: "outline", icon: RotateCcw, className: "bg-muted text-muted-foreground" },
 };
 
 type SettlementRow = {
@@ -102,7 +102,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
           <span className="font-mono font-medium">{pen(s.grossIncome)}</span>
         </div>
 
-        <div className="flex items-center justify-between text-sm text-red-600 dark:text-red-400" data-testid="summary-advertising">
+        <div className="flex items-center justify-between text-sm text-destructive" data-testid="summary-advertising">
           <span className="flex items-center gap-1.5">
             <Megaphone className="h-3.5 w-3.5" />
             Gastos publicidad
@@ -115,11 +115,11 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
           <span className="font-mono text-xs text-muted-foreground">= {pen(s.netIncome)}</span>
         </div>
 
-        <div className={`rounded-md px-3 py-2 flex items-center justify-between ${isNegative ? "bg-red-50 dark:bg-red-950/30" : "bg-green-50 dark:bg-green-950/30"}`} data-testid="summary-tutor-earnings">
-          <span className={`text-sm font-semibold ${isNegative ? "text-red-700 dark:text-red-400" : "text-green-700 dark:text-green-400"}`}>
+        <div className={`rounded-md px-3 py-2 flex items-center justify-between ${isNegative ? "bg-destructive/10" : "bg-success/10"}`} data-testid="summary-tutor-earnings">
+          <span className={`text-sm font-semibold ${isNegative ? "text-destructive" : "text-success"}`}>
             Ganancia estimada
           </span>
-          <span className={`font-mono text-base font-bold ${isNegative ? "text-red-700 dark:text-red-400" : "text-green-700 dark:text-green-400"}`}>
+          <span className={`font-mono text-base font-bold ${isNegative ? "text-destructive" : "text-success"}`}>
             {pen(s.tutorEarnings)}
           </span>
         </div>
@@ -228,12 +228,12 @@ export default function TutorPaymentsPage() {
                     className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
                       activeWeekId === week.id
                         ? isCurrent
-                          ? "bg-green-600 text-white"
+                          ? "bg-success text-success-foreground"
                           : "bg-primary text-primary-foreground"
                         : isPast
                           ? "bg-muted/30 text-muted-foreground/60 hover:bg-muted/50"
                           : isCurrent
-                            ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50"
+                            ? "bg-success/10 text-success hover:bg-success/20"
                             : "bg-muted/50 text-muted-foreground hover:bg-muted"
                     }`}
                     data-testid={`tab-week-${week.weekNumber}`}
@@ -261,8 +261,8 @@ export default function TutorPaymentsPage() {
 
         <div className="px-4 py-2 border-t bg-muted/30 flex flex-wrap gap-4 text-xs text-muted-foreground">
           <span>Total: <strong className="text-foreground">{filteredPayments?.length ?? 0}</strong></span>
-          <span>Pendientes: <strong className="text-yellow-600">{filteredPayments?.filter((p) => p.status === "pending").length ?? 0}</strong></span>
-          <span>Verificados: <strong className="text-green-600">{filteredPayments?.filter((p) => p.status === "verified").length ?? 0}</strong></span>
+          <span>Pendientes: <strong className="text-warning">{filteredPayments?.filter((p) => p.status === "pending").length ?? 0}</strong></span>
+          <span>Verificados: <strong className="text-success">{filteredPayments?.filter((p) => p.status === "verified").length ?? 0}</strong></span>
         </div>
       </Card>
 

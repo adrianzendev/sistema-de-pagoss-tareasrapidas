@@ -158,12 +158,12 @@ function TutorSummaryTable({ payments }: { payments: PaymentWithDetails[] }) {
             <tr key={row.tutorId} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
               <td className="px-3 py-1.5 font-medium">{row.tutorName}</td>
               {hasVerified && (
-                <td className="px-3 py-1.5 text-right text-green-600 dark:text-green-400">
+                <td className="px-3 py-1.5 text-right text-success">
                   {formatCurrencyList(row.verifiedByCurrency)}
                 </td>
               )}
               {hasPending && (
-                <td className="px-3 py-1.5 text-right text-amber-600 dark:text-amber-400">
+                <td className="px-3 py-1.5 text-right text-warning">
                   {formatCurrencyList(row.pendingByCurrency)}
                 </td>
               )}
@@ -189,12 +189,12 @@ function WeekSeparator({ group, showPending }: { group: WeekGroup; showPending?:
       <div className="flex-1 h-px bg-border" />
       <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
         {showPending && group.pendingCount > 0 && (
-          <span className="font-medium text-amber-600 dark:text-amber-400">
+          <span className="font-medium text-warning">
             {group.pendingCount} pendiente{group.pendingCount !== 1 ? "s" : ""}
           </span>
         )}
         {hasVerified && (
-          <span className="font-medium text-green-600 dark:text-green-400">
+          <span className="font-medium text-success">
             ✓ {group.verifiedTotals.map(v =>
               `${v.code} ${v.total.toLocaleString("es-PE", { minimumFractionDigits: 2 })}`
             ).join(" · ")}
@@ -390,7 +390,7 @@ export default function VerifierPaymentsPage() {
                           <div className="text-xs text-muted-foreground">
                             Enviado: {payment.createdAt && format(new Date(payment.createdAt), "dd/MM/yy HH:mm", { locale: es })}
                             {payment.verifiedAt && (
-                              <span className="ml-2 text-green-600 dark:text-green-400">
+                              <span className="ml-2 text-success">
                                 · Verif: {format(new Date(payment.verifiedAt), "dd/MM/yy HH:mm", { locale: es })}
                               </span>
                             )}
