@@ -325,16 +325,16 @@ export default function PaymentsPage() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Solicitud</TableHead>
-                    <TableHead>Tutor</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead className="text-right">Monto</TableHead>
-                    <TableHead>Comprobante</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Verificación</TableHead>
-                    <TableHead>Verificado por</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="text-xs w-32">Fecha</TableHead>
+                    <TableHead className="text-xs">Tutor</TableHead>
+                    <TableHead className="text-xs">Teléfono</TableHead>
+                    <TableHead className="text-right text-xs">Monto</TableHead>
+                    <TableHead className="text-center text-xs">Comprobante</TableHead>
+                    <TableHead className="text-xs">Estado</TableHead>
+                    <TableHead className="text-xs">Verificado</TableHead>
+                    <TableHead className="text-xs">Por</TableHead>
+                    <TableHead className="text-right text-xs">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -345,67 +345,75 @@ export default function PaymentsPage() {
                         const status = statusLabels[payment.status];
                         const StatusIcon = status.icon;
                         return (
-                          <TableRow key={payment.id} data-testid={`row-payment-${payment.id}`}>
-                            <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          <TableRow key={payment.id} data-testid={`row-payment-${payment.id}`} className="hover:bg-muted/30">
+                            <TableCell className="py-3 whitespace-nowrap">
                               {payment.createdAt && (
-                                <div>
-                                  <div>{format(new Date(payment.createdAt), "dd MMM yyyy", { locale: es })}</div>
-                                  <div className="text-xs">{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <Calendar className="h-3 w-3 shrink-0" />
+                                  <div>
+                                    <div className="text-foreground">{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
+                                    <div>{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
+                                  </div>
                                 </div>
                               )}
                             </TableCell>
-                            <TableCell className="font-medium">{payment.tutor?.name ?? "—"}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{payment.clientNumber}</Badge>
+                            <TableCell className="py-3 text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
+                            <TableCell className="py-3">
+                              <div className="flex items-center gap-1.5 text-xs">
+                                <span className="font-mono">{payment.clientNumber}</span>
+                              </div>
                             </TableCell>
-                            <TableCell className="text-right font-mono">
-                              <span className="text-xs text-muted-foreground mr-1">{payment.currency?.code}</span>
-                              {Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            <TableCell className="py-3 text-right">
+                              <span className="font-semibold text-sm tabular-nums">
+                                {Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground ml-1">{payment.currency?.code}</span>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="py-3 text-center">
                               {payment.proofImage ? (
                                 <button
                                   onClick={() => setPreviewImage(payment.proofImage!)}
-                                  className="w-10 h-10 rounded overflow-hidden border bg-muted hover:opacity-80 transition-opacity"
+                                  className="inline-flex items-center justify-center w-8 h-8 rounded overflow-hidden border bg-muted hover:opacity-80 transition-opacity mx-auto"
                                   data-testid={`button-view-proof-${payment.id}`}
                                 >
                                   <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
                                 </button>
                               ) : (
-                                <div className="w-10 h-10 rounded border bg-muted/30 flex items-center justify-center">
-                                  <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
+                                <div className="inline-flex items-center justify-center w-8 h-8 rounded border bg-muted/30 mx-auto">
+                                  <ImageIcon className="h-3.5 w-3.5 text-muted-foreground/40" />
                                 </div>
                               )}
                             </TableCell>
-                            <TableCell>
-                              <Badge variant={status.variant} className="gap-1">
-                                <StatusIcon className="h-3 w-3" />
+                            <TableCell className="py-3">
+                              <Badge variant={status.variant} className="gap-1 text-[10px] px-1.5 py-0.5">
+                                <StatusIcon className="h-2.5 w-2.5" />
                                 {status.label}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                            <TableCell className="py-3 whitespace-nowrap">
                               {payment.verifiedAt ? (
-                                <div>
-                                  <div>{format(new Date(payment.verifiedAt), "dd MMM yyyy", { locale: es })}</div>
-                                  <div className="text-xs">{format(new Date(payment.verifiedAt), "HH:mm", { locale: es })}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  <div className="text-foreground">{format(new Date(payment.verifiedAt), "dd/MM/yyyy", { locale: es })}</div>
+                                  <div>{format(new Date(payment.verifiedAt), "HH:mm", { locale: es })}</div>
                                 </div>
                               ) : (
-                                <span className="text-xs">—</span>
+                                <span className="text-xs text-muted-foreground">—</span>
                               )}
                             </TableCell>
-                            <TableCell className="text-sm whitespace-nowrap" data-testid={`cell-verifier-${payment.id}`}>
+                            <TableCell className="py-3 text-xs whitespace-nowrap" data-testid={`cell-verifier-${payment.id}`}>
                               {payment.verifier?.name
                                 ? <span className="font-medium">{payment.verifier.name}</span>
-                                : <span className="text-muted-foreground text-xs">—</span>
+                                : <span className="text-muted-foreground">—</span>
                               }
                             </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-1">
+                            <TableCell className="py-3 text-right">
+                              <div className="flex justify-end gap-0.5">
                                 {payment.status === "pending" && (
                                   <>
                                     <Button
                                       size="sm"
                                       variant="ghost"
+                                      className="h-7 w-7 p-0"
                                       onClick={() => updateMutation.mutate({ id: payment.id, status: "verified" })}
                                       disabled={updateMutation.isPending}
                                       data-testid={`button-verify-${payment.id}`}
@@ -415,6 +423,7 @@ export default function PaymentsPage() {
                                     <Button
                                       size="sm"
                                       variant="ghost"
+                                      className="h-7 w-7 p-0"
                                       onClick={() => updateMutation.mutate({ id: payment.id, status: "rejected" })}
                                       disabled={updateMutation.isPending}
                                       data-testid={`button-reject-${payment.id}`}
@@ -427,6 +436,7 @@ export default function PaymentsPage() {
                                   <Button
                                     size="sm"
                                     variant="ghost"
+                                    className="h-7 w-7 p-0"
                                     onClick={() => updateMutation.mutate({ id: payment.id, status: "refunded" })}
                                     disabled={updateMutation.isPending}
                                     data-testid={`button-refund-${payment.id}`}
@@ -437,19 +447,21 @@ export default function PaymentsPage() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
+                                  className="h-7 w-7 p-0"
                                   onClick={() => setMovePayment({ id: payment.id, weekId: "" })}
                                   title="Mover a otra semana"
                                   data-testid={`button-move-payment-${payment.id}`}
                                 >
-                                  <ArrowLeftRight className="h-4 w-4 text-primary" />
+                                  <ArrowLeftRight className="h-3.5 w-3.5 text-primary" />
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="ghost"
+                                  className="h-7 w-7 p-0"
                                   onClick={() => setDeleteId(payment.id)}
                                   data-testid={`button-delete-payment-${payment.id}`}
                                 >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
                                 </Button>
                               </div>
                             </TableCell>
