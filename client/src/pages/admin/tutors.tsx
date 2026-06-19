@@ -51,7 +51,7 @@ type CurrentWeekSummaryData = {
 };
 
 function pen(val: number) {
-  return `S/ ${val.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `PEN ${val.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 const createTutorSchema = z.object({
