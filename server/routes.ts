@@ -976,6 +976,90 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // Admin: Current week summary per tutor (PEN)
+  app.get("/api/admin/current-week-summary", requireAdmin, async (req, res) => {
+    try {
+      const { todayPeru } = await import("./utils/peru-time");
+      const today = todayPeru();
+      const allWeeks = await storage.getWeeks();
+      const currentWeek = allWeeks.find(w => w.startDate <= today && w.endDate >= today);
+
+      const tutors = await storage.getTutors();
+      const allCurrencies = await storage.getCurrencies();
+      const settings = await storage.getAgencySettings();
+      const usdCurrency = allCurrencies.find(c => c.code === "USD");
+      const usdRate = Number(usdCurrency?.exchangeRate ?? 1);
+
+      if (!currentWeek) {
+        return res.json({ week: null, tutors: [], usdRate });
+      }
+
+      const weekPayments = await storage.getPaymentsByWeek(currentWeek.id);
+      const verifiedPayments = weekPayments.filter(p => p.status === "verified");
+
+      const sharedAdvertisingUsd = Number(currentWeek.sharedAdvertisingUsd ?? 0);
+      const sharedAdvertisingPen = sharedAdvertisingUsd * usdRate;
+
+      // Count active tutors with verified payments for shared ad split
+      const tutorIdsWithPayments = new Set(verifiedPayments.map(p => p.tutorId));
+      const activeTutorCount = tutorIdsWithPayments.size || 1;
+      const sharedAdvPerTutor = (sharedAdvertisingPen * 0.5) / activeTutorCount;
+
+      // Per-week advertising overrides
+      const allTutorWeekAdv = await storage.getAllTutorWeekAdvertising();
+      const weekAdvByTutor: Record<string, number> = {};
+      for (const r of allTutorWeekAdv) {
+        if (r.weekId === currentWeek.id) weekAdvByTutor[r.tutorId] = Number(r.advertisingCostUsd);
+      }
+
+      const weekEnd = new Date(currentWeek.endDate + "T23:59:59");
+
+      const tutorSummaries = tutors.map(tutor => {
+        const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
+        const commission = Number(tutor.commissionPercent) / 100;
+        const isActive = tutor.isActive !== false && (!tutor.activatedAt || new Date(tutor.activatedAt) <= weekEnd);
+
+        let grossIncomePen = 0;
+        tutorPayments.forEach(p => {
+          const currency = allCurrencies.find(c => c.id === p.currencyId);
+          const rate = Number(currency?.exchangeRate ?? 1);
+          grossIncomePen += Number(p.amount) * rate;
+        });
+
+        const ownAdvUsd = weekAdvByTutor[tutor.id] ?? Number(tutor.advertisingCostUsd ?? 0);
+        const ownAdvPen = isActive ? ownAdvUsd * usdRate * 0.5 : 0;
+        const sharedAdv = isActive && tutorPayments.length > 0 ? sharedAdvPerTutor : 0;
+        const totalAdvPen = sharedAdv + ownAdvPen;
+
+        const netIncomePen = grossIncomePen * commission;
+        const tutorEarningsPen = netIncomePen - totalAdvPen;
+
+        return {
+          tutorId: tutor.id,
+          tutorName: tutor.name,
+          commissionPercent: Number(tutor.commissionPercent),
+          paymentCount: tutorPayments.length,
+          grossIncomePen,
+          totalAdvPen,
+          sharedAdvPen: sharedAdv,
+          ownAdvPen,
+          netIncomePen,
+          tutorEarningsPen,
+        };
+      });
+
+      res.json({
+        week: currentWeek,
+        tutors: tutorSummaries,
+        usdRate,
+        sharedAdvertisingPen,
+      });
+    } catch (error) {
+      console.error("Error getting current week summary:", error);
+      res.status(500).json({ message: "Error al obtener resumen" });
+    }
+  });
+
   // Tutor: Weekly Settlement View
   app.get("/api/tutor/settlement", requireAuth, async (req, res) => {
     try {

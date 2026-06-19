@@ -18,7 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Loader2, UserPlus, Mail, Percent, Trash2, Edit, DollarSign } from "lucide-react";
+import { Plus, Search, Loader2, UserPlus, Mail, Percent, Trash2, Edit, DollarSign, TrendingUp, Megaphone } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +32,27 @@ import {
 } from "@/components/ui/alert-dialog";
 
 type TutorRow = User;
+
+type TutorWeekSummary = {
+  tutorId: string;
+  tutorName: string;
+  commissionPercent: number;
+  paymentCount: number;
+  grossIncomePen: number;
+  totalAdvPen: number;
+  netIncomePen: number;
+  tutorEarningsPen: number;
+};
+
+type CurrentWeekSummaryData = {
+  week: { weekNumber: number } | null;
+  tutors: TutorWeekSummary[];
+  usdRate: number;
+};
+
+function pen(val: number) {
+  return `S/ ${val.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 const createTutorSchema = z.object({
   name: z.string().min(2, "Nombre debe tener al menos 2 caracteres"),
@@ -86,6 +108,15 @@ export default function TutorsPage() {
   const { data: tutors, isLoading } = useQuery<TutorRow[]>({
     queryKey: ["/api/admin/tutors"],
   });
+
+  const { data: weekSummary } = useQuery<CurrentWeekSummaryData>({
+    queryKey: ["/api/admin/current-week-summary"],
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const summaryByTutor = Object.fromEntries(
+    (weekSummary?.tutors ?? []).map(s => [s.tutorId, s])
+  );
 
   const createForm = useForm<CreateTutorForm>({
     resolver: zodResolver(createTutorSchema),
@@ -471,59 +502,102 @@ export default function TutorsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nombre</TableHead>
-                    <TableHead>Email</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead className="text-right">Comisión</TableHead>
-                    <TableHead className="text-right">Publicidad/sem</TableHead>
-                    <TableHead>Registrado</TableHead>
+                    <TableHead className="text-right">
+                      <span className="flex items-center justify-end gap-1">
+                        <TrendingUp className="h-3.5 w-3.5" />
+                        {weekSummary?.week ? `Ganancia S${weekSummary.week.weekNumber}` : "Ganancia semana actual"}
+                      </span>
+                    </TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTutors?.map((tutor) => (
-                    <TableRow key={tutor.id} data-testid={`row-tutor-${tutor.id}`}>
-                      <TableCell className="font-medium">{tutor.name}</TableCell>
-                      <TableCell>{tutor.email}</TableCell>
-                      <TableCell>
-                        {tutor.isActive !== false ? (
-                          <Badge className="bg-green-600 text-white text-[10px] px-1.5 py-0" data-testid={`status-tutor-${tutor.id}`}>Activo</Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0" data-testid={`status-tutor-${tutor.id}`}>Inactivo</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant="outline">{tutor.commissionPercent}%</Badge>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums text-xs text-muted-foreground" data-testid={`text-adv-tutor-${tutor.id}`}>
-                        {Number(tutor.advertisingCostUsd ?? 0) > 0
-                          ? `USD ${Number(tutor.advertisingCostUsd).toFixed(2)}`
-                          : <span className="opacity-40">—</span>}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground" data-testid={`text-created-tutor-${tutor.id}`}>
-                        {tutor.createdAt ? format(new Date(tutor.createdAt), "dd/MM/yyyy HH:mm", { locale: es }) : "—"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openEdit(tutor)}
-                            data-testid={`button-edit-tutor-${tutor.id}`}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteId(tutor.id)}
-                            data-testid={`button-delete-tutor-${tutor.id}`}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {filteredTutors?.map((tutor) => {
+                    const s = summaryByTutor[tutor.id];
+                    return (
+                      <TableRow key={tutor.id} data-testid={`row-tutor-${tutor.id}`}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{tutor.name}</div>
+                            <div className="text-xs text-muted-foreground">{tutor.email}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {tutor.isActive !== false ? (
+                            <Badge className="bg-green-600 text-white text-[10px] px-1.5 py-0" data-testid={`status-tutor-${tutor.id}`}>Activo</Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0" data-testid={`status-tutor-${tutor.id}`}>Inactivo</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant="outline">{tutor.commissionPercent}%</Badge>
+                        </TableCell>
+                        <TableCell className="text-right" data-testid={`text-earnings-tutor-${tutor.id}`}>
+                          {s && weekSummary?.week ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="cursor-default">
+                                    <div className={`font-mono font-semibold text-sm tabular-nums ${s.tutorEarningsPen < 0 ? "text-red-600 dark:text-red-400" : "text-green-700 dark:text-green-400"}`}>
+                                      {pen(s.tutorEarningsPen)}
+                                    </div>
+                                    {s.paymentCount > 0 && (
+                                      <div className="text-[10px] text-muted-foreground tabular-nums">
+                                        bruto {pen(s.grossIncomePen)}
+                                      </div>
+                                    )}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="text-xs space-y-1 min-w-48">
+                                  <p className="font-semibold mb-1">S{weekSummary.week.weekNumber} · solo verificados</p>
+                                  <div className="flex justify-between gap-4">
+                                    <span className="text-muted-foreground">Ingresos brutos</span>
+                                    <span className="font-mono">{pen(s.grossIncomePen)}</span>
+                                  </div>
+                                  <div className="flex justify-between gap-4 text-red-500">
+                                    <span className="flex items-center gap-1"><Megaphone className="h-3 w-3" />Publicidad</span>
+                                    <span className="font-mono">− {pen(s.totalAdvPen)}</span>
+                                  </div>
+                                  <div className="flex justify-between gap-4 border-t pt-1">
+                                    <span className="text-muted-foreground">Ingreso neto ({s.commissionPercent}%)</span>
+                                    <span className="font-mono">{pen(s.netIncomePen)}</span>
+                                  </div>
+                                  <div className="flex justify-between gap-4 font-semibold">
+                                    <span>Ganancia estimada</span>
+                                    <span className={`font-mono ${s.tutorEarningsPen < 0 ? "text-red-500" : "text-green-600"}`}>{pen(s.tutorEarningsPen)}</span>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <span className="text-muted-foreground opacity-40 text-xs">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEdit(tutor)}
+                              data-testid={`button-edit-tutor-${tutor.id}`}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteId(tutor.id)}
+                              data-testid={`button-delete-tutor-${tutor.id}`}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, ChevronLeft, ChevronRight, Calendar, Phone, RotateCcw, PlusCircle, Lock } from "lucide-react";
+import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, ChevronLeft, ChevronRight, Calendar, Phone, RotateCcw, PlusCircle, Lock, TrendingUp, Megaphone, DollarSign } from "lucide-react";
 import { NewPaymentModal } from "@/components/new-payment-modal";
 
 const statusConfig: Record<string, { label: string; variant: "secondary" | "default" | "destructive" | "outline"; icon: typeof Clock; className: string }> = {
@@ -18,6 +18,87 @@ const statusConfig: Record<string, { label: string; variant: "secondary" | "defa
   rejected: { label: "Rechazado", variant: "destructive", icon: XCircle, className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" },
   refunded: { label: "Reembolsado", variant: "outline", icon: RotateCcw, className: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200" },
 };
+
+type SettlementRow = {
+  week: Week;
+  grossIncome: number;
+  advertisingCost: number;
+  netIncome: number;
+  tutorEarnings: number;
+  commissionPercent: number;
+  payments: PaymentWithDetails[];
+};
+
+type SettlementData = {
+  settlements: SettlementRow[];
+  commissionPercent: number;
+};
+
+function pen(val: number) {
+  return `S/ ${val.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: SettlementRow[]; currentWeek: Week | undefined }) {
+  if (!currentWeek) return null;
+
+  const s = settlements.find(r => r.week.id === currentWeek.id);
+  if (!s) {
+    return (
+      <Card className="border-dashed" data-testid="card-week-summary">
+        <CardContent className="py-3 px-4">
+          <p className="text-xs text-muted-foreground text-center">Sin pagos verificados esta semana (S{currentWeek.weekNumber})</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const isNegative = s.tutorEarnings < 0;
+
+  return (
+    <Card className="overflow-hidden" data-testid="card-week-summary">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-white/80" />
+          <span className="text-white text-sm font-semibold">Resumen S{currentWeek.weekNumber}</span>
+        </div>
+        <Badge className="bg-white/20 text-white text-[10px] border-0 hover:bg-white/20">
+          Solo verificados
+        </Badge>
+      </div>
+      <CardContent className="py-3 px-4 space-y-1.5">
+        <div className="flex items-center justify-between text-sm" data-testid="summary-gross-income">
+          <span className="text-muted-foreground flex items-center gap-1.5">
+            <DollarSign className="h-3.5 w-3.5" />
+            Ingresos brutos
+          </span>
+          <span className="font-mono font-medium">{pen(s.grossIncome)}</span>
+        </div>
+
+        <div className="flex items-center justify-between text-sm text-red-600 dark:text-red-400" data-testid="summary-advertising">
+          <span className="flex items-center gap-1.5">
+            <Megaphone className="h-3.5 w-3.5" />
+            Gastos publicidad
+          </span>
+          <span className="font-mono">− {pen(s.advertisingCost)}</span>
+        </div>
+
+        <div className="border-t pt-1.5 flex items-center justify-between" data-testid="summary-net-income">
+          <span className="text-xs text-muted-foreground">Ingreso neto ({s.commissionPercent}%)</span>
+          <span className="font-mono text-xs text-muted-foreground">= {pen(s.netIncome)}</span>
+        </div>
+
+        <div className={`rounded-md px-3 py-2 flex items-center justify-between ${isNegative ? "bg-red-50 dark:bg-red-950/30" : "bg-green-50 dark:bg-green-950/30"}`} data-testid="summary-tutor-earnings">
+          <span className={`text-sm font-semibold ${isNegative ? "text-red-700 dark:text-red-400" : "text-green-700 dark:text-green-400"}`}>
+            Ganancia estimada
+          </span>
+          <span className={`font-mono text-base font-bold ${isNegative ? "text-red-700 dark:text-red-400" : "text-green-700 dark:text-green-400"}`}>
+            {pen(s.tutorEarnings)}
+          </span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function TutorPaymentsPage() {
   const { user } = useAuth();
@@ -32,6 +113,10 @@ export default function TutorPaymentsPage() {
 
   const { data: weeks } = useQuery<Week[]>({
     queryKey: ["/api/weeks"],
+  });
+
+  const { data: settlementData } = useQuery<SettlementData>({
+    queryKey: ["/api/tutor/settlement"],
   });
 
   const sortedWeeks = [...(weeks ?? [])].sort((a, b) => a.weekNumber - b.weekNumber);
@@ -75,6 +160,14 @@ export default function TutorPaymentsPage() {
 
   return (
     <div className="space-y-4 relative pb-24">
+      {/* Resumen semana actual */}
+      {settlementData && (
+        <CurrentWeekSummaryCard
+          settlements={settlementData.settlements}
+          currentWeek={currentWeek}
+        />
+      )}
+
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">Historial de Pagos</CardTitle>
