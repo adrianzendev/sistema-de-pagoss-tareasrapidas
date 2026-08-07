@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import LoginPage from "@/pages/login";
 import AdminDashboard from "@/pages/admin/dashboard";
 import TutorDetailPage from "@/pages/admin/tutor-detail";
+import AdminTutorViewPage from "@/pages/admin/tutor-view";
 import TutorsPage from "@/pages/admin/tutors";
 import AdminPaymentsPage from "@/pages/admin/payments";
 import CurrenciesPage from "@/pages/admin/currencies";
@@ -41,6 +42,7 @@ function AdminRoutes() {
     <Switch>
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/tutors/:id/detail" component={TutorDetailPage} />
+      <Route path="/admin/tutors/:id/view" component={AdminTutorViewPage} />
       <Route path="/admin/weeks" component={WeeksPage} />
       <Route path="/admin/tutors" component={TutorsPage} />
       <Route path="/admin/payments" component={AdminPaymentsPage} />

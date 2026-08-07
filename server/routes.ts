@@ -152,6 +152,117 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json(pays);
   });
 
+  app.get("/api/admin/tutors/:id/settlement", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = await storage.getUser(id);
+      if (!user || user.role !== "tutor") {
+        return res.status(404).json({ message: "Tutor no encontrado" });
+      }
+
+      const allWeeks = await storage.getWeeks();
+      const settings = await storage.getAgencySettings();
+      const agencyPercent = Number(settings?.agencyPercent ?? 30);
+      const tutorPercent = Number(settings?.tutorPercent ?? 70);
+      const allCurrencies = await storage.getCurrencies();
+      const tutors = await storage.getTutors();
+      const commission = Number(user.commissionPercent) / 100;
+
+      const usdCurrency = allCurrencies.find(c => c.code === "USD");
+      const usdRate = Number(usdCurrency?.exchangeRate ?? 1);
+
+      const allTutorWeekAdv = await storage.getAllTutorWeekAdvertising();
+
+      const slicedWeeks = allWeeks.slice(0, 12);
+      const oldestSettlementWeek = slicedWeeks[slicedWeeks.length - 1];
+      const newestSettlementWeek = slicedWeeks[0];
+      const allRangePayments = slicedWeeks.length > 0
+        ? await storage.getPaymentsInRange(oldestSettlementWeek.startDate, newestSettlementWeek.endDate)
+        : [];
+
+      const weeklySettlements = slicedWeeks.map((week) => {
+        const weekPayments = allRangePayments.filter(p => {
+          if (!p.createdAt) return false;
+          const d = new Date(p.createdAt).toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
+          return d >= week.startDate && d <= week.endDate;
+        });
+        const verifiedPayments = weekPayments.filter(p => p.status === "verified");
+        const tutorPayments = verifiedPayments.filter(p => p.tutorId === user.id);
+
+        const weekAdvRec = allTutorWeekAdv.find(r => r.tutorId === user.id && r.weekId === week.id);
+        const ownAdvUsd = weekAdvRec !== undefined
+          ? Number(weekAdvRec.advertisingCostUsd)
+          : Number(user.advertisingCostUsd ?? 0);
+        const ownAdvPen = ownAdvUsd * usdRate * 0.5;
+
+        const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
+        const weekEnd = new Date(week.endDate);
+        const activeTutorCount = tutors.filter(t => {
+          if (!t.isActive) return false;
+          if (!t.activatedAt) return true;
+          return new Date(t.activatedAt) <= weekEnd;
+        }).length || 1;
+        const sharedAdvPen = (sharedAdvertisingUsd * usdRate * 0.5) / activeTutorCount;
+
+        const tutorAdvertisingShare = ownAdvPen + sharedAdvPen;
+
+        let grossIncome = 0;
+        let grossRegular = 0;
+        let grossDirect = 0;
+        let currencyCommissionHalf = 0;
+        tutorPayments.forEach(p => {
+          const currency = allCurrencies.find(c => c.id === p.currencyId);
+          const rate = Number(currency?.exchangeRate ?? 1);
+          const rawAmountPen = Number(p.amount) * rate;
+          grossIncome += rawAmountPen;
+          if (currency?.code === "DIRECTO") {
+            grossDirect += rawAmountPen;
+          } else {
+            grossRegular += rawAmountPen;
+            currencyCommissionHalf += rawAmountPen * (Number(currency?.commissionPercent ?? 0) / 100) * 0.5;
+          }
+        });
+
+        const netIncome = grossIncome * commission;
+        const tutorEarnings = netIncome - tutorAdvertisingShare - currencyCommissionHalf;
+        const agencyEarnings = grossIncome * (1 - commission) - tutorAdvertisingShare - currencyCommissionHalf;
+        const tutorEarningsFromRegular = grossRegular * commission - tutorAdvertisingShare - currencyCommissionHalf;
+        const agencyEarningsFromDirect = grossDirect * (1 - commission);
+        const netTransfer = tutorEarningsFromRegular - agencyEarningsFromDirect;
+
+        return {
+          week,
+          tutorId: user.id,
+          tutorName: user.name,
+          commissionPercent: Number(user.commissionPercent),
+          grossIncome,
+          grossRegular,
+          grossDirect,
+          advertisingCost: tutorAdvertisingShare,
+          tutorAdvertisingShare,
+          agencyAdvertisingShare: tutorAdvertisingShare,
+          sharedAdvertisingUsd,
+          usdRate,
+          netIncome,
+          tutorEarnings,
+          agencyEarnings,
+          netTransfer,
+          payments: tutorPayments,
+        };
+      });
+
+      res.json({
+        settlements: weeklySettlements,
+        settings: { agencyPercent, tutorPercent },
+        commissionPercent: Number(user.commissionPercent),
+        tutor: { id: user.id, name: user.name, email: user.email },
+      });
+    } catch (error) {
+      console.error("Error getting tutor settlement (admin):", error);
+      res.status(500).json({ message: "Error al obtener liquidación" });
+    }
+  });
+
   app.post("/api/admin/tutors", requireAdmin, async (req, res) => {
     try {
       const validatedData = createTutorSchema.parse(req.body);

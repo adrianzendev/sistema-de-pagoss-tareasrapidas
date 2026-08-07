@@ -566,10 +566,12 @@ export default function TutorsPage() {
                     return (
                       <TableRow key={tutor.id} data-testid={`row-tutor-${tutor.id}`}>
                         <TableCell>
-                          <div>
-                            <div className="font-medium">{tutor.name}</div>
-                            <div className="text-xs text-muted-foreground">{tutor.email}</div>
-                          </div>
+                          <Link href={`/admin/tutors/${tutor.id}/view`}>
+                            <div className="cursor-pointer hover:underline">
+                              <div className="font-medium">{tutor.name}</div>
+                              <div className="text-xs text-muted-foreground">{tutor.email}</div>
+                            </div>
+                          </Link>
                         </TableCell>
                         <TableCell>
                           {tutor.isActive !== false ? (
