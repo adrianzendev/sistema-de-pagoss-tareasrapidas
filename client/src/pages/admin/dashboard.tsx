@@ -116,7 +116,7 @@ export default function AdminDashboard() {
   const tutorWeekAdvMap: Record<string, Record<string, number>> = matrixData?.tutorWeekAdvMap ?? {};
   const usdRate = matrixData?.usdRate ?? 1;
 
-  const tutorsWithAnyPayment = tutors.filter(t => t.isActive !== false);
+  const tutorsWithAnyPayment = tutors;
 
   return (
     <div className="space-y-6">
