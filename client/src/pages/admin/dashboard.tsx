@@ -362,6 +362,8 @@ export default function AdminDashboard() {
                                   )}
                                 </div>
                               </>
+                            ) : tutor.isActive === false ? (
+                              <span className="text-[9px] text-muted-foreground/40 italic">inactivo</span>
                             ) : (
                               <span className="text-muted-foreground/30">—</span>
                             )}
