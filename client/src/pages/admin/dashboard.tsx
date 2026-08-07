@@ -38,7 +38,7 @@ type CurrencyTotal = { code: string; name: string; symbol: string; total: number
 
 type SettlementsMatrix = {
   weeks: Week[];
-  tutors: Array<{ id: string; name: string; commissionPercent: string; advertisingCostUsd?: string; autoVerificaPagos?: boolean }>;
+  tutors: Array<{ id: string; name: string; commissionPercent: string; advertisingCostUsd?: string; autoVerificaPagos?: boolean; isActive?: boolean }>;
   matrix: Record<string, Record<string, MatrixCell>>;
   currencyTotals: CurrencyTotal[];
   weekPaidMap: Record<string, string[]>;
@@ -300,10 +300,13 @@ export default function AdminDashboard() {
                       data-testid={`row-matrix-${tutor.id}`}
                     >
                       {/* Tutor name cell */}
-                      <div className={`p-3 border-r border-border sticky left-0 z-10 ${rowIdx % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>
+                      <div className={`p-3 border-r border-border sticky left-0 z-10 ${rowIdx % 2 === 0 ? "bg-background" : "bg-muted/20"} ${tutor.isActive === false ? "opacity-50" : ""}`}>
                         <Link href={`/admin/tutors/${tutor.id}/detail`}>
-                          <div className="font-semibold text-sm truncate text-primary hover:underline cursor-pointer">{tutor.name}</div>
+                          <div className={`font-semibold text-sm truncate hover:underline cursor-pointer ${tutor.isActive === false ? "text-muted-foreground" : "text-primary"}`}>{tutor.name}</div>
                         </Link>
+                        {tutor.isActive === false && (
+                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 leading-none text-muted-foreground border-muted-foreground/40 mt-0.5">inactivo</Badge>
+                        )}
                         <div className="text-[10px] text-muted-foreground">{tutor.commissionPercent}%</div>
                         {Number(tutor.advertisingCostUsd ?? 0) > 0 && (() => {
                           const half = Number(tutor.advertisingCostUsd) / 2;
