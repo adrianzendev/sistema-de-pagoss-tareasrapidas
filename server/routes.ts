@@ -18,6 +18,14 @@ declare module "express-session" {
   }
 }
 
+/** Historical active check: was the tutor considered active during the week that ended at weekEnd? */
+function wasActiveForWeek(tutor: { activatedAt?: Date | string | null; deactivatedAt?: Date | string | null }, weekEnd: Date): boolean {
+  if (tutor.activatedAt && new Date(tutor.activatedAt) > weekEnd) return false;
+  // deactivatedAt <= weekEnd means they were deactivated before or when the week ended → inactive
+  if (tutor.deactivatedAt && new Date(tutor.deactivatedAt) <= weekEnd) return false;
+  return true;
+}
+
 function requireAuth(req: Request, res: Response, next: () => void) {
   if (!req.session.userId) {
     return res.status(401).json({ message: "No autorizado" });
@@ -197,11 +205,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
         const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
         const weekEnd = new Date(week.endDate);
-        const activeTutorCount = tutors.filter(t => {
-          if (!t.isActive) return false;
-          if (!t.activatedAt) return true;
-          return new Date(t.activatedAt) <= weekEnd;
-        }).length || 1;
+        const activeTutorCount = tutors.filter(t => wasActiveForWeek(t, weekEnd)).length || 1;
         const sharedAdvPen = (sharedAdvertisingUsd * usdRate * 0.5) / activeTutorCount;
 
         const tutorAdvertisingShare = ownAdvPen + sharedAdvPen;
@@ -304,6 +308,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         updateData.isActive = isActive;
         if (isActive === true && existing.isActive !== true) {
           updateData.activatedAt = new Date();
+          updateData.deactivatedAt = null;
+        }
+        if (isActive === false && existing.isActive !== false) {
+          updateData.deactivatedAt = new Date();
         }
       }
       if (rawPassword) updateData.password = await bcrypt.hash(rawPassword, 10);
@@ -937,11 +945,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const advertisingInSoles = sharedAdvertisingUsd * usdRate;
 
       const weekEnd = new Date(week.endDate);
-      const activeTutorCountForWeek = tutors.filter(t => {
-        if (!t.isActive) return false;
-        if (!t.activatedAt) return true;
-        return new Date(t.activatedAt) <= weekEnd;
-      }).length || 1;
+      const activeTutorCountForWeek = tutors.filter(t => wasActiveForWeek(t, weekEnd)).length || 1;
       const tutorAdvertisingShare = (advertisingInSoles * 0.5) / activeTutorCountForWeek;
 
       // Load per-week advertising overrides for this week
@@ -970,7 +974,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
         const grossRegular = grossIncome - grossDirect;
         const commission = Number(tutor.commissionPercent) / 100;
-        const isActiveForWeek = tutor.isActive !== false && (!tutor.activatedAt || new Date(tutor.activatedAt) <= weekEnd);
+        const isActiveForWeek = wasActiveForWeek(tutor, weekEnd);
         const sharedAdvShare = isActiveForWeek ? tutorAdvertisingShare : 0;
         const ownAdvUsd = weekAdvByTutor[tutor.id] ?? Number(tutor.advertisingCostUsd ?? 0);
         const ownAdvShare = isActiveForWeek ? ownAdvUsd * usdRate * 0.5 : 0;
@@ -1089,11 +1093,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
         const advertisingInSoles = sharedAdvertisingUsd * usdRate;
         const weekEndDate = new Date(week.endDate);
-        const activeTutorCount = tutors.filter(t => {
-          if (!t.isActive) return false;
-          if (!t.activatedAt) return true;
-          return new Date(t.activatedAt) <= weekEndDate;
-        }).length || 1;
+        const activeTutorCount = tutors.filter(t => wasActiveForWeek(t, weekEndDate)).length || 1;
         const weekTutorAdShare = (advertisingInSoles * 0.5) / activeTutorCount;
 
         for (const tutor of tutors) {
@@ -1119,7 +1119,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
           const grossRegular = grossIncome - grossDirect;
           const commission = Number(tutor.commissionPercent) / 100;
-          const tutorIsActive = tutor.isActive !== false && (!tutor.activatedAt || new Date(tutor.activatedAt) <= weekEndDate);
+          const tutorIsActive = wasActiveForWeek(tutor, weekEndDate);
           const sharedAdvShare = tutorIsActive ? weekTutorAdShare : 0;
           const weekOwnAdv = tutorWeekAdvMap[tutor.id]?.[week.id] ?? Number(tutor.advertisingCostUsd ?? 0);
           const ownAdvShare = tutorIsActive ? weekOwnAdv * usdRate * 0.5 : 0;
@@ -1237,7 +1237,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const tutorSummaries = tutors.map(tutor => {
         const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
         const commission = Number(tutor.commissionPercent) / 100;
-        const isActive = tutor.isActive !== false && (!tutor.activatedAt || new Date(tutor.activatedAt) <= weekEnd);
+        const isActive = wasActiveForWeek(tutor, weekEnd);
 
         let grossIncomePen = 0;
         let currencyCommissionHalfPen = 0;
@@ -1331,11 +1331,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
           const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
           const weekEnd = new Date(week.endDate);
-          const activeTutorCount = tutors.filter(t => {
-            if (!t.isActive) return false;
-            if (!t.activatedAt) return true;
-            return new Date(t.activatedAt) <= weekEnd;
-          }).length || 1;
+          const activeTutorCount = tutors.filter(t => wasActiveForWeek(t, weekEnd)).length || 1;
           const sharedAdvPen = (sharedAdvertisingUsd * usdRate * 0.5) / activeTutorCount;
 
           const tutorAdvertisingShare = ownAdvPen + sharedAdvPen;
