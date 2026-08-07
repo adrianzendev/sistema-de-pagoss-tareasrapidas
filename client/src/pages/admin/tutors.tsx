@@ -18,7 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Loader2, UserPlus, Mail, Percent, Trash2, Edit, DollarSign, TrendingUp, Megaphone } from "lucide-react";
+import { Plus, Search, Loader2, UserPlus, Mail, Percent, Trash2, Edit, DollarSign, TrendingUp, Megaphone, ExternalLink } from "lucide-react";
+import { Link } from "wouter";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
@@ -623,6 +624,15 @@ export default function TutorsPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
+                            <Link href={`/admin/tutors/${tutor.id}/detail`}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                data-testid={`button-profile-tutor-${tutor.id}`}
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            </Link>
                             <Button
                               variant="ghost"
                               size="icon"

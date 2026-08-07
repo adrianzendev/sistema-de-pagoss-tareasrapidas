@@ -210,10 +210,10 @@ export default function TutorDetailPage() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center gap-3">
-        <Link href="/admin">
+        <Link href="/admin/tutors">
           <button className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="w-4 h-4" />
-            Dashboard
+            Tutores
           </button>
         </Link>
       </div>
