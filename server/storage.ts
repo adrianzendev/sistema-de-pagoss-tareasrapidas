@@ -389,7 +389,16 @@ export class DatabaseStorage implements IStorage {
 
   async getBlacklistByNormalizedPhone(normalizedPhone: string): Promise<Blacklist | undefined> {
     const all = await db.select().from(blacklist);
-    return all.find(entry => normalizePhone(entry.clientNumber) === normalizedPhone);
+    return all.find(entry => {
+      const stored = normalizePhone(entry.clientNumber);
+      if (stored === normalizedPhone) return true;
+      // Suffix match: handle missing/different country code (e.g. "935436864" matches "+51935436864")
+      // Both must be at least 9 digits to avoid false positives
+      if (stored.length >= 9 && normalizedPhone.length >= 9) {
+        if (stored.endsWith(normalizedPhone) || normalizedPhone.endsWith(stored)) return true;
+      }
+      return false;
+    });
   }
 
   // Clients
