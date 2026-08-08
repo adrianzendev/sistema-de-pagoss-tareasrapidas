@@ -32,6 +32,7 @@ type MatrixCell = {
   netTransfer: number;
   tutorAdvertisingShare: number;
   paymentCount: number;
+  wasActive: boolean;
 };
 
 type CurrencyTotal = { code: string; name: string; symbol: string; total: number };
@@ -362,7 +363,7 @@ export default function AdminDashboard() {
                                   )}
                                 </div>
                               </>
-                            ) : tutor.isActive === false ? (
+                            ) : cell?.wasActive === false ? (
                               <span className="text-[9px] text-muted-foreground/40 italic">inactivo</span>
                             ) : (
                               <span className="text-muted-foreground/30">—</span>

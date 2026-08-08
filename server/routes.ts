@@ -1137,6 +1137,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             tutorAdvertisingShare: totalAdvShare,
             paymentCount: tutorPayments.length,
             currencies: Object.values(cellCurrencies),
+            wasActive: tutorIsActive,
           };
         }
       }
