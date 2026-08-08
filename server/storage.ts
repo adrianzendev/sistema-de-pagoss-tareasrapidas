@@ -20,6 +20,7 @@ import {
   type InsertActivityLog,
   type WeekTutorPaid,
   type TutorWeekAdvertising,
+  type TutorDailyCampaign,
   users,
   currencies,
   payments,
@@ -31,10 +32,11 @@ import {
   activityLog,
   weekTutorPaid,
   tutorWeekAdvertising,
+  tutorDailyCampaigns,
   normalizePhone,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, gte, lte, inArray } from "drizzle-orm";
+import { eq, desc, and, sql, gte, lte, inArray, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -136,6 +138,13 @@ export interface IStorage {
   getTutorWeekAdvertising(tutorId: string, weekId: string): Promise<TutorWeekAdvertising | undefined>;
   setTutorWeekAdvertising(tutorId: string, weekId: string, cost: number): Promise<TutorWeekAdvertising>;
   getAllTutorWeekAdvertising(): Promise<TutorWeekAdvertising[]>;
+  setTutorWeekAdvertisingDisabled(tutorId: string, weekId: string, disabled: boolean, defaultCost: number): Promise<TutorWeekAdvertising>;
+
+  // Tutor Daily Campaigns
+  getTutorDailyCampaigns(tutorId: string): Promise<TutorDailyCampaign[]>;
+  getAllTutorDailyCampaigns(): Promise<TutorDailyCampaign[]>;
+  createTutorDailyCampaign(tutorId: string, dailyCostUsd: number, startDate: string): Promise<TutorDailyCampaign>;
+  endTutorDailyCampaign(id: string, endDate: string): Promise<TutorDailyCampaign | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -725,6 +734,48 @@ export class DatabaseStorage implements IStorage {
     }
     const [rec] = await db.insert(tutorWeekAdvertising)
       .values({ tutorId, weekId, advertisingCostUsd: String(cost) })
+      .returning();
+    return rec;
+  }
+
+  async setTutorWeekAdvertisingDisabled(tutorId: string, weekId: string, disabled: boolean, defaultCost: number): Promise<TutorWeekAdvertising> {
+    const existing = await this.getTutorWeekAdvertising(tutorId, weekId);
+    if (existing) {
+      const [rec] = await db.update(tutorWeekAdvertising)
+        .set({ disabled })
+        .where(and(eq(tutorWeekAdvertising.tutorId, tutorId), eq(tutorWeekAdvertising.weekId, weekId)))
+        .returning();
+      return rec;
+    }
+    const [rec] = await db.insert(tutorWeekAdvertising)
+      .values({ tutorId, weekId, advertisingCostUsd: String(defaultCost), disabled })
+      .returning();
+    return rec;
+  }
+
+  // Tutor Daily Campaigns
+  async getTutorDailyCampaigns(tutorId: string): Promise<TutorDailyCampaign[]> {
+    return db.select().from(tutorDailyCampaigns)
+      .where(eq(tutorDailyCampaigns.tutorId, tutorId))
+      .orderBy(desc(tutorDailyCampaigns.createdAt));
+  }
+
+  async getAllTutorDailyCampaigns(): Promise<TutorDailyCampaign[]> {
+    return db.select().from(tutorDailyCampaigns);
+  }
+
+  async createTutorDailyCampaign(tutorId: string, dailyCostUsd: number, startDate: string): Promise<TutorDailyCampaign> {
+    const [rec] = await db.insert(tutorDailyCampaigns)
+      .values({ tutorId, dailyCostUsd: String(dailyCostUsd), startDate })
+      .returning();
+    return rec;
+  }
+
+  async endTutorDailyCampaign(id: string, endDate: string): Promise<TutorDailyCampaign | undefined> {
+    // Only active campaigns can be ended; a recorded end date is immutable
+    const [rec] = await db.update(tutorDailyCampaigns)
+      .set({ endDate })
+      .where(and(eq(tutorDailyCampaigns.id, id), isNull(tutorDailyCampaigns.endDate)))
       .returning();
     return rec;
   }

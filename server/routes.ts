@@ -18,6 +18,28 @@ declare module "express-session" {
   }
 }
 
+/** Sum of daily-campaign charges (USD, full amount before 50/50 split) that fall inside a week.
+ *  Dates are YYYY-MM-DD strings (Peru); comparison is lexicographic. Active campaigns accrue up to today. */
+function dailyCampaignUsdForWeek(
+  campaigns: Array<{ dailyCostUsd: string; startDate: string; endDate: string | null }>,
+  weekStart: string,
+  weekEnd: string,
+  todayStr: string,
+): { totalUsd: number; days: number } {
+  let totalUsd = 0;
+  let days = 0;
+  for (const c of campaigns) {
+    const effectiveEnd = c.endDate ?? todayStr;
+    const from = c.startDate > weekStart ? c.startDate : weekStart;
+    const to = effectiveEnd < weekEnd ? effectiveEnd : weekEnd;
+    if (to < from) continue;
+    const d = Math.round((Date.parse(to + "T00:00:00Z") - Date.parse(from + "T00:00:00Z")) / 86400000) + 1;
+    days += d;
+    totalUsd += d * Number(c.dailyCostUsd);
+  }
+  return { totalUsd, days };
+}
+
 /** Historical active check: was the tutor considered active during the week that ended at weekEnd? */
 function wasActiveForWeek(tutor: { activatedAt?: Date | string | null; deactivatedAt?: Date | string | null }, weekEnd: Date): boolean {
   if (tutor.activatedAt && new Date(tutor.activatedAt) > weekEnd) return false;
@@ -180,6 +202,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const usdRate = Number(usdCurrency?.exchangeRate ?? 1);
 
       const allTutorWeekAdv = await storage.getAllTutorWeekAdvertising();
+      const tutorCampaigns = await storage.getTutorDailyCampaigns(user.id);
+      const todayPeru = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
 
       const slicedWeeks = allWeeks.slice(0, 12);
       const oldestSettlementWeek = slicedWeeks[slicedWeeks.length - 1];
@@ -198,15 +222,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const tutorPayments = verifiedPayments.filter(p => p.tutorId === user.id);
 
         const weekAdvRec = allTutorWeekAdv.find(r => r.tutorId === user.id && r.weekId === week.id);
+        const advDisabled = !!weekAdvRec?.disabled;
         const ownAdvUsd = weekAdvRec !== undefined
           ? Number(weekAdvRec.advertisingCostUsd)
           : Number(user.advertisingCostUsd ?? 0);
-        const ownAdvPen = ownAdvUsd * usdRate * 0.5;
+        const daily = advDisabled
+          ? { totalUsd: 0, days: 0 }
+          : dailyCampaignUsdForWeek(tutorCampaigns, week.startDate, week.endDate, todayPeru);
+        const weekEnd = new Date(week.endDate);
+        const selfActiveForWeek = wasActiveForWeek(user, weekEnd);
+        const ownAdvPen = selfActiveForWeek && !advDisabled ? (ownAdvUsd + daily.totalUsd) * usdRate * 0.5 : 0;
 
         const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
-        const weekEnd = new Date(week.endDate);
         const activeTutorCount = tutors.filter(t => wasActiveForWeek(t, weekEnd)).length || 1;
-        const sharedAdvPen = (sharedAdvertisingUsd * usdRate * 0.5) / activeTutorCount;
+        const sharedAdvPen = selfActiveForWeek ? (sharedAdvertisingUsd * usdRate * 0.5) / activeTutorCount : 0;
 
         const tutorAdvertisingShare = ownAdvPen + sharedAdvPen;
 
@@ -247,6 +276,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           agencyAdvertisingShare: tutorAdvertisingShare,
           sharedAdvertisingUsd,
           usdRate,
+          dailyAdvUsd: daily.totalUsd,
+          dailyAdvDays: daily.days,
+          weeklyAdvDisabled: !!weekAdvRec?.disabled,
           netIncome,
           tutorEarnings,
           agencyEarnings,
@@ -907,6 +939,76 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // Toggle weekly advertising charge on/off for a tutor+week
+  app.patch("/api/admin/tutors/:tutorId/week-advertising/:weekId/toggle", requireAdmin, async (req, res) => {
+    try {
+      const disabled = !!req.body.disabled;
+      const tutor = await storage.getUser(req.params.tutorId);
+      if (!tutor) return res.status(404).json({ message: "Tutor no encontrado" });
+      const week = await storage.getWeek(req.params.weekId);
+      if (!week) return res.status(404).json({ message: "Semana no encontrada" });
+      const rec = await storage.setTutorWeekAdvertisingDisabled(
+        req.params.tutorId,
+        req.params.weekId,
+        disabled,
+        Number(tutor.advertisingCostUsd ?? 0),
+      );
+      res.json(rec);
+    } catch (e) {
+      res.status(500).json({ message: "Error al cambiar publicidad semanal" });
+    }
+  });
+
+  // Daily advertising campaigns
+  app.get("/api/admin/tutors/:tutorId/daily-campaigns", requireAdmin, async (req, res) => {
+    try {
+      const campaigns = await storage.getTutorDailyCampaigns(req.params.tutorId);
+      const todayPeru = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
+      res.json(campaigns.map(c => {
+        const end = c.endDate ?? todayPeru;
+        const days = end >= c.startDate
+          ? Math.round((Date.parse(end + "T00:00:00Z") - Date.parse(c.startDate + "T00:00:00Z")) / 86400000) + 1
+          : 0;
+        return { ...c, days, active: c.endDate === null };
+      }));
+    } catch (e) {
+      res.status(500).json({ message: "Error al obtener campañas" });
+    }
+  });
+
+  app.post("/api/admin/tutors/:tutorId/daily-campaigns", requireAdmin, async (req, res) => {
+    try {
+      const dailyCostUsd = Number(req.body.dailyCostUsd);
+      if (!Number.isFinite(dailyCostUsd) || dailyCostUsd <= 0) {
+        return res.status(400).json({ message: "Monto diario inválido" });
+      }
+      const existing = await storage.getTutorDailyCampaigns(req.params.tutorId);
+      if (existing.some(c => c.endDate === null)) {
+        return res.status(400).json({ message: "El tutor ya tiene una campaña diaria activa" });
+      }
+      const todayPeru = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
+      const rec = await storage.createTutorDailyCampaign(req.params.tutorId, dailyCostUsd, todayPeru);
+      res.status(201).json(rec);
+    } catch (e: any) {
+      // Unique index: only one active campaign per tutor
+      if (e?.code === "23505") {
+        return res.status(400).json({ message: "El tutor ya tiene una campaña diaria activa" });
+      }
+      res.status(500).json({ message: "Error al crear campaña" });
+    }
+  });
+
+  app.patch("/api/admin/daily-campaigns/:id/end", requireAdmin, async (req, res) => {
+    try {
+      const todayPeru = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
+      const rec = await storage.endTutorDailyCampaign(req.params.id, todayPeru);
+      if (!rec) return res.status(409).json({ message: "La campaña no existe o ya fue finalizada" });
+      res.json(rec);
+    } catch (e) {
+      res.status(500).json({ message: "Error al finalizar campaña" });
+    }
+  });
+
   app.post("/api/admin/weeks/:weekId/tutor-paid/:tutorId", requireAdmin, async (req, res) => {
     try {
       const record = await storage.markTutorPaid(req.params.weekId, req.params.tutorId);
@@ -951,11 +1053,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       // Load per-week advertising overrides for this week
       const weekAdvRecords = await storage.getAllTutorWeekAdvertising();
       const weekAdvByTutor: Record<string, number> = {};
+      const weekAdvDisabledByTutor: Record<string, boolean> = {};
       for (const r of weekAdvRecords) {
         if (r.weekId === week.id) {
           weekAdvByTutor[r.tutorId] = Number(r.advertisingCostUsd);
+          weekAdvDisabledByTutor[r.tutorId] = !!r.disabled;
         }
       }
+      const allCampaigns = await storage.getAllTutorDailyCampaigns();
+      const todayPeru = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
 
       const settlements = tutors.map(tutor => {
         const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
@@ -976,12 +1082,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const commission = Number(tutor.commissionPercent) / 100;
         const isActiveForWeek = wasActiveForWeek(tutor, weekEnd);
         const sharedAdvShare = isActiveForWeek ? tutorAdvertisingShare : 0;
+        const advDisabled = !!weekAdvDisabledByTutor[tutor.id];
         const ownAdvUsd = weekAdvByTutor[tutor.id] ?? Number(tutor.advertisingCostUsd ?? 0);
-        const ownAdvShare = isActiveForWeek ? ownAdvUsd * usdRate * 0.5 : 0;
+        const daily = advDisabled
+          ? { totalUsd: 0, days: 0 }
+          : dailyCampaignUsdForWeek(allCampaigns.filter(c => c.tutorId === tutor.id), week.startDate, week.endDate, todayPeru);
+        const ownAdvShare = isActiveForWeek && !advDisabled ? (ownAdvUsd + daily.totalUsd) * usdRate * 0.5 : 0;
         const totalAdvShare = sharedAdvShare + ownAdvShare;
         const netIncome = grossIncome * commission;
         const tutorEarnings = netIncome - totalAdvShare - currencyCommissionHalf;
         const agencyEarnings = grossIncome * (1 - commission) - totalAdvShare - currencyCommissionHalf;
+        const dailyAdvUsd = daily.totalUsd;
+        const dailyAdvDays = daily.days;
 
         // netTransfer: positive = agency owes tutor, negative = tutor owes agency
         const tutorEarningsFromRegular = grossRegular * commission - totalAdvShare - currencyCommissionHalf;
@@ -1001,6 +1113,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           tutorAdvertisingShare: totalAdvShare,
           sharedAdvertisingShare: sharedAdvShare,
           ownAdvertisingShare: ownAdvShare,
+          dailyAdvUsd,
+          dailyAdvDays,
+          weeklyAdvDisabled: !!weekAdvDisabledByTutor[tutor.id],
           agencyAdvertisingShare: totalAdvShare,
           netIncome,
           tutorEarnings,
@@ -1057,10 +1172,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       // Load all per-week advertising overrides once
       const allTutorWeekAdv = await storage.getAllTutorWeekAdvertising();
+      const allCampaignsMatrix = await storage.getAllTutorDailyCampaigns();
+      const todayPeruMatrix = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
       const tutorWeekAdvMap: Record<string, Record<string, number>> = {};
+      const tutorWeekAdvDisabledMap: Record<string, Record<string, boolean>> = {};
       for (const r of allTutorWeekAdv) {
         if (!tutorWeekAdvMap[r.tutorId]) tutorWeekAdvMap[r.tutorId] = {};
         tutorWeekAdvMap[r.tutorId][r.weekId] = Number(r.advertisingCostUsd);
+        if (!tutorWeekAdvDisabledMap[r.tutorId]) tutorWeekAdvDisabledMap[r.tutorId] = {};
+        tutorWeekAdvDisabledMap[r.tutorId][r.weekId] = !!r.disabled;
       }
 
       // Fetch all payments for the relevant weeks in one query
@@ -1121,8 +1241,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const commission = Number(tutor.commissionPercent) / 100;
           const tutorIsActive = wasActiveForWeek(tutor, weekEndDate);
           const sharedAdvShare = tutorIsActive ? weekTutorAdShare : 0;
+          const advDisabledMx = !!tutorWeekAdvDisabledMap[tutor.id]?.[week.id];
           const weekOwnAdv = tutorWeekAdvMap[tutor.id]?.[week.id] ?? Number(tutor.advertisingCostUsd ?? 0);
-          const ownAdvShare = tutorIsActive ? weekOwnAdv * usdRate * 0.5 : 0;
+          const dailyMx = advDisabledMx
+            ? { totalUsd: 0, days: 0 }
+            : dailyCampaignUsdForWeek(allCampaignsMatrix.filter(c => c.tutorId === tutor.id), week.startDate, week.endDate, todayPeruMatrix);
+          const ownAdvShare = tutorIsActive && !advDisabledMx ? (weekOwnAdv + dailyMx.totalUsd) * usdRate * 0.5 : 0;
           const totalAdvShare = sharedAdvShare + ownAdvShare;
           const netIncome = grossIncome * commission;
           const tutorEarnings = netIncome - totalAdvShare - currencyCommissionHalf;
@@ -1164,7 +1288,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       const safeTutors = tutors.map(({ password: _pw, ...safe }) => safe);
-      res.json({ weeks: allWeeks, tutors: safeTutors, matrix, currencyTotals: Object.values(currencyTotals), weekCurrencyTotals, weekPaidMap, tutorWeekAdvMap, usdRate });
+      res.json({ weeks: allWeeks, tutors: safeTutors, matrix, currencyTotals: Object.values(currencyTotals), weekCurrencyTotals, weekPaidMap, tutorWeekAdvMap, tutorWeekAdvDisabledMap, usdRate });
     } catch (error) {
       console.error("Error getting settlements matrix:", error);
       res.status(500).json({ message: "Error al obtener matriz" });
@@ -1229,9 +1353,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       // Per-week advertising overrides
       const allTutorWeekAdv = await storage.getAllTutorWeekAdvertising();
       const weekAdvByTutor: Record<string, number> = {};
+      const weekAdvDisabledByTutor: Record<string, boolean> = {};
       for (const r of allTutorWeekAdv) {
-        if (r.weekId === currentWeek.id) weekAdvByTutor[r.tutorId] = Number(r.advertisingCostUsd);
+        if (r.weekId === currentWeek.id) {
+          weekAdvByTutor[r.tutorId] = Number(r.advertisingCostUsd);
+          weekAdvDisabledByTutor[r.tutorId] = !!r.disabled;
+        }
       }
+      const allCampaignsCw = await storage.getAllTutorDailyCampaigns();
+      const todayPeruCw = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
 
       const weekEnd = new Date(currentWeek.endDate + "T23:59:59");
 
@@ -1250,8 +1380,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           currencyCommissionHalfPen += rawAmountPen * (Number(currency?.commissionPercent ?? 0) / 100) * 0.5;
         });
 
+        const advDisabledCw = !!weekAdvDisabledByTutor[tutor.id];
         const ownAdvUsd = weekAdvByTutor[tutor.id] ?? Number(tutor.advertisingCostUsd ?? 0);
-        const ownAdvPen = isActive ? ownAdvUsd * usdRate * 0.5 : 0;
+        const dailyCw = advDisabledCw
+          ? { totalUsd: 0, days: 0 }
+          : dailyCampaignUsdForWeek(allCampaignsCw.filter(c => c.tutorId === tutor.id), currentWeek.startDate, currentWeek.endDate, todayPeruCw);
+        const ownAdvPen = isActive && !advDisabledCw ? (ownAdvUsd + dailyCw.totalUsd) * usdRate * 0.5 : 0;
         const sharedAdv = isActive && tutorPayments.length > 0 ? sharedAdvPerTutor : 0;
         const totalAdvPen = sharedAdv + ownAdvPen;
 
@@ -1304,6 +1438,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const usdRate = Number(usdCurrency?.exchangeRate ?? 1);
 
       const allTutorWeekAdv = await storage.getAllTutorWeekAdvertising();
+      const tutorCampaignsSelf = await storage.getTutorDailyCampaigns(user.id);
+      const todayPeruSelf = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
 
       const slicedWeeks = allWeeks.slice(0, 12);
       const oldestSettlementWeek = slicedWeeks[slicedWeeks.length - 1];
@@ -1325,15 +1461,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           // 1) Own advertising (per-week override or tutor default): tutor pays 50%
           // 2) Shared week advertising: 50% split equally among active tutors
           const weekAdvRec = allTutorWeekAdv.find(r => r.tutorId === user.id && r.weekId === week.id);
+          const advDisabledTt = !!weekAdvRec?.disabled;
           const ownAdvUsd = weekAdvRec !== undefined
             ? Number(weekAdvRec.advertisingCostUsd)
             : Number(user.advertisingCostUsd ?? 0);
-          const ownAdvPen = ownAdvUsd * usdRate * 0.5;
+          const dailyTt = advDisabledTt
+            ? { totalUsd: 0, days: 0 }
+            : dailyCampaignUsdForWeek(tutorCampaignsSelf, week.startDate, week.endDate, todayPeruSelf);
+          const weekEnd = new Date(week.endDate);
+          const selfActiveForWeek = wasActiveForWeek(user, weekEnd);
+          const ownAdvPen = selfActiveForWeek && !advDisabledTt ? (ownAdvUsd + dailyTt.totalUsd) * usdRate * 0.5 : 0;
 
           const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
-          const weekEnd = new Date(week.endDate);
           const activeTutorCount = tutors.filter(t => wasActiveForWeek(t, weekEnd)).length || 1;
-          const sharedAdvPen = (sharedAdvertisingUsd * usdRate * 0.5) / activeTutorCount;
+          const sharedAdvPen = selfActiveForWeek ? (sharedAdvertisingUsd * usdRate * 0.5) / activeTutorCount : 0;
 
           const tutorAdvertisingShare = ownAdvPen + sharedAdvPen;
 
@@ -1380,6 +1521,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             agencyAdvertisingShare: tutorAdvertisingShare,
             sharedAdvertisingUsd,
             usdRate,
+            dailyAdvUsd: dailyTt.totalUsd,
+            dailyAdvDays: dailyTt.days,
+            weeklyAdvDisabled: !!weekAdvRec?.disabled,
             netIncome,
             tutorEarnings,
             agencyEarnings,

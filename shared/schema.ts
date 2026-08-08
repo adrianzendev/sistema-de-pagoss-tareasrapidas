@@ -106,9 +106,22 @@ export const tutorWeekAdvertising = pgTable("tutor_week_advertising", {
   tutorId: varchar("tutor_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   weekId: varchar("week_id").notNull().references(() => weeks.id, { onDelete: "cascade" }),
   advertisingCostUsd: decimal("advertising_cost_usd", { precision: 12, scale: 2 }).notNull().default("0"),
+  disabled: boolean("disabled").notNull().default(false),
 });
 
 export type TutorWeekAdvertising = typeof tutorWeekAdvertising.$inferSelect;
+
+// Daily advertising campaigns: charged per calendar day (Peru) while active, split 50/50
+export const tutorDailyCampaigns = pgTable("tutor_daily_campaigns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tutorId: varchar("tutor_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  dailyCostUsd: decimal("daily_cost_usd", { precision: 12, scale: 2 }).notNull(),
+  startDate: text("start_date").notNull(), // YYYY-MM-DD (Peru)
+  endDate: text("end_date"), // null = still active
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type TutorDailyCampaign = typeof tutorDailyCampaigns.$inferSelect;
 
 export const weekTutorPaid = pgTable("week_tutor_paid", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

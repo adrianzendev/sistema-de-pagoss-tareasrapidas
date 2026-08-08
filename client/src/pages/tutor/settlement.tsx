@@ -15,6 +15,9 @@ type TutorSettlement = {
   tutorAdvertisingShare: number;
   sharedAdvertisingUsd: number;
   usdRate: number;
+  dailyAdvUsd?: number;
+  dailyAdvDays?: number;
+  weeklyAdvDisabled?: boolean;
   netIncome: number;
   tutorEarnings: number;
   agencyEarnings: number;
@@ -200,9 +203,16 @@ export default function TutorSettlementPage() {
                     </div>
                     <div className="bg-destructive/10 p-2 text-right border-r border-destructive/15 font-medium text-destructive" data-testid={`text-advertising-${s.week.weekNumber}`}>
                       {s.tutorAdvertisingShare > 0 ? (
-                        <span title={`$${formatCurrency(s.sharedAdvertisingUsd)} USD × TC ${formatCurrency(s.usdRate)}`}>
-                          -{formatCurrency(s.tutorAdvertisingShare)}
-                        </span>
+                        <div>
+                          <span title={`$${formatCurrency(s.sharedAdvertisingUsd)} USD × TC ${formatCurrency(s.usdRate)}`}>
+                            -{formatCurrency(s.tutorAdvertisingShare)}
+                          </span>
+                          {(s.dailyAdvUsd ?? 0) > 0 && (
+                            <div className="text-[9px] font-normal text-destructive/70" data-testid={`text-daily-adv-${s.week.weekNumber}`}>
+                              incl. diaria: {s.dailyAdvDays} {s.dailyAdvDays === 1 ? "día" : "días"} = ${formatCurrency(s.dailyAdvUsd ?? 0)} USD (50%)
+                            </div>
+                          )}
+                        </div>
                       ) : "—"}
                     </div>
                     <div className="bg-success/10 p-2 text-right font-bold text-success" data-testid={`text-earnings-${s.week.weekNumber}`}>
