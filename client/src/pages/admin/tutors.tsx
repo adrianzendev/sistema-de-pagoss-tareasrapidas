@@ -535,7 +535,7 @@ export default function TutorsPage() {
             </div>
           ) : filteredTutors?.length === 0 ? (
             <div className="text-center py-12">
-              <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+              <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 border border-border">
                 <UserPlus className="h-8 w-8 text-muted-foreground" />
               </div>
               <h3 className="font-medium text-lg">No hay tutores</h3>
@@ -575,7 +575,7 @@ export default function TutorsPage() {
                         </TableCell>
                         <TableCell>
                           {tutor.isActive !== false ? (
-                            <Badge className="bg-success text-success-foreground text-xs px-2 py-0" data-testid={`status-tutor-${tutor.id}`}>Activo</Badge>
+                            <Badge className="border-success/40 bg-background text-success text-xs px-2 py-0" data-testid={`status-tutor-${tutor.id}`}>Activo</Badge>
                           ) : (
                             <Badge variant="secondary" className="text-xs px-2 py-0" data-testid={`status-tutor-${tutor.id}`}>Inactivo</Badge>
                           )}
@@ -675,7 +675,7 @@ export default function TutorsPage() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
-              className="bg-destructive text-destructive-foreground"
+              className="border border-destructive bg-background text-destructive hover:bg-accent"
             >
               {deleteMutation.isPending ? "Eliminando..." : "Eliminar"}
             </AlertDialogAction>

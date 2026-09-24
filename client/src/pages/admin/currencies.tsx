@@ -53,7 +53,7 @@ const getColorPreview = (color: string) => {
     white: "bg-white border border-border",
     black: "bg-black",
   };
-  return colorMap[color] ?? "bg-muted";
+  return colorMap[color] ?? "";
 };
 
 export default function CurrenciesPage() {
@@ -326,7 +326,7 @@ export default function CurrenciesPage() {
             </div>
           ) : currencies?.length === 0 ? (
             <div className="text-center py-12">
-              <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+              <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 border border-border">
                 <Coins className="h-8 w-8 text-muted-foreground" />
               </div>
               <h3 className="font-medium text-lg">No hay divisas</h3>
@@ -408,7 +408,7 @@ export default function CurrenciesPage() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
-              className="bg-destructive text-destructive-foreground"
+              className="border border-destructive bg-background text-destructive hover:bg-accent"
             >
               {deleteMutation.isPending ? "Eliminando..." : "Eliminar"}
             </AlertDialogAction>

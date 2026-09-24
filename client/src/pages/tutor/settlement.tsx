@@ -59,7 +59,7 @@ export default function TutorSettlementPage() {
       case "closed":
         return <Badge variant="secondary">Cerrada</Badge>;
       case "paid":
-        return <Badge className="bg-success">Pagada</Badge>;
+        return <Badge className="border-success/40 bg-background text-success">Pagada</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -108,7 +108,7 @@ export default function TutorSettlementPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
+              <div className="p-3 rounded-lg border border-primary/30">
                 <Coins className="h-6 w-6 text-primary" />
               </div>
               <div>
@@ -122,7 +122,7 @@ export default function TutorSettlementPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+              <div className="p-3 rounded-lg border border-destructive/30">
                 <DollarSign className="h-6 w-6 text-destructive" />
               </div>
               <div>
@@ -136,7 +136,7 @@ export default function TutorSettlementPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-success/10 border border-success/30">
+              <div className="p-3 rounded-lg border border-success/30">
                 <Calculator className="h-6 w-6 text-success" />
               </div>
               <div>
@@ -163,15 +163,15 @@ export default function TutorSettlementPage() {
             <div className="overflow-x-auto">
               <div className="min-w-[860px]">
                 <div className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-b-2 border-border font-bold text-xs uppercase">
-                  <div className="bg-muted/60 p-2 text-center border-r border-border text-muted-foreground">#</div>
-                  <div className="bg-primary/20 p-2 text-center border-r border-primary/25 text-primary">SEMANA</div>
-                  <div className="bg-muted/40 p-2 text-center border-r border-border text-muted-foreground">PERÍODO</div>
-                  <div className="bg-muted/40 p-2 text-center border-r border-border text-muted-foreground">ESTADO</div>
-                  <div className="bg-muted/40 p-2 text-center border-r border-border text-muted-foreground">PAGOS</div>
-                  <div className="bg-success/20 p-2 text-center border-r border-success/25 text-success">BRUTO</div>
-                  <div className="bg-primary/25 p-2 text-center border-r border-primary/30 text-primary">× {commissionPercent}%</div>
-                  <div className="bg-destructive/20 p-2 text-center border-r border-destructive/25 text-destructive">− PUBLICIDAD</div>
-                  <div className="bg-success/30 p-2 text-center text-success">GANANCIA</div>
+                  <div className="p-2 text-center border-r border-border text-muted-foreground">#</div>
+                  <div className="p-2 text-center border-r border-primary/25 text-primary">SEMANA</div>
+                  <div className="p-2 text-center border-r border-border text-muted-foreground">PERÍODO</div>
+                  <div className="p-2 text-center border-r border-border text-muted-foreground">ESTADO</div>
+                  <div className="p-2 text-center border-r border-border text-muted-foreground">PAGOS</div>
+                  <div className="p-2 text-center border-r border-success/25 text-success">BRUTO</div>
+                  <div className="p-2 text-center border-r border-primary/30 text-primary">× {commissionPercent}%</div>
+                  <div className="p-2 text-center border-r border-destructive/25 text-destructive">− PUBLICIDAD</div>
+                  <div className="p-2 text-center text-success">GANANCIA</div>
                 </div>
 
                 {settlements.map((s, index) => (
@@ -180,28 +180,28 @@ export default function TutorSettlementPage() {
                     className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-b border-border text-sm"
                     data-testid={`row-settlement-${s.week.weekNumber}`}
                   >
-                    <div className="bg-muted/20 p-2 text-center border-r border-border font-medium text-muted-foreground">
+                    <div className="p-2 text-center border-r border-border font-medium text-muted-foreground">
                       {index + 1}
                     </div>
-                    <div className="bg-primary/5 p-2 text-center border-r border-primary/10 font-bold" data-testid={`text-week-${s.week.weekNumber}`}>
+                    <div className="p-2 text-center border-r border-primary/30 font-bold" data-testid={`text-week-${s.week.weekNumber}`}>
                       S{s.week.weekNumber}
                     </div>
-                    <div className="bg-muted/10 p-2 text-center border-r border-border text-xs">
+                    <div className="p-2 text-center border-r border-border text-xs">
                       {formatDate(s.week.startDate)} - {formatDate(s.week.endDate)}
                     </div>
-                    <div className="bg-muted/10 p-2 text-center border-r border-border flex items-center justify-center">
+                    <div className="p-2 text-center border-r border-border flex items-center justify-center">
                       {getStatusBadge(s.week.status)}
                     </div>
-                    <div className="bg-muted/10 p-2 text-center border-r border-border font-medium" data-testid={`text-payments-${s.week.weekNumber}`}>
+                    <div className="p-2 text-center border-r border-border font-medium" data-testid={`text-payments-${s.week.weekNumber}`}>
                       {s.payments.length}
                     </div>
-                    <div className="bg-success/10 p-2 text-right border-r border-success/15 font-medium text-success" data-testid={`text-gross-${s.week.weekNumber}`}>
+                    <div className="p-2 text-right border-r border-success/30 font-medium text-success" data-testid={`text-gross-${s.week.weekNumber}`}>
                       {formatCurrency(s.grossIncome)}
                     </div>
-                    <div className="bg-primary/5 p-2 text-right border-r border-primary/10 font-medium text-primary" data-testid={`text-net-commission-${s.week.weekNumber}`}>
+                    <div className="p-2 text-right border-r border-primary/30 font-medium text-primary" data-testid={`text-net-commission-${s.week.weekNumber}`}>
                       {formatCurrency(s.netIncome)}
                     </div>
-                    <div className="bg-destructive/10 p-2 text-right border-r border-destructive/15 font-medium text-destructive" data-testid={`text-advertising-${s.week.weekNumber}`}>
+                    <div className="p-2 text-right border-r border-destructive/30 font-medium text-destructive" data-testid={`text-advertising-${s.week.weekNumber}`}>
                       {s.tutorAdvertisingShare > 0 ? (
                         <div>
                           <span title={`$${formatCurrency(s.sharedAdvertisingUsd)} USD × TC ${formatCurrency(s.usdRate)}`}>
@@ -215,27 +215,27 @@ export default function TutorSettlementPage() {
                         </div>
                       ) : "—"}
                     </div>
-                    <div className="bg-success/10 p-2 text-right font-bold text-success" data-testid={`text-earnings-${s.week.weekNumber}`}>
+                    <div className="p-2 text-right font-bold text-success" data-testid={`text-earnings-${s.week.weekNumber}`}>
                       {formatCurrency(s.tutorEarnings)}
                     </div>
                   </div>
                 ))}
 
-                <div className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-t-2 border-border font-bold text-sm bg-muted/20">
-                  <div className="bg-muted/40 p-3 text-center border-r border-border"></div>
-                  <div className="bg-muted/30 p-3 border-r border-border col-span-4 text-right pr-4">
+                <div className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-t-2 border-border font-bold text-sm">
+                  <div className="p-3 text-center border-r border-border"></div>
+                  <div className="p-3 border-r border-border col-span-4 text-right pr-4">
                     TOTALES:
                   </div>
-                  <div className="bg-success/15 p-3 text-right border-r border-success/20 text-success" data-testid="text-total-gross-row">
+                  <div className="p-3 text-right border-r border-success/30 text-success" data-testid="text-total-gross-row">
                     {formatCurrency(totals.grossIncome)}
                   </div>
-                  <div className="bg-primary/10 p-3 text-right border-r border-primary/15 text-primary" data-testid="text-total-net-row">
+                  <div className="p-3 text-right border-r border-primary/30 text-primary" data-testid="text-total-net-row">
                     {formatCurrency(totals.netIncome)}
                   </div>
-                  <div className="bg-destructive/15 p-3 text-right border-r border-destructive/20 text-destructive" data-testid="text-total-advertising-row">
+                  <div className="p-3 text-right border-r border-destructive/30 text-destructive" data-testid="text-total-advertising-row">
                     {totals.advertisingCost > 0 ? `-${formatCurrency(totals.advertisingCost)}` : "—"}
                   </div>
-                  <div className="bg-success/25 p-3 text-right text-success" data-testid="text-total-earnings-row">
+                  <div className="p-3 text-right text-success" data-testid="text-total-earnings-row">
                     {formatCurrency(totals.tutorEarnings)}
                   </div>
                 </div>
@@ -257,20 +257,20 @@ export default function TutorSettlementPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-            <div className="p-3 rounded-lg bg-success/10 border border-success/20">
+            <div className="p-3 rounded-lg border border-success/30">
               <p className="font-bold text-success">1. Ingreso Bruto</p>
               <p className="text-success/70 text-xs">Pagos verificados convertidos a PEN</p>
             </div>
-            <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+            <div className="p-3 rounded-lg border border-primary/30">
               <p className="font-bold text-primary">2. Aplicar Comisión ({commissionPercent}%)</p>
               <p className="text-primary/70 text-xs">Bruto × {commissionPercent}%</p>
             </div>
-            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+            <div className="p-3 rounded-lg border border-destructive/30">
               <p className="font-bold text-destructive">3. Restar Publicidad</p>
               <p className="text-destructive/70 text-xs">Publicidad USD × TC × 50% ÷ tutores activos</p>
             </div>
           </div>
-          <div className="mt-4 p-3 bg-muted rounded-lg text-center border border-border">
+          <div className="mt-4 p-3 rounded-lg text-center border border-border">
             <p className="text-sm font-mono font-bold">
               Ganancia = (Bruto × {commissionPercent}%) − Publicidad compartida
             </p>

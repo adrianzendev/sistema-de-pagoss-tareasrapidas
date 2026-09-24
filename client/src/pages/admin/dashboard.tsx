@@ -198,21 +198,21 @@ export default function AdminDashboard() {
             <CardDescription>En el periodo seleccionado</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-4 p-3 rounded-lg bg-warning/10 border border-warning/15">
+            <div className="flex items-center gap-4 p-3 rounded-lg border border-warning/30">
               <Clock className="h-5 w-5 text-warning" />
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Pendientes</p>
                 <p className="text-lg font-bold">{stats?.pendingPayments ?? 0}</p>
               </div>
             </div>
-            <div className="flex items-center gap-4 p-3 rounded-lg bg-success/10 border border-success/15">
+            <div className="flex items-center gap-4 p-3 rounded-lg border border-success/30">
               <CheckCircle className="h-5 w-5 text-success" />
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Verificados</p>
                 <p className="text-lg font-bold">{stats?.verifiedPayments ?? 0}</p>
               </div>
             </div>
-            <div className="flex items-center gap-4 p-3 rounded-lg bg-destructive/10 border border-destructive/15">
+            <div className="flex items-center gap-4 p-3 rounded-lg border border-destructive/30">
               <XCircle className="h-5 w-5 text-destructive" />
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Rechazados</p>
@@ -253,10 +253,10 @@ export default function AdminDashboard() {
               <div style={{ minWidth: `${160 + weeks.length * 120}px` }}>
                 {/* Header */}
                 <div
-                  className="grid border-b-2 border-border text-xs font-bold uppercase bg-muted/60"
+                  className="grid border-b-2 border-border text-xs font-bold uppercase"
                   style={{ gridTemplateColumns: `160px repeat(${weeks.length}, 120px) 130px` }}
                 >
-                  <div className="p-3 border-r border-border sticky left-0 bg-muted/80 z-10">
+                  <div className="p-3 border-r border-border sticky left-0 z-10">
                     Tutor
                   </div>
                   {weeks.map(w => {
@@ -301,7 +301,7 @@ export default function AdminDashboard() {
                       data-testid={`row-matrix-${tutor.id}`}
                     >
                       {/* Tutor name cell */}
-                      <div className={`p-3 border-r border-border sticky left-0 z-10 ${rowIdx % 2 === 0 ? "bg-background" : "bg-muted/20"} ${tutor.isActive === false ? "opacity-50" : ""}`}>
+                      <div className={`p-3 border-r border-border sticky left-0 z-10 ${rowIdx % 2 === 0 ? "bg-background" : ""} ${tutor.isActive === false ? "opacity-50" : ""}`}>
                         <Link href={`/admin/tutors/${tutor.id}/detail`}>
                           <div className={`font-semibold text-sm truncate hover:underline cursor-pointer ${tutor.isActive === false ? "text-muted-foreground" : "text-primary"}`}>{tutor.name}</div>
                         </Link>
@@ -359,7 +359,7 @@ export default function AdminDashboard() {
                                 <div className="flex items-center justify-end gap-1 mt-1">
                                   <span className="text-xs text-muted-foreground/60">{cell?.paymentCount ?? 0} pg</span>
                                   {isTutorPaid && (
-                                    <Badge className="text-xs px-2 py-0 h-5 bg-success leading-none">Pagado</Badge>
+                                    <Badge className="text-xs px-2 py-0 h-5 border-success/40 bg-background text-success leading-none">Pagado</Badge>
                                   )}
                                 </div>
                               </>
@@ -387,10 +387,10 @@ export default function AdminDashboard() {
 
                 {/* Totals row */}
                 <div
-                  className="grid border-t-2 border-border bg-muted/50 font-bold text-sm"
+                  className="grid border-t-2 border-border font-bold text-sm"
                   style={{ gridTemplateColumns: `160px repeat(${weeks.length}, 120px) 130px` }}
                 >
-                  <div className="p-2 border-r border-border sticky left-0 bg-muted/70 z-10 flex flex-col justify-center">
+                  <div className="p-2 border-r border-border sticky left-0 z-10 flex flex-col justify-center">
                     <div className="text-xs uppercase text-muted-foreground/70 font-normal leading-4">Total Bruto</div>
                     <div className="text-xs uppercase text-muted-foreground/60 font-normal leading-4">Publicidad Total</div>
                     <div className="text-xs uppercase text-success leading-4">Tutores</div>

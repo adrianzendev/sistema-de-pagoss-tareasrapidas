@@ -36,10 +36,10 @@ type SettlementResponse = {
 };
 
 const statusConfig: Record<string, { label: string; icon: typeof Clock; className: string }> = {
-  pending: { label: "Pendiente", icon: Clock, className: "bg-warning/10 text-warning" },
-  verified: { label: "Verificado", icon: CheckCircle, className: "bg-success/10 text-success" },
-  rejected: { label: "Rechazado", icon: XCircle, className: "bg-destructive/10 text-destructive" },
-  refunded: { label: "Reembolsado", icon: RotateCcw, className: "bg-muted text-muted-foreground" },
+  pending: { label: "Pendiente", icon: Clock, className: "text-warning border-warning/40" },
+  verified: { label: "Verificado", icon: CheckCircle, className: "text-success border-success/40" },
+  rejected: { label: "Rechazado", icon: XCircle, className: "text-destructive border-destructive/40" },
+  refunded: { label: "Reembolsado", icon: RotateCcw, className: "text-muted-foreground border-border" },
 };
 
 function pen(val: number) {
@@ -54,7 +54,7 @@ function getStatusBadge(status: string) {
   switch (status) {
     case "open": return <Badge variant="default">Abierta</Badge>;
     case "closed": return <Badge variant="secondary">Cerrada</Badge>;
-    case "paid": return <Badge className="bg-success">Pagada</Badge>;
+    case "paid": return <Badge className="border-success/40 bg-background text-success">Pagada</Badge>;
     default: return <Badge variant="outline">{status}</Badge>;
   }
 }
@@ -133,7 +133,7 @@ export default function AdminTutorViewPage() {
           <h1 className="text-xl font-bold">{tutor?.name ?? "Tutor"}</h1>
           <p className="text-sm text-muted-foreground">{tutor?.email}</p>
         </div>
-        <Badge variant="outline" className="text-xs bg-muted">
+        <Badge variant="outline" className="text-xs">
           Vista admin · comisión {commissionPercent}%
         </Badge>
       </div>
@@ -197,7 +197,7 @@ export default function AdminTutorViewPage() {
                 </Select>
               </div>
             </CardHeader>
-            <div className="px-4 py-2 border-t bg-muted/30 flex flex-wrap gap-4 text-xs text-muted-foreground">
+            <div className="px-4 py-2 border-t flex flex-wrap gap-4 text-xs text-muted-foreground">
               <span>Total: <strong className="text-foreground">{payments?.length ?? 0}</strong></span>
               <span>Pendientes: <strong className="text-warning">{payments?.filter(p => p.status === "pending").length ?? 0}</strong></span>
               <span>Verificados: <strong className="text-success">{payments?.filter(p => p.status === "verified").length ?? 0}</strong></span>
@@ -221,7 +221,7 @@ export default function AdminTutorViewPage() {
             </Card>
           ) : !payments?.length ? (
             <div className="text-center py-12">
-              <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+              <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 border border-border">
                 <FileText className="h-8 w-8 text-muted-foreground" />
               </div>
               <h3 className="font-medium text-lg">No hay pagos</h3>
@@ -232,7 +232,7 @@ export default function AdminTutorViewPage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableRow className="hover:bg-muted/40">
                       <TableHead className="text-xs">Estado</TableHead>
                       <TableHead className="text-right text-xs">Monto</TableHead>
                       <TableHead className="text-center text-xs">Img</TableHead>
@@ -263,12 +263,12 @@ export default function AdminTutorViewPage() {
                             {payment.proofImage ? (
                               <button
                                 onClick={() => setPreviewImage(payment.proofImage!)}
-                                className="inline-flex items-center justify-center w-8 h-8 rounded overflow-hidden border bg-muted hover:opacity-80 transition-opacity mx-auto"
+                                className="inline-flex items-center justify-center w-8 h-8 rounded overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
                               >
                                 <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
                               </button>
                             ) : (
-                              <div className="inline-flex items-center justify-center w-8 h-8 rounded border bg-muted/30 mx-auto">
+                              <div className="inline-flex items-center justify-center w-8 h-8 rounded border mx-auto">
                                 <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
                               </div>
                             )}
@@ -308,7 +308,7 @@ export default function AdminTutorViewPage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
+                  <div className="p-3 rounded-lg border border-primary/30">
                     <Coins className="h-6 w-6 text-primary" />
                   </div>
                   <div>
@@ -321,7 +321,7 @@ export default function AdminTutorViewPage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+                  <div className="p-3 rounded-lg border border-destructive/30">
                     <DollarSign className="h-6 w-6 text-destructive" />
                   </div>
                   <div>
@@ -334,7 +334,7 @@ export default function AdminTutorViewPage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-success/10 border border-success/30">
+                  <div className="p-3 rounded-lg border border-success/30">
                     <Calculator className="h-6 w-6 text-success" />
                   </div>
                   <div>
@@ -359,15 +359,15 @@ export default function AdminTutorViewPage() {
                 <div className="overflow-x-auto">
                   <div className="min-w-[860px]">
                     <div className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-b-2 border-border font-bold text-xs uppercase">
-                      <div className="bg-muted/60 p-2 text-center border-r border-border text-muted-foreground">#</div>
-                      <div className="bg-primary/20 p-2 text-center border-r border-primary/25 text-primary">SEMANA</div>
-                      <div className="bg-muted/40 p-2 text-center border-r border-border text-muted-foreground">PERÍODO</div>
-                      <div className="bg-muted/40 p-2 text-center border-r border-border text-muted-foreground">ESTADO</div>
-                      <div className="bg-muted/40 p-2 text-center border-r border-border text-muted-foreground">PAGOS</div>
-                      <div className="bg-success/20 p-2 text-center border-r border-success/25 text-success">BRUTO</div>
-                      <div className="bg-primary/25 p-2 text-center border-r border-primary/30 text-primary">× {commissionPercent}%</div>
-                      <div className="bg-destructive/20 p-2 text-center border-r border-destructive/25 text-destructive">− PUBLICIDAD</div>
-                      <div className="bg-success/30 p-2 text-center text-success">GANANCIA</div>
+                      <div className="p-2 text-center border-r border-border text-muted-foreground">#</div>
+                      <div className="p-2 text-center border-r border-primary/25 text-primary">SEMANA</div>
+                      <div className="p-2 text-center border-r border-border text-muted-foreground">PERÍODO</div>
+                      <div className="p-2 text-center border-r border-border text-muted-foreground">ESTADO</div>
+                      <div className="p-2 text-center border-r border-border text-muted-foreground">PAGOS</div>
+                      <div className="p-2 text-center border-r border-success/25 text-success">BRUTO</div>
+                      <div className="p-2 text-center border-r border-primary/30 text-primary">× {commissionPercent}%</div>
+                      <div className="p-2 text-center border-r border-destructive/25 text-destructive">− PUBLICIDAD</div>
+                      <div className="p-2 text-center text-success">GANANCIA</div>
                     </div>
 
                     {settlements.map((s, index) => (
@@ -375,39 +375,39 @@ export default function AdminTutorViewPage() {
                         key={s.week.id}
                         className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-b border-border text-sm"
                       >
-                        <div className="bg-muted/20 p-2 text-center border-r border-border font-medium text-muted-foreground">{index + 1}</div>
-                        <div className="bg-primary/5 p-2 text-center border-r border-primary/10 font-bold">S{s.week.weekNumber}</div>
-                        <div className="bg-muted/10 p-2 text-center border-r border-border text-xs">
+                        <div className="p-2 text-center border-r border-border font-medium text-muted-foreground">{index + 1}</div>
+                        <div className="p-2 text-center border-r border-primary/30 font-bold">S{s.week.weekNumber}</div>
+                        <div className="p-2 text-center border-r border-border text-xs">
                           {new Date(s.week.startDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })} - {new Date(s.week.endDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
                         </div>
-                        <div className="bg-muted/10 p-2 text-center border-r border-border flex items-center justify-center">
+                        <div className="p-2 text-center border-r border-border flex items-center justify-center">
                           {getStatusBadge(s.week.status)}
                         </div>
-                        <div className="bg-muted/10 p-2 text-center border-r border-border font-medium">{s.payments.length}</div>
-                        <div className="bg-success/10 p-2 text-right border-r border-success/15 font-medium text-success">{fmt2(s.grossIncome)}</div>
-                        <div className="bg-primary/5 p-2 text-right border-r border-primary/10 font-medium text-primary">{fmt2(s.netIncome)}</div>
-                        <div className="bg-destructive/10 p-2 text-right border-r border-destructive/15 font-medium text-destructive">
+                        <div className="p-2 text-center border-r border-border font-medium">{s.payments.length}</div>
+                        <div className="p-2 text-right border-r border-success/30 font-medium text-success">{fmt2(s.grossIncome)}</div>
+                        <div className="p-2 text-right border-r border-primary/30 font-medium text-primary">{fmt2(s.netIncome)}</div>
+                        <div className="p-2 text-right border-r border-destructive/30 font-medium text-destructive">
                           {s.tutorAdvertisingShare > 0 ? (
                             <span title={`$${fmt2(s.sharedAdvertisingUsd)} USD × TC ${fmt2(s.usdRate)}`}>
                               -{fmt2(s.tutorAdvertisingShare)}
                             </span>
                           ) : "—"}
                         </div>
-                        <div className={`bg-success/10 p-2 text-right font-bold ${s.tutorEarnings < 0 ? "text-destructive" : "text-success"}`}>
+                        <div className={`p-2 text-right font-bold ${s.tutorEarnings < 0 ? "text-destructive" : "text-success"}`}>
                           {fmt2(s.tutorEarnings)}
                         </div>
                       </div>
                     ))}
 
-                    <div className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-t-2 border-border font-bold text-sm bg-muted/20">
-                      <div className="bg-muted/40 p-3 text-center border-r border-border" />
-                      <div className="bg-muted/30 p-3 border-r border-border col-span-4 text-right pr-4">TOTALES:</div>
-                      <div className="bg-success/15 p-3 text-right border-r border-success/20 text-success">{fmt2(totals.grossIncome)}</div>
-                      <div className="bg-primary/10 p-3 text-right border-r border-primary/15 text-primary">{fmt2(totals.netIncome)}</div>
-                      <div className="bg-destructive/15 p-3 text-right border-r border-destructive/20 text-destructive">
+                    <div className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-t-2 border-border font-bold text-sm">
+                      <div className="p-3 text-center border-r border-border" />
+                      <div className="p-3 border-r border-border col-span-4 text-right pr-4">TOTALES:</div>
+                      <div className="p-3 text-right border-r border-success/30 text-success">{fmt2(totals.grossIncome)}</div>
+                      <div className="p-3 text-right border-r border-primary/30 text-primary">{fmt2(totals.netIncome)}</div>
+                      <div className="p-3 text-right border-r border-destructive/30 text-destructive">
                         {totals.advertisingCost > 0 ? `-${fmt2(totals.advertisingCost)}` : "—"}
                       </div>
-                      <div className="bg-success/25 p-3 text-right text-success">{fmt2(totals.tutorEarnings)}</div>
+                      <div className="p-3 text-right text-success">{fmt2(totals.tutorEarnings)}</div>
                     </div>
                   </div>
                 </div>
@@ -426,20 +426,20 @@ export default function AdminTutorViewPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                <div className="p-3 rounded-lg bg-success/10 border border-success/20">
+                <div className="p-3 rounded-lg border border-success/30">
                   <p className="font-bold text-success">1. Ingreso Bruto</p>
                   <p className="text-success/70 text-xs">Pagos verificados convertidos a PEN</p>
                 </div>
-                <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                <div className="p-3 rounded-lg border border-primary/30">
                   <p className="font-bold text-primary">2. Aplicar Comisión ({commissionPercent}%)</p>
                   <p className="text-primary/70 text-xs">Bruto × {commissionPercent}%</p>
                 </div>
-                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                <div className="p-3 rounded-lg border border-destructive/30">
                   <p className="font-bold text-destructive">3. Restar Publicidad</p>
                   <p className="text-destructive/70 text-xs">Publicidad USD × TC × 50% ÷ tutores activos</p>
                 </div>
               </div>
-              <div className="mt-4 p-3 bg-muted rounded-lg text-center border border-border">
+              <div className="mt-4 p-3 rounded-lg text-center border border-border">
                 <p className="text-sm font-mono font-bold">
                   Ganancia = (Bruto × {commissionPercent}%) − Publicidad compartida
                 </p>

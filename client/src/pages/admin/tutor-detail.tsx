@@ -70,7 +70,7 @@ function WeekPayments({ tutorId, weekId }: { tutorId: string; weekId: string }) 
   if (isLoading) {
     return (
       <tr>
-        <td colSpan={8} className="px-6 py-3 bg-muted/30">
+        <td colSpan={8} className="px-6 py-3">
           <Skeleton className="h-4 w-48" />
         </td>
       </tr>
@@ -80,7 +80,7 @@ function WeekPayments({ tutorId, weekId }: { tutorId: string; weekId: string }) 
   if (!payments || payments.length === 0) {
     return (
       <tr>
-        <td colSpan={8} className="px-6 py-3 bg-muted/20 text-muted-foreground text-xs italic">
+        <td colSpan={8} className="px-6 py-3 text-muted-foreground text-xs italic">
           Sin pagos en esta semana.
         </td>
       </tr>
@@ -93,7 +93,7 @@ function WeekPayments({ tutorId, weekId }: { tutorId: string; weekId: string }) 
         const rate = Number(p.exchangeRateSnapshot ?? p.currency?.exchangeRate ?? 1);
         const amountSoles = Number(p.amount) * rate;
         return (
-          <tr key={p.id} className={`${i % 2 === 0 ? "bg-muted/10" : "bg-muted/20"} text-xs`}>
+          <tr key={p.id} className={`${i % 2 === 0 ? "" : ""} text-xs`}>
             <td className="pl-10 pr-4 py-2 text-muted-foreground">
               {new Date(p.createdAt).toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
               <div className="text-xs opacity-60">{new Date(p.createdAt).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}</div>
@@ -112,7 +112,7 @@ function WeekPayments({ tutorId, weekId }: { tutorId: string; weekId: string }) 
             </td>
             <td className="px-4 py-2">
               {p.status === "verified" ? (
-                <Badge className="text-xs px-2 py-0 h-5 bg-success">Verificado</Badge>
+                <Badge className="text-xs px-2 py-0 h-5 border-success/40 bg-background text-success">Verificado</Badge>
               ) : p.status === "rejected" ? (
                 <Badge variant="destructive" className="text-xs px-2 py-0 h-5">Rechazado</Badge>
               ) : (
@@ -272,7 +272,7 @@ export default function TutorDetailPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {activeCampaign ? (
-            <div className="flex items-center justify-between flex-wrap gap-3 rounded-md border border-success/40 bg-success/5 p-3" data-testid="active-campaign">
+            <div className="flex items-center justify-between flex-wrap gap-3 rounded-md border border-success/40 p-3" data-testid="active-campaign">
               <div className="text-sm">
                 <span className="font-semibold text-success">Activa</span>{" "}
                 <span className="font-medium">USD {Number(activeCampaign.dailyCostUsd).toFixed(2)}/día</span>
@@ -365,7 +365,7 @@ export default function TutorDetailPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="border-b-2 border-border bg-muted/50">
+                <tr className="border-b-2 border-border">
                   <th className="text-left px-4 py-3 w-6" />
                   <th className="text-left px-4 py-3 font-semibold">Semana</th>
                   <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground">Estado</th>
@@ -393,7 +393,7 @@ export default function TutorDetailPage() {
                         key={week.id}
                         className={`border-b border-border transition-colors cursor-pointer select-none ${
                           hasActivity ? "hover:bg-muted/40" : "opacity-40"
-                        } ${isExpanded ? "bg-muted/30" : ""}`}
+                        } ${isExpanded ? "" : ""}`}
                         onClick={() => hasActivity && setExpandedWeek(isExpanded ? null : week.id)}
                         data-testid={`row-week-${week.id}`}
                       >
@@ -412,7 +412,7 @@ export default function TutorDetailPage() {
                         </td>
                         <td className="px-4 py-3">
                           {week.status === "paid" ? (
-                            <Badge className="text-xs px-2 py-0 h-5 bg-success">Cerrada</Badge>
+                            <Badge className="text-xs px-2 py-0 h-5 border-success/40 bg-background text-success">Cerrada</Badge>
                           ) : week.status === "closed" ? (
                             <Badge variant="secondary" className="text-xs px-2 py-0 h-5">Cerrada</Badge>
                           ) : (
@@ -504,7 +504,7 @@ export default function TutorDetailPage() {
                           {hasActivity ? (
                             isPaid ? (
                               <Badge
-                                className="text-xs px-2 py-0 h-4 bg-success cursor-pointer hover:bg-success/90"
+                                className="text-xs px-2 py-0 h-5 border-success/40 bg-background text-success cursor-pointer hover:bg-accent"
                                 onClick={() => !isMutating && unmarkPaidMutation.mutate({ weekId: week.id })}
                               >Pagado</Badge>
                             ) : (
@@ -526,7 +526,7 @@ export default function TutorDetailPage() {
                 })}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 border-border bg-muted/50 font-bold">
+                <tr className="border-t-2 border-border font-bold">
                   <td className="px-4 py-3" />
                   <td className="px-4 py-3 text-sm uppercase text-muted-foreground" colSpan={2}>Total</td>
                   {allCurrencies.map(c => {

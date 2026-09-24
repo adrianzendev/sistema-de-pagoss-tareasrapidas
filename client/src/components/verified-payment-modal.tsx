@@ -196,7 +196,7 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
             Agregar Pago Verificado
           </DialogTitle>
           <DialogDescription className="flex items-center gap-2 flex-wrap">
-            <Badge className="bg-success/10 text-success border-0 text-xs">Ya cobrado</Badge>
+            <Badge className="text-success border-success/40 text-xs">Ya cobrado</Badge>
             {currentOpenWeek
               ? `Semana S${currentOpenWeek.weekNumber} — ingresa el monto en PEN`
               : "Se registrará directamente como verificado"
@@ -373,7 +373,7 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
               </Button>
               <Button
                 type="submit"
-                className="flex-1 bg-success hover:bg-success/90 text-success-foreground"
+                className="flex-1 border border-success bg-background text-success hover:bg-accent"
                 disabled={createMutation.isPending || !canCreatePayment}
                 data-testid="button-submit-verified-payment"
               >

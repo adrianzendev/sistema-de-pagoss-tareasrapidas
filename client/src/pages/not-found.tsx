@@ -8,7 +8,7 @@ export default function NotFound() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <Card className="max-w-md w-full">
         <CardContent className="pt-6 text-center">
-          <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+          <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 border border-destructive/30">
             <AlertCircle className="h-8 w-8 text-destructive" />
           </div>
           <h1 className="text-2xl font-bold mb-2">Página no encontrada</h1>

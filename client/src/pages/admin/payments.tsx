@@ -26,10 +26,10 @@ import {
 const weekPaymentsCache = new Map<string, PaymentWithDetails[]>();
 
 const statusLabels: Record<string, { label: string; icon: any; className: string }> = {
-  pending:  { label: "Pendiente",   icon: Clock,        className: "bg-secondary text-secondary-foreground" },
-  verified: { label: "Verificado",  icon: CheckCircle,  className: "bg-success/10 text-success" },
-  rejected: { label: "Rechazado",   icon: XCircle,      className: "bg-destructive/10 text-destructive" },
-  refunded: { label: "Reembolsado", icon: RotateCcw,    className: "bg-muted text-muted-foreground" },
+  pending:  { label: "Pendiente",   icon: Clock,        className: "text-foreground border-border" },
+  verified: { label: "Verificado",  icon: CheckCircle,  className: "text-success border-success/40" },
+  rejected: { label: "Rechazado",   icon: XCircle,      className: "text-destructive border-destructive/40" },
+  refunded: { label: "Reembolsado", icon: RotateCcw,    className: "text-muted-foreground border-border" },
 };
 
 function PaymentTable({
@@ -69,7 +69,7 @@ function PaymentTable({
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow className="bg-muted/40 hover:bg-muted/40">
+          <TableRow className="hover:bg-muted/40">
             <TableHead className="text-xs">Estado</TableHead>
             <TableHead className="text-right text-xs">Monto</TableHead>
             <TableHead className="text-center text-xs">Img</TableHead>
@@ -91,7 +91,7 @@ function PaymentTable({
                   {payment.status === "pending" ? (
                     <button
                       onClick={() => setActionPayment(payment)}
-                      className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium bg-warning/10 text-warning hover:bg-warning/20 border border-warning/30 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium text-warning hover:bg-accent border border-warning/30 transition-colors cursor-pointer"
                       data-testid={`button-status-${payment.id}`}
                     >
                       <Clock className="h-3 w-3" />
@@ -114,13 +114,13 @@ function PaymentTable({
                   {payment.proofImage ? (
                     <button
                       onClick={() => setPreviewPayment({ payment, list: filtered.filter(p => p.proofImage) })}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded overflow-hidden border bg-muted hover:opacity-80 transition-opacity mx-auto"
+                      className="inline-flex items-center justify-center w-8 h-8 rounded overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
                       data-testid={`button-view-proof-${payment.id}`}
                     >
                       <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
                     </button>
                   ) : (
-                    <div className="inline-flex items-center justify-center w-8 h-8 rounded border bg-muted/30 mx-auto">
+                    <div className="inline-flex items-center justify-center w-8 h-8 rounded border mx-auto">
                       <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
                     </div>
                   )}
@@ -209,7 +209,7 @@ function PaymentTable({
         </DialogHeader>
         {actionPayment && (
           <div className="space-y-4">
-            <div className="border rounded-lg p-3 bg-muted/50">
+            <div className="border rounded-lg p-3">
               <div className="flex justify-between">
                 <span className="text-sm font-medium">{actionPayment.tutor?.name}</span>
                 <span className="font-mono font-bold">
@@ -220,7 +220,7 @@ function PaymentTable({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <Button
-                className="gap-2 bg-success/10 text-success hover:bg-success/20 border border-success/30"
+                className="gap-2 text-success hover:bg-accent border border-success/30"
                 variant="ghost"
                 onClick={() => { updateMutation.mutate({ id: actionPayment.id, status: "verified" }); setActionPayment(null); }}
                 disabled={updateMutation.isPending}
@@ -229,7 +229,7 @@ function PaymentTable({
                 <CheckCircle className="h-4 w-4" /> Verificar
               </Button>
               <Button
-                className="gap-2 bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30"
+                className="gap-2 text-destructive hover:bg-accent border border-destructive/30"
                 variant="ghost"
                 onClick={() => { updateMutation.mutate({ id: actionPayment.id, status: "rejected" }); setActionPayment(null); }}
                 disabled={updateMutation.isPending}
@@ -298,7 +298,7 @@ function WeekSection({
         <span className="font-semibold text-sm">S{week.weekNumber}</span>
         <span className="text-xs text-muted-foreground">{dateRange}</span>
         {isCurrentWeek && (
-          <Badge className="text-xs px-2 py-0 bg-success/10 text-success ml-1">actual</Badge>
+          <Badge className="text-xs px-2 py-0 text-success ml-1">actual</Badge>
         )}
         <div className="flex-1" />
         {!expanded && (
@@ -500,7 +500,7 @@ export default function PaymentsPage() {
               {p?.status === "pending" && (
                 <div className="flex gap-2 p-3 border-t shrink-0">
                   <Button
-                    className="flex-1 gap-2 bg-success/10 text-success hover:bg-success/20 border border-success/30"
+                    className="flex-1 gap-2 text-success hover:bg-accent border border-success/30"
                     variant="ghost"
                     onClick={() => { updateMutation.mutate({ id: p.id, status: "verified" }); setPreviewCtx(null); }}
                     disabled={updateMutation.isPending}
@@ -509,7 +509,7 @@ export default function PaymentsPage() {
                     <CheckCircle className="h-4 w-4" /> Verificar
                   </Button>
                   <Button
-                    className="flex-1 gap-2 bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30"
+                    className="flex-1 gap-2 text-destructive hover:bg-accent border border-destructive/30"
                     variant="ghost"
                     onClick={() => { updateMutation.mutate({ id: p.id, status: "rejected" }); setPreviewCtx(null); }}
                     disabled={updateMutation.isPending}
@@ -570,7 +570,7 @@ export default function PaymentsPage() {
             <AlertDialogAction
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
               disabled={deleteMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="border border-destructive bg-background text-destructive hover:bg-accent"
             >
               Eliminar
             </AlertDialogAction>

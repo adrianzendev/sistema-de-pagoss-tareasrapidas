@@ -132,8 +132,8 @@ export function AppSidebar() {
                 data-testid="nav-nuevo-pago-top"
                 className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors
                   ${hasOpenWeek
-                    ? "border border-primary-border bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "border border-border bg-muted text-muted-foreground opacity-60 cursor-default"
+                    ? "border border-primary bg-background text-primary hover:bg-accent"
+                    : "border border-border text-muted-foreground opacity-60 cursor-default"
                   }`}
               >
                 {hasOpenWeek ? <PlusCircle className="h-4 w-4 shrink-0" /> : <Lock className="h-4 w-4 shrink-0" />}
@@ -155,8 +155,8 @@ export function AppSidebar() {
                   data-testid="nav-pago-verificado-top"
                   className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors
                     ${hasOpenWeek
-                      ? "border border-success/40 bg-success/15 text-success hover:bg-success/25"
-                      : "border border-border bg-muted text-muted-foreground opacity-60 cursor-default"
+                      ? "border border-success/40 text-success hover:bg-accent"
+                      : "border border-border text-muted-foreground opacity-60 cursor-default"
                     }`}
                 >
                   {hasOpenWeek ? <CheckCircle className="h-4 w-4 shrink-0" /> : <Lock className="h-4 w-4 shrink-0" />}
@@ -207,7 +207,7 @@ export function AppSidebar() {
         <SidebarFooter className="p-4 border-t border-sidebar-border">
           <div className="flex items-center gap-3 mb-3 rounded-md border border-sidebar-border bg-background p-2" data-testid="sidebar-user-card">
             <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-primary/10 text-primary text-sm">
+              <AvatarFallback className="text-primary text-sm">
                 {user ? getInitials(user.name) : "?"}
               </AvatarFallback>
             </Avatar>

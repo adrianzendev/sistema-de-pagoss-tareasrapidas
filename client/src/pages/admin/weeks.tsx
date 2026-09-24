@@ -179,7 +179,7 @@ export default function WeeksPage() {
       case "closed":
         return <Badge variant="secondary" data-testid="badge-status-closed">Cerrada</Badge>;
       case "paid":
-        return <Badge className="bg-success" data-testid="badge-status-paid">Pagada</Badge>;
+        return <Badge className="border-success/40 bg-background text-success" data-testid="badge-status-paid">Pagada</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -372,7 +372,7 @@ export default function WeeksPage() {
                 />
               </div>
               {Number(sharedAdvertisingUsd) > 0 ? (
-                <div className="text-xs space-y-1 p-3 bg-muted rounded-md border border border-border">
+                <div className="text-xs space-y-1 p-3 rounded-md border border border-border">
                   <p className="font-semibold text-foreground mb-2">Desglose del costo:</p>
                   <div className="grid grid-cols-2 gap-1">
                     <span className="text-muted-foreground">Total USD ingresado:</span>
@@ -441,7 +441,7 @@ export default function WeeksPage() {
           ) : settlement ? (
             <div className="space-y-4">
               {settlement.advertising.sharedAdvertisingUsd > 0 && (
-                <div className="p-3 bg-primary/5 border border-primary/15 rounded-lg text-sm">
+                <div className="p-3 border border-primary/30 rounded-lg text-sm">
                   <p className="font-medium text-primary mb-1">Publicidad Compartida</p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                     <div>
@@ -465,19 +465,19 @@ export default function WeeksPage() {
               )}
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="text-center p-3 bg-muted rounded-lg border border-border">
+                <div className="text-center p-3 rounded-lg border border-border">
                   <div className="text-lg font-bold">{formatCurrency(settlement.totals.grossIncome)}</div>
                   <div className="text-xs text-muted-foreground">Ingreso Bruto</div>
                 </div>
-                <div className="text-center p-3 bg-muted rounded-lg border border-border">
+                <div className="text-center p-3 rounded-lg border border-border">
                   <div className="text-lg font-bold">{formatCurrency(settlement.totals.netIncome)}</div>
                   <div className="text-xs text-muted-foreground">Por comisión</div>
                 </div>
-                <div className="text-center p-3 bg-primary/10 rounded-lg border border-primary/30">
+                <div className="text-center p-3 rounded-lg border border-primary/30">
                   <div className="text-lg font-bold text-primary">{formatCurrency(settlement.totals.tutorEarnings)}</div>
                   <div className="text-xs text-muted-foreground">Ganancia Tutores</div>
                 </div>
-                <div className="text-center p-3 bg-muted rounded-lg border border-border">
+                <div className="text-center p-3 rounded-lg border border-border">
                   <div className="text-lg font-bold">{formatCurrency(settlement.totals.agencyEarnings)}</div>
                   <div className="text-xs text-muted-foreground">Ganancia Agencia</div>
                 </div>

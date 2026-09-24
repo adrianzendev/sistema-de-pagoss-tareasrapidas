@@ -63,9 +63,9 @@ type ClientWithStats = {
 };
 
 const statusConfig: Record<string, { label: string; className: string; icon: any }> = {
-  verified: { label: "Verificado", className: "bg-success/10 text-success", icon: CheckCircle },
-  rejected: { label: "Rechazado", className: "bg-destructive/10 text-destructive", icon: XCircle },
-  pending: { label: "Pendiente", className: "bg-warning/10 text-warning", icon: Clock },
+  verified: { label: "Verificado", className: "text-success border-success/40", icon: CheckCircle },
+  rejected: { label: "Rechazado", className: "text-destructive border-destructive/40", icon: XCircle },
+  pending: { label: "Pendiente", className: "text-warning border-warning/40", icon: Clock },
 };
 
 export default function ClientsPage() {
@@ -276,7 +276,7 @@ export default function ClientsPage() {
             </div>
           ) : filtered?.length === 0 ? (
             <div className="text-center py-12">
-              <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+              <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 border border-border">
                 <Users className="h-8 w-8 text-muted-foreground" />
               </div>
               <h3 className="font-medium text-lg">No hay clientes</h3>
@@ -296,7 +296,7 @@ export default function ClientsPage() {
                         onClick={() => setExpandedId(isExpanded ? null : client.id)}
                         data-testid={`button-expand-client-${client.id}`}
                       >
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 border border-primary/30">
                           <Phone className="h-4 w-4 text-primary" />
                         </div>
 
@@ -326,17 +326,17 @@ export default function ClientsPage() {
                             {stats.total} {stats.total === 1 ? "solicitud" : "solicitudes"}
                           </Badge>
                           {stats.verified > 0 && (
-                            <Badge className="text-xs bg-success/10 text-success border-0" data-testid={`badge-verified-${client.id}`}>
+                            <Badge className="text-xs text-success border-success/40" data-testid={`badge-verified-${client.id}`}>
                               ✓ {stats.verified}
                             </Badge>
                           )}
                           {stats.rejected > 0 && (
-                            <Badge className="text-xs bg-destructive/10 text-destructive border-0" data-testid={`badge-rejected-${client.id}`}>
+                            <Badge className="text-xs text-destructive border-destructive/40" data-testid={`badge-rejected-${client.id}`}>
                               ✗ {stats.rejected}
                             </Badge>
                           )}
                           {stats.pending > 0 && (
-                            <Badge className="text-xs bg-warning/10 text-warning border-0" data-testid={`badge-pending-${client.id}`}>
+                            <Badge className="text-xs text-warning border-warning/40" data-testid={`badge-pending-${client.id}`}>
                               ⏳ {stats.pending}
                             </Badge>
                           )}
@@ -367,7 +367,7 @@ export default function ClientsPage() {
                     </div>
 
                     {isExpanded && (
-                      <div className="px-6 pb-4 bg-muted/20">
+                      <div className="px-6 pb-4">
                         <p className="text-xs font-medium text-muted-foreground mb-3 pt-2">Historial de solicitudes</p>
                         {stats.payments.length === 0 ? (
                           <p className="text-sm text-muted-foreground italic">Sin pagos registrados aún</p>
@@ -375,7 +375,7 @@ export default function ClientsPage() {
                           <div className="rounded-md border overflow-hidden">
                             <Table>
                               <TableHeader>
-                                <TableRow className="bg-muted/40">
+                                <TableRow>
                                   <TableHead className="text-xs">Fecha</TableHead>
                                   <TableHead className="text-xs">Tutor</TableHead>
                                   <TableHead className="text-xs text-right">Monto</TableHead>
@@ -434,7 +434,7 @@ export default function ClientsPage() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
-              className="bg-destructive text-destructive-foreground"
+              className="border border-destructive bg-background text-destructive hover:bg-accent"
             >
               {deleteMutation.isPending ? "Eliminando..." : "Eliminar"}
             </AlertDialogAction>

@@ -16,10 +16,10 @@ import { NewPaymentModal } from "@/components/new-payment-modal";
 import { VerifiedPaymentModal } from "@/components/verified-payment-modal";
 
 const statusConfig: Record<string, { label: string; variant: "secondary" | "default" | "destructive" | "outline"; icon: typeof Clock; className: string }> = {
-  pending: { label: "Pendiente", variant: "secondary", icon: Clock, className: "bg-warning/10 text-warning" },
-  verified: { label: "Verificado", variant: "default", icon: CheckCircle, className: "bg-success/10 text-success" },
-  rejected: { label: "Rechazado", variant: "destructive", icon: XCircle, className: "bg-destructive/10 text-destructive" },
-  refunded: { label: "Reembolsado", variant: "outline", icon: RotateCcw, className: "bg-muted text-muted-foreground" },
+  pending: { label: "Pendiente", variant: "secondary", icon: Clock, className: "text-warning border-warning/40" },
+  verified: { label: "Verificado", variant: "default", icon: CheckCircle, className: "text-success border-success/40" },
+  rejected: { label: "Rechazado", variant: "destructive", icon: XCircle, className: "text-destructive border-destructive/40" },
+  refunded: { label: "Reembolsado", variant: "outline", icon: RotateCcw, className: "text-muted-foreground border-border" },
 };
 
 type SettlementRow = {
@@ -67,26 +67,26 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
 
   return (
     <Card className="overflow-hidden" data-testid="card-week-summary">
-      <div className="bg-primary px-4 py-2 flex items-center justify-between">
+      <div className="border-b border-border px-4 py-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-primary-foreground/80" />
-          <span className="text-primary-foreground text-sm font-semibold">Resumen S{currentWeek.weekNumber}</span>
+          <TrendingUp className="h-4 w-4 text-primary" />
+          <span className="text-foreground text-sm font-semibold">Resumen S{currentWeek.weekNumber}</span>
         </div>
-        <Badge className="bg-primary-foreground/20 text-primary-foreground text-xs border-0 hover:bg-primary-foreground/20">
+        <Badge className="border-primary/40 bg-background text-primary text-xs">
           Solo verificados
         </Badge>
       </div>
 
       <CardContent className="py-3 px-4 space-y-2">
         {/* Ganancia estimada — siempre visible */}
-        <div className={`rounded-md border px-3 py-2 ${isNegative ? "bg-destructive/10 border-destructive/30" : "bg-success/10 border-success/30"}`} data-testid="summary-tutor-earnings">
+        <div className={`rounded-md border px-3 py-2 ${isNegative ? "border-destructive/30" : "border-success/30"}`} data-testid="summary-tutor-earnings">
           <div className="flex items-center justify-between">
             <span className={`text-sm font-semibold flex items-center gap-2 ${isNegative ? "text-destructive" : "text-success"}`}>
               Ganancia estimada
               {isNegative && (
                 <button
                   onClick={() => setShowNegWarning(v => !v)}
-                  className="inline-flex items-center justify-center rounded-full w-4 h-4 bg-destructive/20 hover:bg-destructive/30 transition-colors"
+                  className="inline-flex items-center justify-center rounded-full w-4 h-4 hover:bg-accent transition-colors border border-destructive/30"
                   data-testid="button-neg-warning"
                 >
                   <AlertCircle className="h-3 w-3 text-destructive" />
@@ -98,7 +98,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
             </span>
           </div>
           {isNegative && showNegWarning && (
-            <div className="mt-2 text-xs text-destructive/80 bg-destructive/10 rounded px-2 py-2 border border-destructive/20" data-testid="text-neg-warning">
+            <div className="mt-2 text-xs text-destructive/80 rounded px-2 py-2 border border-destructive/30" data-testid="text-neg-warning">
               ⚠️ El costo de publicidad de esta semana (<strong>{pen(s.advertisingCost)}</strong>) supera tu comisión sobre los pagos regulares (<strong>{pen(s.grossRegular * s.commissionPercent / 100)}</strong>). Eso genera una ganancia negativa. Si tienes pagos DIRECTO, parte de esa diferencia puede quedar cubierta por lo que le debes a la agencia.
             </div>
           )}
@@ -111,8 +111,8 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
           const even = Math.abs(transfer) < 0.01;
           return (
             <div className={`rounded-md px-3 py-3 border ${
-              even ? "border-muted bg-muted/20" :
-              agencyOwes ? "border-success/30 bg-success/5" : "border-warning/30 bg-warning/5"
+              even ? "border-muted" :
+              agencyOwes ? "border-success/30" : "border-warning/30"
             }`} data-testid="summary-net-transfer">
               <div className="flex items-center justify-between">
                 <span className={`text-xs font-semibold ${even ? "text-muted-foreground" : agencyOwes ? "text-success" : "text-warning"}`}>
@@ -132,7 +132,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
                 if (agencyOwes) {
                   // Agency pays tutor: (regular * 70% - adv) - (direct * 30%)
                   return (
-                    <div className="mt-2 space-y-1 text-xs text-muted-foreground border-t border-success/20 pt-2">
+                    <div className="mt-2 space-y-1 text-xs text-muted-foreground border-t border-success/30 pt-2">
                       <div className="flex justify-between">
                         <span>Tu comisión ({s.commissionPercent}%) sobre PEN {fmt2(s.grossRegular)}</span>
                         <span className="font-mono text-success">+{fmt2(regularTutorGross)}</span>
@@ -152,7 +152,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
                 } else {
                   // Tutor pays agency: (direct * 30%) + uncovered advertising
                   return (
-                    <div className="mt-2 space-y-1 text-xs text-muted-foreground border-t border-warning/20 pt-2">
+                    <div className="mt-2 space-y-1 text-xs text-muted-foreground border-t border-warning/30 pt-2">
                       {agencyCommission > 0 && (
                         <div className="flex justify-between">
                           <span>Comisión agencia ({100 - s.commissionPercent}%) sobre PEN {fmt2(s.grossDirect)}</span>
@@ -197,7 +197,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
               const entries = Object.entries(byCode);
               if (entries.length === 0) return null;
               return (
-                <div className="bg-muted/40 rounded-md px-3 py-2 space-y-1 border border-border" data-testid="summary-currency-breakdown">
+                <div className="rounded-md px-3 py-2 space-y-1 border border-border" data-testid="summary-currency-breakdown">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">
                     <Coins className="h-3 w-3" />
                     Cobrado por divisa
@@ -213,7 +213,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
             })()}
 
             {/* Fórmula paso a paso */}
-            <div className="bg-muted/30 rounded-md px-3 py-2 space-y-2 text-xs border border-border" data-testid="summary-formula">
+            <div className="rounded-md px-3 py-2 space-y-2 text-xs border border-border" data-testid="summary-formula">
               <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">Cálculo</div>
 
               <div className="flex items-center justify-between" data-testid="summary-gross-income">
@@ -275,7 +275,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
               <div className="space-y-1" data-testid="summary-payments-list">
                 <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide px-1">Pagos incluidos ({s.payments.length})</div>
                 {s.payments.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between bg-muted/30 rounded px-2 py-2 text-xs border border-border">
+                  <div key={p.id} className="flex items-center justify-between rounded px-2 py-2 text-xs border border-border">
                     <div className="flex items-center gap-2 min-w-0">
                       <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
                       <span className="font-mono truncate text-muted-foreground">{p.clientNumber}</span>
@@ -396,7 +396,7 @@ export default function TutorPaymentsPage() {
           </div>
         </CardHeader>
 
-        <div className="px-4 py-2 border-t bg-muted/30 flex flex-wrap gap-4 text-xs text-muted-foreground">
+        <div className="px-4 py-2 border-t flex flex-wrap gap-4 text-xs text-muted-foreground">
           <span>Total: <strong className="text-foreground">{filteredPayments?.length ?? 0}</strong></span>
           <span>Pendientes: <strong className="text-warning">{filteredPayments?.filter((p) => p.status === "pending").length ?? 0}</strong></span>
           <span>Verificados: <strong className="text-success">{filteredPayments?.filter((p) => p.status === "verified").length ?? 0}</strong></span>
@@ -414,7 +414,7 @@ export default function TutorPaymentsPage() {
           data-testid="button-nuevo-pago-first"
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed text-sm font-medium transition-colors
             ${currentWeek?.status === "open"
-              ? "border-primary/40 text-primary hover:bg-primary/5 hover:border-primary"
+              ? "border-primary/40 text-primary hover:bg-accent hover:border-primary"
               : "border-muted text-muted-foreground opacity-50 cursor-default"
             }`}
         >
@@ -433,7 +433,7 @@ export default function TutorPaymentsPage() {
             data-testid="button-pago-verificado-first"
             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed text-sm font-medium transition-colors
               ${currentWeek?.status === "open"
-                ? "border-success/40 text-success hover:bg-success/5 hover:border-success"
+                ? "border-success/40 text-success hover:bg-accent hover:border-success"
                 : "border-muted text-muted-foreground opacity-50 cursor-default"
               }`}
           >
@@ -461,7 +461,7 @@ export default function TutorPaymentsPage() {
         </Card>
       ) : filteredPayments?.length === 0 ? (
         <div className="text-center py-12">
-          <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+          <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 border border-border">
             <FileText className="h-8 w-8 text-muted-foreground" />
           </div>
           <h3 className="font-medium text-lg">No hay pagos</h3>
@@ -474,7 +474,7 @@ export default function TutorPaymentsPage() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                <TableRow className="hover:bg-muted/40">
                   <TableHead className="text-xs">Estado</TableHead>
                   <TableHead className="text-right text-xs">Monto</TableHead>
                   <TableHead className="text-center text-xs">Img</TableHead>
@@ -505,13 +505,13 @@ export default function TutorPaymentsPage() {
                         {payment.proofImage ? (
                           <button
                             onClick={() => setPreviewImage(payment.proofImage!)}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded overflow-hidden border bg-muted hover:opacity-80 transition-opacity mx-auto"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
                             data-testid={`button-proof-${payment.id}`}
                           >
                             <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
                           </button>
                         ) : (
-                          <div className="inline-flex items-center justify-center w-8 h-8 rounded border bg-muted/30 mx-auto">
+                          <div className="inline-flex items-center justify-center w-8 h-8 rounded border mx-auto">
                             <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
                           </div>
                         )}
