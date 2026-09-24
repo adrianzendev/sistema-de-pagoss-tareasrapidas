@@ -117,7 +117,7 @@ export default function AdminTutorViewPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link href="/admin/tutors">
@@ -189,7 +189,7 @@ export default function AdminTutorViewPage() {
                       return (
                         <SelectItem key={week.id} value={week.id}>
                           <span className="font-mono">S{week.weekNumber}</span>
-                          {isCurrent && <span className="ml-2 text-[10px] text-success font-medium">● actual</span>}
+                          {isCurrent && <span className="ml-2 text-xs text-success font-medium">● actual</span>}
                         </SelectItem>
                       );
                     })}
@@ -247,19 +247,19 @@ export default function AdminTutorViewPage() {
                       const StatusIcon = status.icon;
                       return (
                         <TableRow key={payment.id} className="hover:bg-muted/30">
-                          <TableCell className="py-3">
-                            <Badge className={`gap-1 text-[10px] px-2 py-1 ${status.className}`}>
+                          <TableCell>
+                            <Badge className={`gap-1 text-xs px-2 py-1 ${status.className}`}>
                               <StatusIcon className="h-3 w-3" />
                               {status.label}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right py-3">
+                          <TableCell className="text-right">
                             <span className="font-semibold text-sm tabular-nums">
                               {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
                             </span>
-                            <span className="text-[10px] text-muted-foreground ml-1">{payment.currency?.code ?? ""}</span>
+                            <span className="text-xs text-muted-foreground ml-1">{payment.currency?.code ?? ""}</span>
                           </TableCell>
-                          <TableCell className="text-center py-3">
+                          <TableCell className="text-center">
                             {payment.proofImage ? (
                               <button
                                 onClick={() => setPreviewImage(payment.proofImage!)}
@@ -273,10 +273,10 @@ export default function AdminTutorViewPage() {
                               </div>
                             )}
                           </TableCell>
-                          <TableCell className="text-xs font-bold text-muted-foreground py-3">
+                          <TableCell className="text-xs font-bold text-muted-foreground">
                             #{index + 1}
                           </TableCell>
-                          <TableCell className="py-3">
+                          <TableCell>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <Calendar className="h-3 w-3 shrink-0" />
                               <span className="text-foreground">
@@ -284,7 +284,7 @@ export default function AdminTutorViewPage() {
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="py-3">
+                          <TableCell>
                             <div className="flex items-center gap-2 text-xs">
                               <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
                               <span className="font-mono">{payment.clientNumber}</span>
@@ -308,7 +308,7 @@ export default function AdminTutorViewPage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-primary/10">
+                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
                     <Coins className="h-6 w-6 text-primary" />
                   </div>
                   <div>
@@ -321,7 +321,7 @@ export default function AdminTutorViewPage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-destructive/10">
+                  <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
                     <DollarSign className="h-6 w-6 text-destructive" />
                   </div>
                   <div>
@@ -334,7 +334,7 @@ export default function AdminTutorViewPage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-success/10">
+                  <div className="p-3 rounded-lg bg-success/10 border border-success/30">
                     <Calculator className="h-6 w-6 text-success" />
                   </div>
                   <div>
@@ -439,7 +439,7 @@ export default function AdminTutorViewPage() {
                   <p className="text-destructive/70 text-xs">Publicidad USD × TC × 50% ÷ tutores activos</p>
                 </div>
               </div>
-              <div className="mt-4 p-3 bg-muted rounded-lg text-center">
+              <div className="mt-4 p-3 bg-muted rounded-lg text-center border border-border">
                 <p className="text-sm font-mono font-bold">
                   Ganancia = (Bruto × {commissionPercent}%) − Publicidad compartida
                 </p>

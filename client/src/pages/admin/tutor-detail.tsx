@@ -94,37 +94,37 @@ function WeekPayments({ tutorId, weekId }: { tutorId: string; weekId: string }) 
         const amountSoles = Number(p.amount) * rate;
         return (
           <tr key={p.id} className={`${i % 2 === 0 ? "bg-muted/10" : "bg-muted/20"} text-xs`}>
-            <td className="pl-10 pr-3 py-2 text-muted-foreground">
+            <td className="pl-10 pr-4 py-2 text-muted-foreground">
               {new Date(p.createdAt).toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
-              <div className="text-[9px] opacity-60">{new Date(p.createdAt).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}</div>
+              <div className="text-xs opacity-60">{new Date(p.createdAt).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}</div>
             </td>
-            <td className="px-3 py-2 text-muted-foreground">{p.clientNumber}</td>
-            <td className="px-3 py-2 tabular-nums">
+            <td className="px-4 py-2 text-muted-foreground">{p.clientNumber}</td>
+            <td className="px-4 py-2 tabular-nums">
               <span className="font-medium">{fmtAmt(p.amount, p.currency?.code ?? "USD")}</span>
             </td>
-            <td className="px-3 py-2 tabular-nums text-muted-foreground">
+            <td className="px-4 py-2 tabular-nums text-muted-foreground">
               {rate !== 1 ? `PEN ${amountSoles.toFixed(2)}` : "—"}
             </td>
-            <td className="px-3 py-2 tabular-nums text-muted-foreground/70 text-[10px]">
+            <td className="px-4 py-2 tabular-nums text-muted-foreground/70 text-xs">
               {rate !== 1 ? (
                 <span title="Tipo de cambio al momento del pago">TC: {rate.toFixed(4)}</span>
               ) : "—"}
             </td>
-            <td className="px-3 py-2">
+            <td className="px-4 py-2">
               {p.status === "verified" ? (
-                <Badge className="text-[9px] px-1 py-0 h-4 bg-success">Verificado</Badge>
+                <Badge className="text-xs px-2 py-0 h-5 bg-success">Verificado</Badge>
               ) : p.status === "rejected" ? (
-                <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">Rechazado</Badge>
+                <Badge variant="destructive" className="text-xs px-2 py-0 h-5">Rechazado</Badge>
               ) : (
-                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Pendiente</Badge>
+                <Badge variant="outline" className="text-xs px-2 py-0 h-5">Pendiente</Badge>
               )}
-              {p.verifier && <div className="text-[9px] text-muted-foreground mt-1">{p.verifier.name}</div>}
-              {p.verifiedAt && <div className="text-[9px] text-muted-foreground/60">{new Date(p.verifiedAt).toLocaleString("es-PE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</div>}
+              {p.verifier && <div className="text-xs text-muted-foreground mt-1">{p.verifier.name}</div>}
+              {p.verifiedAt && <div className="text-xs text-muted-foreground/60">{new Date(p.verifiedAt).toLocaleString("es-PE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</div>}
             </td>
-            <td className="px-3 py-2">
+            <td className="px-4 py-2">
               {p.proofImage && (
                 <a href={p.proofImage} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                  <Image className="w-3 h-3" /> <span className="text-[10px]">ver</span>
+                  <Image className="w-3 h-3" /> <span className="text-xs">ver</span>
                 </a>
               )}
             </td>
@@ -350,11 +350,11 @@ export default function TutorDetailPage() {
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <div className="text-right">
-                <div className="text-[10px] text-muted-foreground uppercase">Cobrado</div>
+                <div className="text-xs text-muted-foreground uppercase">Cobrado</div>
                 <div className="text-sm font-bold text-success">{fmt(totalPaid)}</div>
               </div>
               <div className="text-right">
-                <div className="text-[10px] text-muted-foreground uppercase">Pendiente</div>
+                <div className="text-xs text-muted-foreground uppercase">Pendiente</div>
                 <div className="text-sm font-bold text-warning">{fmt(totalPending)}</div>
               </div>
               <Badge variant="outline" className="text-xs">{totalPayments} pagos</Badge>
@@ -366,19 +366,19 @@ export default function TutorDetailPage() {
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b-2 border-border bg-muted/50">
-                  <th className="text-left p-3 w-6" />
-                  <th className="text-left p-3 font-semibold">Semana</th>
-                  <th className="text-left p-3 font-semibold text-[10px] text-muted-foreground">Estado</th>
+                  <th className="text-left px-4 py-3 w-6" />
+                  <th className="text-left px-4 py-3 font-semibold">Semana</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground">Estado</th>
                   {allCurrencies.map(c => (
-                    <th key={c.code} className="text-right p-3 font-semibold text-[10px] text-warning">{c.code}</th>
+                    <th key={c.code} className="text-right px-4 py-3 font-semibold text-xs text-warning">{c.code}</th>
                   ))}
-                  <th className="text-right p-3 font-semibold">Bruto</th>
-                  <th className="text-right p-3 font-semibold text-muted-foreground/70">Pub.</th>
-                  <th className="text-right p-3 font-semibold">Neto</th>
-                  <th className="text-right p-3 font-semibold text-success">Tutor</th>
-                  <th className="text-right p-3 font-semibold text-muted-foreground">Agencia</th>
-                  <th className="text-center p-3 font-semibold text-[10px] text-muted-foreground">Pago tutor</th>
-                  <th className="text-right p-3 font-semibold text-muted-foreground text-[10px]">Pgs</th>
+                  <th className="text-right px-4 py-3 font-semibold">Bruto</th>
+                  <th className="text-right px-4 py-3 font-semibold text-muted-foreground/70">Pub.</th>
+                  <th className="text-right px-4 py-3 font-semibold">Neto</th>
+                  <th className="text-right px-4 py-3 font-semibold text-success">Tutor</th>
+                  <th className="text-right px-4 py-3 font-semibold text-muted-foreground">Agencia</th>
+                  <th className="text-center px-4 py-3 font-semibold text-xs text-muted-foreground">Pago tutor</th>
+                  <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs">Pgs</th>
                 </tr>
               </thead>
               <tbody>
@@ -397,38 +397,38 @@ export default function TutorDetailPage() {
                         onClick={() => hasActivity && setExpandedWeek(isExpanded ? null : week.id)}
                         data-testid={`row-week-${week.id}`}
                       >
-                        <td className="p-3 text-muted-foreground/50">
+                        <td className="px-4 py-3 text-muted-foreground/50">
                           {hasActivity && (isExpanded
                             ? <ChevronDown className="w-4 h-4" />
                             : <ChevronRight className="w-4 h-4" />)}
                         </td>
-                        <td className="p-3">
+                        <td className="px-4 py-3">
                           <div className="font-semibold">S{week.weekNumber}</div>
-                          <div className="text-[10px] text-muted-foreground">
+                          <div className="text-xs text-muted-foreground">
                             {new Date(week.startDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
                             {" – "}
                             {new Date(week.endDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
                           </div>
                         </td>
-                        <td className="p-3">
+                        <td className="px-4 py-3">
                           {week.status === "paid" ? (
-                            <Badge className="text-[9px] px-1 py-0 h-4 bg-success">Cerrada</Badge>
+                            <Badge className="text-xs px-2 py-0 h-5 bg-success">Cerrada</Badge>
                           ) : week.status === "closed" ? (
-                            <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">Cerrada</Badge>
+                            <Badge variant="secondary" className="text-xs px-2 py-0 h-5">Cerrada</Badge>
                           ) : (
-                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Abierta</Badge>
+                            <Badge variant="outline" className="text-xs px-2 py-0 h-5">Abierta</Badge>
                           )}
                         </td>
                         {allCurrencies.map(c => {
                           const entry = cell?.currencies?.find(x => x.code === c.code);
                           return (
-                            <td key={c.code} className="p-3 text-right tabular-nums text-xs text-warning">
+                            <td key={c.code} className="px-4 py-3 text-right tabular-nums text-xs text-warning">
                               {entry ? `${c.code} ${new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(entry.total)}` : "—"}
                             </td>
                           );
                         })}
-                        <td className="p-3 text-right tabular-nums">{hasActivity ? fmt(cell?.grossIncome ?? 0) : "—"}</td>
-                        <td className="p-3 text-right tabular-nums text-muted-foreground/70 text-xs" onClick={e => e.stopPropagation()}>
+                        <td className="px-4 py-3 text-right tabular-nums">{hasActivity ? fmt(cell?.grossIncome ?? 0) : "—"}</td>
+                        <td className="px-4 py-3 text-right tabular-nums text-muted-foreground/70 text-xs" onClick={e => e.stopPropagation()}>
                           {editingAdv === week.id ? (
                             <div className="flex items-center gap-1 justify-end">
                               <Input
@@ -460,7 +460,7 @@ export default function TutorDetailPage() {
                             <div className="flex items-center gap-1 justify-end group">
                               {tutorWeekAdvDisabledMap[tutor.id]?.[week.id] ? (
                                 <span className="flex flex-col items-end">
-                                  <span className="text-[9px] uppercase text-muted-foreground/60 italic">pub. off</span>
+                                  <span className="text-xs uppercase text-muted-foreground/60 italic">pub. off</span>
                                   {(cell?.tutorAdvertisingShare ?? 0) > 0 && (
                                     <span title="Publicidad compartida (no afectada por el toggle)">−{fmt(cell!.tutorAdvertisingShare)}</span>
                                   )}
@@ -493,30 +493,30 @@ export default function TutorDetailPage() {
                             </div>
                           )}
                         </td>
-                        <td className="p-3 text-right tabular-nums font-medium">{hasActivity ? fmt(cell?.netIncome ?? 0) : "—"}</td>
-                        <td className="p-3 text-right tabular-nums font-bold text-success">
+                        <td className="px-4 py-3 text-right tabular-nums font-medium">{hasActivity ? fmt(cell?.netIncome ?? 0) : "—"}</td>
+                        <td className="px-4 py-3 text-right tabular-nums font-bold text-success">
                           {hasActivity ? fmt(cell?.tutorEarnings ?? 0) : "—"}
                         </td>
-                        <td className="p-3 text-right tabular-nums font-medium text-muted-foreground">
+                        <td className="px-4 py-3 text-right tabular-nums font-medium text-muted-foreground">
                           {hasActivity ? fmt(cell?.agencyEarnings ?? 0) : "—"}
                         </td>
-                        <td className="p-3 text-center" onClick={e => e.stopPropagation()}>
+                        <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
                           {hasActivity ? (
                             isPaid ? (
                               <Badge
-                                className="text-[9px] px-2 py-0 h-4 bg-success cursor-pointer hover:bg-success/90"
+                                className="text-xs px-2 py-0 h-4 bg-success cursor-pointer hover:bg-success/90"
                                 onClick={() => !isMutating && unmarkPaidMutation.mutate({ weekId: week.id })}
                               >Pagado</Badge>
                             ) : (
                               <Badge
                                 variant="outline"
-                                className="text-[9px] px-2 py-0 h-4 cursor-pointer hover:bg-muted"
+                                className="text-xs px-2 py-0 h-4 cursor-pointer hover:bg-muted"
                                 onClick={() => !isMutating && markPaidMutation.mutate({ weekId: week.id })}
                               >Por pagar</Badge>
                             )
                           ) : null}
                         </td>
-                        <td className="p-3 text-right tabular-nums text-muted-foreground text-xs">
+                        <td className="px-4 py-3 text-right tabular-nums text-muted-foreground text-xs">
                           {(cell?.paymentCount ?? 0) > 0 ? cell!.paymentCount : "—"}
                         </td>
                       </tr>
@@ -527,28 +527,28 @@ export default function TutorDetailPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-border bg-muted/50 font-bold">
-                  <td className="p-3" />
-                  <td className="p-3 text-sm uppercase text-muted-foreground" colSpan={2}>Total</td>
+                  <td className="px-4 py-3" />
+                  <td className="px-4 py-3 text-sm uppercase text-muted-foreground" colSpan={2}>Total</td>
                   {allCurrencies.map(c => {
                     const total = tutorRows.reduce((s, r) => s + (r.cell?.currencies?.find(x => x.code === c.code)?.total ?? 0), 0);
                     return (
-                      <td key={c.code} className="p-3 text-right tabular-nums text-xs text-warning">
+                      <td key={c.code} className="px-4 py-3 text-right tabular-nums text-xs text-warning">
                         {`${c.code} ${new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(total)}`}
                       </td>
                     );
                   })}
-                  <td className="p-3 text-right tabular-nums">{fmt(totalGross)}</td>
-                  <td className="p-3 text-right tabular-nums text-muted-foreground/70 text-xs">
+                  <td className="px-4 py-3 text-right tabular-nums">{fmt(totalGross)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground/70 text-xs">
                     {totalAdv > 0 ? `−${fmt(totalAdv)}` : "—"}
                   </td>
-                  <td className="p-3 text-right tabular-nums">{fmt(totalNet)}</td>
-                  <td className="p-3 text-right tabular-nums text-success">{fmt(totalTutor)}</td>
-                  <td className="p-3 text-right tabular-nums text-muted-foreground">{fmt(totalAgency)}</td>
-                  <td className="p-3 text-center">
-                    <div className="text-[10px] text-success">{fmt(totalPaid)} cobrado</div>
-                    <div className="text-[10px] text-warning">{fmt(totalPending)} pendiente</div>
+                  <td className="px-4 py-3 text-right tabular-nums">{fmt(totalNet)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-success">{fmt(totalTutor)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{fmt(totalAgency)}</td>
+                  <td className="px-4 py-3 text-center">
+                    <div className="text-xs text-success">{fmt(totalPaid)} cobrado</div>
+                    <div className="text-xs text-warning">{fmt(totalPending)} pendiente</div>
                   </td>
-                  <td className="p-3 text-right tabular-nums text-muted-foreground text-xs">{totalPayments}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground text-xs">{totalPayments}</td>
                 </tr>
               </tfoot>
             </table>

@@ -108,8 +108,8 @@ export function AppSidebar() {
 
   return (
     <>
-      <Sidebar>
-        <SidebarHeader className="p-4 pb-3">
+      <Sidebar className="border-r border-sidebar-border">
+        <SidebarHeader className="p-4 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
             <img src="/favicon.png" alt="TR Pagos" className="h-10 w-10 rounded-md object-contain" />
             <div className="flex flex-col">
@@ -132,14 +132,14 @@ export function AppSidebar() {
                 data-testid="nav-nuevo-pago-top"
                 className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors
                   ${hasOpenWeek
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "bg-muted text-muted-foreground opacity-60 cursor-default"
+                    ? "border border-primary-border bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "border border-border bg-muted text-muted-foreground opacity-60 cursor-default"
                   }`}
               >
                 {hasOpenWeek ? <PlusCircle className="h-4 w-4 shrink-0" /> : <Lock className="h-4 w-4 shrink-0" />}
                 <span className="flex-1 text-left">Nuevo Pago</span>
                 {hasOpenWeek && currentWeek && (
-                  <span className="text-[10px] font-mono opacity-80">S{currentWeek.weekNumber}</span>
+                  <span className="text-xs font-mono opacity-80">S{currentWeek.weekNumber}</span>
                 )}
               </button>
 
@@ -155,14 +155,14 @@ export function AppSidebar() {
                   data-testid="nav-pago-verificado-top"
                   className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors
                     ${hasOpenWeek
-                      ? "bg-success/15 text-success hover:bg-success/25"
-                      : "bg-muted text-muted-foreground opacity-60 cursor-default"
+                      ? "border border-success/40 bg-success/15 text-success hover:bg-success/25"
+                      : "border border-border bg-muted text-muted-foreground opacity-60 cursor-default"
                     }`}
                 >
                   {hasOpenWeek ? <CheckCircle className="h-4 w-4 shrink-0" /> : <Lock className="h-4 w-4 shrink-0" />}
                   <span className="flex-1 text-left">Agregar Pago Verificado</span>
                   {hasOpenWeek && currentWeek && (
-                    <span className="text-[10px] font-mono opacity-80">S{currentWeek.weekNumber}</span>
+                    <span className="text-xs font-mono opacity-80">S{currentWeek.weekNumber}</span>
                   )}
                 </button>
               )}
@@ -205,7 +205,7 @@ export function AppSidebar() {
         </SidebarContent>
 
         <SidebarFooter className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-3 mb-3 rounded-md border border-sidebar-border bg-background p-2" data-testid="sidebar-user-card">
             <Avatar className="h-10 w-10">
               <AvatarFallback className="bg-primary/10 text-primary text-sm">
                 {user ? getInitials(user.name) : "?"}
@@ -218,11 +218,11 @@ export function AppSidebar() {
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2 mb-2">
-            <SidebarTrigger data-testid="button-sidebar-toggle" className="h-10 w-10 flex-shrink-0" />
+          <div className="flex items-center gap-2">
+            <SidebarTrigger variant="outline" data-testid="button-sidebar-toggle" className="h-10 w-10 flex-shrink-0" />
             <ThemeToggle />
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
               onClick={logout}
               className="flex-shrink-0"

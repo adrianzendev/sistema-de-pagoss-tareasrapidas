@@ -575,9 +575,9 @@ export default function TutorsPage() {
                         </TableCell>
                         <TableCell>
                           {tutor.isActive !== false ? (
-                            <Badge className="bg-success text-success-foreground text-[10px] px-2 py-0" data-testid={`status-tutor-${tutor.id}`}>Activo</Badge>
+                            <Badge className="bg-success text-success-foreground text-xs px-2 py-0" data-testid={`status-tutor-${tutor.id}`}>Activo</Badge>
                           ) : (
-                            <Badge variant="secondary" className="text-[10px] px-2 py-0" data-testid={`status-tutor-${tutor.id}`}>Inactivo</Badge>
+                            <Badge variant="secondary" className="text-xs px-2 py-0" data-testid={`status-tutor-${tutor.id}`}>Inactivo</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
@@ -593,7 +593,7 @@ export default function TutorsPage() {
                                       {pen(s.tutorEarningsPen)}
                                     </div>
                                     {s.paymentCount > 0 && (
-                                      <div className="text-[10px] text-muted-foreground tabular-nums">
+                                      <div className="text-xs text-muted-foreground tabular-nums">
                                         bruto {pen(s.grossIncomePen)}
                                       </div>
                                     )}

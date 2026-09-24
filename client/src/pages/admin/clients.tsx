@@ -228,21 +228,21 @@ export default function ClientsPage() {
 
       <div className="grid grid-cols-3 gap-3">
         <Card>
-          <CardContent className="pt-4 pb-4">
+          <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground mb-1">Total clientes</p>
             <p className="text-2xl font-bold">{clientStats?.length ?? 0}</p>
             <p className="text-xs text-muted-foreground">{totalRequests} solicitudes totales</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4 pb-4">
+          <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground mb-1">Verificados</p>
             <p className="text-2xl font-bold text-success">{totalVerified}</p>
             <p className="text-xs text-muted-foreground">pagos aceptados</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4 pb-4">
+          <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground mb-1">Rechazados</p>
             <p className="text-2xl font-bold text-destructive">{totalRejected}</p>
             <p className="text-xs text-muted-foreground">pagos rechazados</p>
@@ -376,10 +376,10 @@ export default function ClientsPage() {
                             <Table>
                               <TableHeader>
                                 <TableRow className="bg-muted/40">
-                                  <TableHead className="text-xs py-2">Fecha</TableHead>
-                                  <TableHead className="text-xs py-2">Tutor</TableHead>
-                                  <TableHead className="text-xs py-2 text-right">Monto</TableHead>
-                                  <TableHead className="text-xs py-2">Estado</TableHead>
+                                  <TableHead className="text-xs">Fecha</TableHead>
+                                  <TableHead className="text-xs">Tutor</TableHead>
+                                  <TableHead className="text-xs text-right">Monto</TableHead>
+                                  <TableHead className="text-xs">Estado</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
@@ -390,17 +390,17 @@ export default function ClientsPage() {
                                     const Icon = sc.icon;
                                     return (
                                       <TableRow key={payment.id} data-testid={`row-payment-${payment.id}`}>
-                                        <TableCell className="text-xs py-2 text-muted-foreground">
+                                        <TableCell className="text-xs text-muted-foreground">
                                           {payment.createdAt
                                             ? format(new Date(payment.createdAt), "dd/MM/yyyy HH:mm", { locale: es })
                                             : "—"}
                                         </TableCell>
-                                        <TableCell className="text-xs py-2 font-medium">{payment.tutorName}</TableCell>
-                                        <TableCell className="text-xs py-2 text-right font-mono">
+                                        <TableCell className="text-xs font-medium">{payment.tutorName}</TableCell>
+                                        <TableCell className="text-xs text-right font-mono">
                                           {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })} {payment.currencyCode}
                                         </TableCell>
-                                        <TableCell className="text-xs py-2">
-                                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium ${sc.className}`}>
+                                        <TableCell className="text-xs">
+                                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${sc.className}`}>
                                             <Icon className="h-3 w-3" />
                                             {sc.label}
                                           </span>

@@ -87,30 +87,30 @@ function PaymentTable({
             const StatusIcon = status.icon;
             return (
               <TableRow key={payment.id} data-testid={`row-payment-${payment.id}`} className="hover:bg-muted/30">
-                <TableCell className="py-3">
+                <TableCell>
                   {payment.status === "pending" ? (
                     <button
                       onClick={() => setActionPayment(payment)}
-                      className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-medium bg-warning/10 text-warning hover:bg-warning/20 border border-warning/30 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium bg-warning/10 text-warning hover:bg-warning/20 border border-warning/30 transition-colors cursor-pointer"
                       data-testid={`button-status-${payment.id}`}
                     >
                       <Clock className="h-3 w-3" />
                       Pendiente
                     </button>
                   ) : (
-                    <Badge className={`gap-1 text-[10px] px-2 py-1 ${status.className}`}>
+                    <Badge className={`gap-1 text-xs px-2 py-1 ${status.className}`}>
                       <StatusIcon className="h-3 w-3" />
                       {status.label}
                     </Badge>
                   )}
                 </TableCell>
-                <TableCell className="py-3 text-right">
+                <TableCell className="text-right">
                   <span className="font-semibold text-sm tabular-nums">
                     {Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <span className="text-[10px] text-muted-foreground ml-1">{payment.currency?.code}</span>
+                  <span className="text-xs text-muted-foreground ml-1">{payment.currency?.code}</span>
                 </TableCell>
-                <TableCell className="py-3 text-center">
+                <TableCell className="text-center">
                   {payment.proofImage ? (
                     <button
                       onClick={() => setPreviewPayment({ payment, list: filtered.filter(p => p.proofImage) })}
@@ -125,8 +125,8 @@ function PaymentTable({
                     </div>
                   )}
                 </TableCell>
-                <TableCell className="py-3 text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
-                <TableCell className="py-3 whitespace-nowrap">
+                <TableCell className="text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
+                <TableCell className="whitespace-nowrap">
                   {payment.createdAt && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Calendar className="h-3 w-3 shrink-0" />
@@ -137,10 +137,10 @@ function PaymentTable({
                     </div>
                   )}
                 </TableCell>
-                <TableCell className="py-3">
+                <TableCell>
                   <span className="font-mono text-xs">{payment.clientNumber}</span>
                 </TableCell>
-                <TableCell className="py-3 whitespace-nowrap">
+                <TableCell className="whitespace-nowrap">
                   {payment.verifiedAt ? (
                     <div className="text-xs text-muted-foreground">
                       <div className="text-foreground">{format(new Date(payment.verifiedAt), "dd/MM/yyyy", { locale: es })}</div>
@@ -150,12 +150,12 @@ function PaymentTable({
                     <span className="text-xs text-muted-foreground">—</span>
                   )}
                 </TableCell>
-                <TableCell className="py-3 text-xs whitespace-nowrap" data-testid={`cell-verifier-${payment.id}`}>
+                <TableCell className="text-xs whitespace-nowrap" data-testid={`cell-verifier-${payment.id}`}>
                   {payment.verifier?.name
                     ? <span className="font-medium">{payment.verifier.name}</span>
                     : <span className="text-muted-foreground">—</span>}
                 </TableCell>
-                <TableCell className="py-3 text-right">
+                <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     {payment.status === "pending" && (
                       <>
@@ -298,7 +298,7 @@ function WeekSection({
         <span className="font-semibold text-sm">S{week.weekNumber}</span>
         <span className="text-xs text-muted-foreground">{dateRange}</span>
         {isCurrentWeek && (
-          <Badge className="text-[10px] px-2 py-0 bg-success/10 text-success ml-1">actual</Badge>
+          <Badge className="text-xs px-2 py-0 bg-success/10 text-success ml-1">actual</Badge>
         )}
         <div className="flex-1" />
         {!expanded && (
@@ -407,7 +407,7 @@ export default function PaymentsPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Pagos</h1>

@@ -199,23 +199,23 @@ export default function VerifierPaymentsPage() {
                       <WeekSeparatorRow group={group} colSpan={6} showPending />
                       {group.payments.map((payment) => (
                         <TableRow key={payment.id} data-testid={`card-payment-${payment.id}`} className="hover:bg-muted/30">
-                          <TableCell className="py-3">
+                          <TableCell>
                             <button
                               onClick={() => setActionPayment({ payment, action: "verified" })}
-                              className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-medium bg-warning/10 text-warning hover:bg-warning/20 border border-warning/30 transition-colors cursor-pointer"
+                              className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium bg-warning/10 text-warning hover:bg-warning/20 border border-warning/30 transition-colors cursor-pointer"
                               data-testid={`button-status-${payment.id}`}
                             >
                               <Clock className="h-3 w-3" />
                               Pendiente
                             </button>
                           </TableCell>
-                          <TableCell className="py-3 text-right">
+                          <TableCell className="text-right">
                             <span className="font-semibold text-sm tabular-nums">
                               {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
                             </span>
-                            <span className="text-[10px] text-muted-foreground ml-1">{payment.currency?.code}</span>
+                            <span className="text-xs text-muted-foreground ml-1">{payment.currency?.code}</span>
                           </TableCell>
-                          <TableCell className="py-3 text-center">
+                          <TableCell className="text-center">
                             {payment.proofImage ? (
                               <button
                                 onClick={() => setPreviewPayment(payment)}
@@ -230,8 +230,8 @@ export default function VerifierPaymentsPage() {
                               </div>
                             )}
                           </TableCell>
-                          <TableCell className="py-3 text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
-                          <TableCell className="py-3 whitespace-nowrap">
+                          <TableCell className="text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <Calendar className="h-3 w-3 shrink-0" />
                               <div>
@@ -240,7 +240,7 @@ export default function VerifierPaymentsPage() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="py-3">
+                          <TableCell>
                             <div className="flex items-center gap-2 text-xs">
                               <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
                               <span className="font-mono">{payment.clientNumber}</span>
@@ -286,19 +286,19 @@ export default function VerifierPaymentsPage() {
                         const StatusIcon = status.icon;
                         return (
                           <TableRow key={payment.id} data-testid={`card-history-${payment.id}`} className="hover:bg-muted/30">
-                            <TableCell className="py-3">
-                              <Badge className={`gap-1 text-[10px] px-2 py-1 ${status.className}`}>
+                            <TableCell>
+                              <Badge className={`gap-1 text-xs px-2 py-1 ${status.className}`}>
                                 <StatusIcon className="h-3 w-3" />
                                 {status.label}
                               </Badge>
                             </TableCell>
-                            <TableCell className="py-3 text-right">
+                            <TableCell className="text-right">
                               <span className="font-semibold text-sm tabular-nums">
                                 {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
                               </span>
-                              <span className="text-[10px] text-muted-foreground ml-1">{payment.currency?.code}</span>
+                              <span className="text-xs text-muted-foreground ml-1">{payment.currency?.code}</span>
                             </TableCell>
-                            <TableCell className="py-3 text-center">
+                            <TableCell className="text-center">
                               {payment.proofImage ? (
                                 <button
                                   onClick={() => setPreviewPayment(payment)}
@@ -313,8 +313,8 @@ export default function VerifierPaymentsPage() {
                                 </div>
                               )}
                             </TableCell>
-                            <TableCell className="py-3 text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
-                            <TableCell className="py-3 whitespace-nowrap">
+                            <TableCell className="text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
+                            <TableCell className="whitespace-nowrap">
                               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <Calendar className="h-3 w-3 shrink-0" />
                                 <div>
@@ -323,7 +323,7 @@ export default function VerifierPaymentsPage() {
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell className="py-3">
+                            <TableCell>
                               <div className="flex items-center gap-2 text-xs">
                                 <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
                                 <span className="font-mono">{payment.clientNumber}</span>

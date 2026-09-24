@@ -372,7 +372,7 @@ export default function WeeksPage() {
                 />
               </div>
               {Number(sharedAdvertisingUsd) > 0 ? (
-                <div className="text-xs space-y-1 p-3 bg-muted rounded-md border">
+                <div className="text-xs space-y-1 p-3 bg-muted rounded-md border border border-border">
                   <p className="font-semibold text-foreground mb-2">Desglose del costo:</p>
                   <div className="grid grid-cols-2 gap-1">
                     <span className="text-muted-foreground">Total USD ingresado:</span>
@@ -386,7 +386,7 @@ export default function WeeksPage() {
                     <span className="text-warning">Aprox. por tutor:</span>
                     <span className="font-mono font-bold text-right text-warning">
                       S/ {formatCurrency((advertisingInSoles * 0.5) / tutorCount)}
-                      <span className="font-normal ml-1 text-[10px] text-muted-foreground">({tutorCount} tutores)</span>
+                      <span className="font-normal ml-1 text-xs text-muted-foreground">({tutorCount} tutores)</span>
                     </span>
                   </div>
                 </div>
@@ -465,19 +465,19 @@ export default function WeeksPage() {
               )}
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="text-center p-3 bg-muted rounded-lg">
+                <div className="text-center p-3 bg-muted rounded-lg border border-border">
                   <div className="text-lg font-bold">{formatCurrency(settlement.totals.grossIncome)}</div>
                   <div className="text-xs text-muted-foreground">Ingreso Bruto</div>
                 </div>
-                <div className="text-center p-3 bg-muted rounded-lg">
+                <div className="text-center p-3 bg-muted rounded-lg border border-border">
                   <div className="text-lg font-bold">{formatCurrency(settlement.totals.netIncome)}</div>
                   <div className="text-xs text-muted-foreground">Por comisión</div>
                 </div>
-                <div className="text-center p-3 bg-primary/10 rounded-lg">
+                <div className="text-center p-3 bg-primary/10 rounded-lg border border-primary/30">
                   <div className="text-lg font-bold text-primary">{formatCurrency(settlement.totals.tutorEarnings)}</div>
                   <div className="text-xs text-muted-foreground">Ganancia Tutores</div>
                 </div>
-                <div className="text-center p-3 bg-muted rounded-lg">
+                <div className="text-center p-3 bg-muted rounded-lg border border-border">
                   <div className="text-lg font-bold">{formatCurrency(settlement.totals.agencyEarnings)}</div>
                   <div className="text-xs text-muted-foreground">Ganancia Agencia</div>
                 </div>

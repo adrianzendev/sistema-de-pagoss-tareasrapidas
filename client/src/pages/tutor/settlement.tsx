@@ -108,7 +108,7 @@ export default function TutorSettlementPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-primary/10">
+              <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
                 <Coins className="h-6 w-6 text-primary" />
               </div>
               <div>
@@ -122,7 +122,7 @@ export default function TutorSettlementPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-destructive/10">
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
                 <DollarSign className="h-6 w-6 text-destructive" />
               </div>
               <div>
@@ -136,7 +136,7 @@ export default function TutorSettlementPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-success/10">
+              <div className="p-3 rounded-lg bg-success/10 border border-success/30">
                 <Calculator className="h-6 w-6 text-success" />
               </div>
               <div>
@@ -208,7 +208,7 @@ export default function TutorSettlementPage() {
                             -{formatCurrency(s.tutorAdvertisingShare)}
                           </span>
                           {(s.dailyAdvUsd ?? 0) > 0 && (
-                            <div className="text-[9px] font-normal text-destructive/70" data-testid={`text-daily-adv-${s.week.weekNumber}`}>
+                            <div className="text-xs font-normal text-destructive/70" data-testid={`text-daily-adv-${s.week.weekNumber}`}>
                               incl. diaria: {s.dailyAdvDays} {s.dailyAdvDays === 1 ? "día" : "días"} = ${formatCurrency(s.dailyAdvUsd ?? 0)} USD (50%)
                             </div>
                           )}
@@ -270,7 +270,7 @@ export default function TutorSettlementPage() {
               <p className="text-destructive/70 text-xs">Publicidad USD × TC × 50% ÷ tutores activos</p>
             </div>
           </div>
-          <div className="mt-4 p-3 bg-muted rounded-lg text-center">
+          <div className="mt-4 p-3 bg-muted rounded-lg text-center border border-border">
             <p className="text-sm font-mono font-bold">
               Ganancia = (Bruto × {commissionPercent}%) − Publicidad compartida
             </p>

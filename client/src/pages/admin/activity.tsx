@@ -87,11 +87,11 @@ export default function ActivityPage() {
                       <Badge variant="outline" className="text-xs">cambio de comisión</Badge>
                     </div>
                     <div className="flex items-center gap-2 text-sm mb-1">
-                      <span className="font-mono bg-muted px-2 py-1 rounded text-destructive font-bold">
+                      <span className="font-mono bg-muted px-2 py-1 rounded text-destructive font-bold border border-border">
                         {entry.oldValue}%
                       </span>
                       <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-mono bg-muted px-2 py-1 rounded text-success font-bold">
+                      <span className="font-mono bg-muted px-2 py-1 rounded text-success font-bold border border-border">
                         {entry.newValue}%
                       </span>
                     </div>

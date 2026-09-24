@@ -72,14 +72,14 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
           <TrendingUp className="h-4 w-4 text-primary-foreground/80" />
           <span className="text-primary-foreground text-sm font-semibold">Resumen S{currentWeek.weekNumber}</span>
         </div>
-        <Badge className="bg-primary-foreground/20 text-primary-foreground text-[10px] border-0 hover:bg-primary-foreground/20">
+        <Badge className="bg-primary-foreground/20 text-primary-foreground text-xs border-0 hover:bg-primary-foreground/20">
           Solo verificados
         </Badge>
       </div>
 
       <CardContent className="py-3 px-4 space-y-2">
         {/* Ganancia estimada — siempre visible */}
-        <div className={`rounded-md px-3 py-2 ${isNegative ? "bg-destructive/10" : "bg-success/10"}`} data-testid="summary-tutor-earnings">
+        <div className={`rounded-md border px-3 py-2 ${isNegative ? "bg-destructive/10 border-destructive/30" : "bg-success/10 border-success/30"}`} data-testid="summary-tutor-earnings">
           <div className="flex items-center justify-between">
             <span className={`text-sm font-semibold flex items-center gap-2 ${isNegative ? "text-destructive" : "text-success"}`}>
               Ganancia estimada
@@ -132,7 +132,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
                 if (agencyOwes) {
                   // Agency pays tutor: (regular * 70% - adv) - (direct * 30%)
                   return (
-                    <div className="mt-2 space-y-1 text-[10px] text-muted-foreground border-t border-success/20 pt-2">
+                    <div className="mt-2 space-y-1 text-xs text-muted-foreground border-t border-success/20 pt-2">
                       <div className="flex justify-between">
                         <span>Tu comisión ({s.commissionPercent}%) sobre PEN {fmt2(s.grossRegular)}</span>
                         <span className="font-mono text-success">+{fmt2(regularTutorGross)}</span>
@@ -152,7 +152,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
                 } else {
                   // Tutor pays agency: (direct * 30%) + uncovered advertising
                   return (
-                    <div className="mt-2 space-y-1 text-[10px] text-muted-foreground border-t border-warning/20 pt-2">
+                    <div className="mt-2 space-y-1 text-xs text-muted-foreground border-t border-warning/20 pt-2">
                       {agencyCommission > 0 && (
                         <div className="flex justify-between">
                           <span>Comisión agencia ({100 - s.commissionPercent}%) sobre PEN {fmt2(s.grossDirect)}</span>
@@ -197,8 +197,8 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
               const entries = Object.entries(byCode);
               if (entries.length === 0) return null;
               return (
-                <div className="bg-muted/40 rounded-md px-3 py-2 space-y-1" data-testid="summary-currency-breakdown">
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium uppercase tracking-wide mb-1">
+                <div className="bg-muted/40 rounded-md px-3 py-2 space-y-1 border border-border" data-testid="summary-currency-breakdown">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">
                     <Coins className="h-3 w-3" />
                     Cobrado por divisa
                   </div>
@@ -213,8 +213,8 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
             })()}
 
             {/* Fórmula paso a paso */}
-            <div className="bg-muted/30 rounded-md px-3 py-2 space-y-2 text-xs" data-testid="summary-formula">
-              <div className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide mb-1">Cálculo</div>
+            <div className="bg-muted/30 rounded-md px-3 py-2 space-y-2 text-xs border border-border" data-testid="summary-formula">
+              <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">Cálculo</div>
 
               <div className="flex items-center justify-between" data-testid="summary-gross-income">
                 <span className="text-muted-foreground flex items-center gap-2">
@@ -273,9 +273,9 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
             {/* Lista de pagos */}
             {s.payments.length > 0 && (
               <div className="space-y-1" data-testid="summary-payments-list">
-                <div className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide px-1">Pagos incluidos ({s.payments.length})</div>
+                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide px-1">Pagos incluidos ({s.payments.length})</div>
                 {s.payments.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between bg-muted/30 rounded px-2 py-2 text-xs">
+                  <div key={p.id} className="flex items-center justify-between bg-muted/30 rounded px-2 py-2 text-xs border border-border">
                     <div className="flex items-center gap-2 min-w-0">
                       <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
                       <span className="font-mono truncate text-muted-foreground">{p.clientNumber}</span>
@@ -284,7 +284,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
                       <span className="font-mono font-medium tabular-nums">
                         {fmt2(Number(p.amount))}
                       </span>
-                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 font-mono">
+                      <Badge variant="outline" className="text-xs px-1 py-0 h-4 font-mono">
                         {p.currency?.code ?? "?"}
                       </Badge>
                     </div>
@@ -340,7 +340,7 @@ export default function TutorPaymentsPage() {
   const selectedWeek = sortedWeeks.find(w => w.id === activeWeekId);
 
   return (
-    <div className="space-y-4 relative pb-24">
+    <div className="space-y-6 relative pb-24">
 
       {/* Saludo de bienvenida */}
       <div className="px-1">
@@ -387,7 +387,7 @@ export default function TutorPaymentsPage() {
                   return (
                     <SelectItem key={week.id} value={week.id} data-testid={`option-week-${week.weekNumber}`}>
                       <span className="font-mono">S{week.weekNumber}</span>
-                      {isCurrent && <span className="ml-2 text-[10px] text-success font-medium">● actual</span>}
+                      {isCurrent && <span className="ml-2 text-xs text-success font-medium">● actual</span>}
                     </SelectItem>
                   );
                 })}
@@ -420,7 +420,7 @@ export default function TutorPaymentsPage() {
         >
           {currentWeek?.status === "open" ? <PlusCircle className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
           Nuevo Pago
-          {currentWeek && <span className="text-[11px] font-mono opacity-70">S{currentWeek.weekNumber}</span>}
+          {currentWeek && <span className="text-xs font-mono opacity-70">S{currentWeek.weekNumber}</span>}
         </button>
 
         {user?.autoVerificaPagos && (
@@ -439,7 +439,7 @@ export default function TutorPaymentsPage() {
           >
             {currentWeek?.status === "open" ? <CheckCircle className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
             Agregar Pago Verificado
-            {currentWeek && <span className="text-[11px] font-mono opacity-70">S{currentWeek.weekNumber}</span>}
+            {currentWeek && <span className="text-xs font-mono opacity-70">S{currentWeek.weekNumber}</span>}
           </button>
         )}
       </div>
@@ -489,19 +489,19 @@ export default function TutorPaymentsPage() {
                   const StatusIcon = status.icon;
                   return (
                     <TableRow key={payment.id} data-testid={`payment-card-${payment.id}`} className="hover:bg-muted/30">
-                      <TableCell className="py-3">
-                        <Badge className={`gap-1 text-[10px] px-2 py-1 ${status.className}`} data-testid={`badge-status-${payment.id}`}>
+                      <TableCell>
+                        <Badge className={`gap-1 text-xs px-2 py-1 ${status.className}`} data-testid={`badge-status-${payment.id}`}>
                           <StatusIcon className="h-3 w-3" />
                           {status.label}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right py-3">
+                      <TableCell className="text-right">
                         <span className="font-semibold text-sm tabular-nums">
                           {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
                         </span>
-                        <span className="text-[10px] text-muted-foreground ml-1">{payment.currency?.code ?? ""}</span>
+                        <span className="text-xs text-muted-foreground ml-1">{payment.currency?.code ?? ""}</span>
                       </TableCell>
-                      <TableCell className="text-center py-3">
+                      <TableCell className="text-center">
                         {payment.proofImage ? (
                           <button
                             onClick={() => setPreviewImage(payment.proofImage!)}
@@ -516,10 +516,10 @@ export default function TutorPaymentsPage() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="text-xs font-bold text-muted-foreground py-3">
+                      <TableCell className="text-xs font-bold text-muted-foreground">
                         #{index + 1}
                       </TableCell>
-                      <TableCell className="py-3">
+                      <TableCell>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Calendar className="h-3 w-3 shrink-0" />
                           <span className="text-foreground">
@@ -527,7 +527,7 @@ export default function TutorPaymentsPage() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="py-3">
+                      <TableCell>
                         <div className="flex items-center gap-2 text-xs">
                           <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
                           <span className="font-mono">{payment.clientNumber}</span>

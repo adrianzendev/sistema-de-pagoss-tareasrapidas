@@ -172,10 +172,10 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div className="flex justify-between items-center">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
                         {tutor.totalPayments} pagos verificados
                       </p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {((tutor.verifiedAmount / (stats.totalAmount || 1)) * 100).toFixed(1)}% del periodo
                       </p>
                     </div>
@@ -269,14 +269,14 @@ export default function AdminDashboard() {
                     return (
                       <div key={w.id} className="p-2 text-center border-r border-border last:border-r-0">
                         <div className="text-foreground">S{w.weekNumber}</div>
-                        <div className="text-muted-foreground font-normal normal-case text-[10px]">
+                        <div className="text-muted-foreground font-normal normal-case text-xs">
                           {new Date(w.startDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
                           {" - "}
                           {new Date(w.endDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
                         </div>
                         {totalActive > 0 && paidCount > 0 && (
                           <div className="mt-1">
-                            <span className={`text-[9px] font-semibold ${paidCount === totalActive ? "text-success" : "text-muted-foreground/60"}`}>
+                            <span className={`text-xs font-semibold ${paidCount === totalActive ? "text-success" : "text-muted-foreground/60"}`}>
                               {paidCount}/{totalActive} pagados
                             </span>
                           </div>
@@ -306,14 +306,14 @@ export default function AdminDashboard() {
                           <div className={`font-semibold text-sm truncate hover:underline cursor-pointer ${tutor.isActive === false ? "text-muted-foreground" : "text-primary"}`}>{tutor.name}</div>
                         </Link>
                         {tutor.isActive === false && (
-                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 leading-none text-muted-foreground border-muted-foreground/40 mt-1">inactivo</Badge>
+                          <Badge variant="outline" className="text-xs px-2 py-0 h-5 leading-none text-muted-foreground border-muted-foreground/40 mt-1">inactivo</Badge>
                         )}
-                        <div className="text-[10px] text-muted-foreground">{tutor.commissionPercent}%</div>
+                        <div className="text-xs text-muted-foreground">{tutor.commissionPercent}%</div>
                         {Number(tutor.advertisingCostUsd ?? 0) > 0 && (() => {
                           const half = Number(tutor.advertisingCostUsd) / 2;
                           const pen = half * usdRate;
                           return (
-                            <div className="text-[10px] text-muted-foreground/60 leading-tight">
+                            <div className="text-xs text-muted-foreground/60 leading-tight">
                               <span className="text-muted-foreground/40">USD</span> {half.toFixed(2)}
                               <span className="text-muted-foreground/30"> · </span>
                               <span className="text-muted-foreground/40">PEN</span> {pen.toFixed(2)}
@@ -349,7 +349,7 @@ export default function AdminDashboard() {
                                   {fmt(agencyE)}
                                 </div>
                                 {isAutoVerif && (
-                                  <div className={`text-[9px] font-semibold mt-1 ${netTransfer < 0 ? "text-destructive" : "text-success"}`}>
+                                  <div className={`text-xs font-semibold mt-1 ${netTransfer < 0 ? "text-destructive" : "text-success"}`}>
                                     {netTransfer < 0
                                       ? `→ te debe ${fmt(Math.abs(netTransfer))}`
                                       : `← agencia paga ${fmt(netTransfer)}`
@@ -357,14 +357,14 @@ export default function AdminDashboard() {
                                   </div>
                                 )}
                                 <div className="flex items-center justify-end gap-1 mt-1">
-                                  <span className="text-[9px] text-muted-foreground/60">{cell?.paymentCount ?? 0} pg</span>
+                                  <span className="text-xs text-muted-foreground/60">{cell?.paymentCount ?? 0} pg</span>
                                   {isTutorPaid && (
-                                    <Badge className="text-[8px] px-1 py-0 h-4 bg-success leading-none">Pagado</Badge>
+                                    <Badge className="text-xs px-2 py-0 h-5 bg-success leading-none">Pagado</Badge>
                                   )}
                                 </div>
                               </>
                             ) : cell?.wasActive === false ? (
-                              <span className="text-[9px] text-muted-foreground/40 italic">inactivo</span>
+                              <span className="text-xs text-muted-foreground/40 italic">inactivo</span>
                             ) : (
                               <span className="text-muted-foreground/30">—</span>
                             )}
@@ -391,8 +391,8 @@ export default function AdminDashboard() {
                   style={{ gridTemplateColumns: `160px repeat(${weeks.length}, 120px) 130px` }}
                 >
                   <div className="p-2 border-r border-border sticky left-0 bg-muted/70 z-10 flex flex-col justify-center">
-                    <div className="text-[9px] uppercase text-muted-foreground/70 font-normal leading-4">Total Bruto</div>
-                    <div className="text-[9px] uppercase text-muted-foreground/60 font-normal leading-4">Publicidad Total</div>
+                    <div className="text-xs uppercase text-muted-foreground/70 font-normal leading-4">Total Bruto</div>
+                    <div className="text-xs uppercase text-muted-foreground/60 font-normal leading-4">Publicidad Total</div>
                     <div className="text-xs uppercase text-success leading-4">Tutores</div>
                     <div className="text-xs uppercase text-muted-foreground leading-4">Agencia</div>
                   </div>
@@ -412,10 +412,10 @@ export default function AdminDashboard() {
                       <div key={w.id} className="p-2 text-right text-xs border-r border-border last:border-r-0">
                         {anyPayments ? (
                           <>
-                            <div className="text-[9px] text-muted-foreground/70 font-normal tabular-nums leading-4">
+                            <div className="text-xs text-muted-foreground/70 font-normal tabular-nums leading-4">
                               {fmt(tutorsWithAnyPayment.reduce((sum, t) => sum + (matrix[t.id]?.[w.id]?.grossIncome ?? 0), 0))}
                             </div>
-                            <div className="text-[9px] text-muted-foreground/60 font-normal tabular-nums leading-4 flex items-center justify-end gap-1">
+                            <div className="text-xs text-muted-foreground/60 font-normal tabular-nums leading-4 flex items-center justify-end gap-1">
                               {(() => {
                                 const sharedUsd = Number(w.sharedAdvertisingUsd ?? 0);
                                 const ownUsd = tutorsWithAnyPayment.reduce((sum, t) => {

@@ -181,7 +181,7 @@ export default function LoginPage() {
                     <Loader2 className="h-3 w-3 animate-spin mr-1" />
                   ) : null}
                   <span className="font-medium">{u.name}</span>
-                  <span className="ml-1 text-[10px] text-muted-foreground">({ROLE_LABEL[u.role] ?? u.role})</span>
+                  <span className="ml-1 text-xs text-muted-foreground">({ROLE_LABEL[u.role] ?? u.role})</span>
                 </Button>
               ))}
             </CardContent>
