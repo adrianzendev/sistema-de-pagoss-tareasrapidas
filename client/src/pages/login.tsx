@@ -152,9 +152,9 @@ export default function LoginPage() {
         </p>
 
         {devUsers && devUsers.length > 0 && (
-          <Card className="mt-4 border-dashed border-yellow-500/50 bg-yellow-500/5">
+          <Card className="mt-4 border-dashed border-warning/50 bg-warning/5">
             <CardHeader className="py-3">
-              <CardTitle className="text-sm text-yellow-600 dark:text-yellow-400">
+              <CardTitle className="text-sm text-warning">
                 Accesos Rápidos (Solo Desarrollo)
               </CardTitle>
             </CardHeader>

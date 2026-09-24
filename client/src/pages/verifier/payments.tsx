@@ -89,8 +89,8 @@ function WeekSeparatorRow({ group, colSpan, showPending }: { group: WeekGroup; c
     <TableRow className="hover:bg-transparent border-0" data-testid={`week-header-${group.weekLabel}`}>
       <TableCell colSpan={colSpan} className="py-2 px-1">
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <div className="flex items-center gap-2 min-w-0">
+            <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
             <span className="text-sm font-semibold text-foreground">{group.weekLabel}</span>
             {group.dateRange && (
               <span className="text-xs text-muted-foreground">{group.dateRange}</span>
@@ -202,7 +202,7 @@ export default function VerifierPaymentsPage() {
                           <TableCell className="py-3">
                             <button
                               onClick={() => setActionPayment({ payment, action: "verified" })}
-                              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium bg-warning/10 text-warning hover:bg-warning/20 border border-warning/30 transition-colors cursor-pointer"
+                              className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-medium bg-warning/10 text-warning hover:bg-warning/20 border border-warning/30 transition-colors cursor-pointer"
                               data-testid={`button-status-${payment.id}`}
                             >
                               <Clock className="h-3 w-3" />
@@ -226,13 +226,13 @@ export default function VerifierPaymentsPage() {
                               </button>
                             ) : (
                               <div className="inline-flex items-center justify-center w-8 h-8 rounded border bg-muted/30 mx-auto">
-                                <ImageIcon className="h-3.5 w-3.5 text-muted-foreground/40" />
+                                <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
                               </div>
                             )}
                           </TableCell>
                           <TableCell className="py-3 text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
                           <TableCell className="py-3 whitespace-nowrap">
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <Calendar className="h-3 w-3 shrink-0" />
                               <div>
                                 <div className="text-foreground">{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
@@ -241,7 +241,7 @@ export default function VerifierPaymentsPage() {
                             </div>
                           </TableCell>
                           <TableCell className="py-3">
-                            <div className="flex items-center gap-1.5 text-xs">
+                            <div className="flex items-center gap-2 text-xs">
                               <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
                               <span className="font-mono">{payment.clientNumber}</span>
                             </div>
@@ -287,8 +287,8 @@ export default function VerifierPaymentsPage() {
                         return (
                           <TableRow key={payment.id} data-testid={`card-history-${payment.id}`} className="hover:bg-muted/30">
                             <TableCell className="py-3">
-                              <Badge className={`gap-1 text-[10px] px-1.5 py-0.5 ${status.className}`}>
-                                <StatusIcon className="h-2.5 w-2.5" />
+                              <Badge className={`gap-1 text-[10px] px-2 py-1 ${status.className}`}>
+                                <StatusIcon className="h-3 w-3" />
                                 {status.label}
                               </Badge>
                             </TableCell>
@@ -309,13 +309,13 @@ export default function VerifierPaymentsPage() {
                                 </button>
                               ) : (
                                 <div className="inline-flex items-center justify-center w-8 h-8 rounded border bg-muted/30 mx-auto">
-                                  <ImageIcon className="h-3.5 w-3.5 text-muted-foreground/40" />
+                                  <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
                                 </div>
                               )}
                             </TableCell>
                             <TableCell className="py-3 text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
                             <TableCell className="py-3 whitespace-nowrap">
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <Calendar className="h-3 w-3 shrink-0" />
                                 <div>
                                   <div className="text-foreground">{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
@@ -324,7 +324,7 @@ export default function VerifierPaymentsPage() {
                               </div>
                             </TableCell>
                             <TableCell className="py-3">
-                              <div className="flex items-center gap-1.5 text-xs">
+                              <div className="flex items-center gap-2 text-xs">
                                 <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
                                 <span className="font-mono">{payment.clientNumber}</span>
                               </div>
@@ -418,13 +418,13 @@ export default function VerifierPaymentsPage() {
                   <span className="text-xs text-muted-foreground mr-2">
                     {currentIdx + 1} / {paymentsWithImage.length}
                   </span>
-                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(-1)} disabled={!hasPrev} data-testid="button-prev-payment">
+                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => navigate(-1)} disabled={!hasPrev} data-testid="button-prev-payment">
                     <ChevronLeft className="h-5 w-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(1)} disabled={!hasNext} data-testid="button-next-payment">
+                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => navigate(1)} disabled={!hasNext} data-testid="button-next-payment">
                     <ChevronRight className="h-5 w-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setPreviewPayment(null)} data-testid="button-close-preview">
+                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setPreviewPayment(null)} data-testid="button-close-preview">
                     <X className="h-5 w-5" />
                   </Button>
                 </div>

@@ -120,7 +120,7 @@ export function AppSidebar() {
             </div>
           </div>
           {isTutor && (
-            <div className="mt-3 flex flex-col gap-1.5">
+            <div className="mt-3 flex flex-col gap-2">
               <button
                 onClick={() => {
                   if (!hasOpenWeek) {
@@ -189,7 +189,7 @@ export function AppSidebar() {
                           <item.icon className="h-4 w-4" />
                           <span className="flex-1">{item.title}</span>
                           {showBadge && (
-                            <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs" data-testid="badge-pending-payments">
+                            <Badge variant="destructive" className="h-5 min-w-5 px-2 text-xs" data-testid="badge-pending-payments">
                               {stats.pendingPayments}
                             </Badge>
                           )}
@@ -206,7 +206,7 @@ export function AppSidebar() {
 
         <SidebarFooter className="p-4 border-t border-sidebar-border">
           <div className="flex items-center gap-3 mb-3">
-            <Avatar className="h-9 w-9">
+            <Avatar className="h-10 w-10">
               <AvatarFallback className="bg-primary/10 text-primary text-sm">
                 {user ? getInitials(user.name) : "?"}
               </AvatarFallback>
@@ -219,7 +219,7 @@ export function AppSidebar() {
             </div>
           </div>
           <div className="flex items-center gap-2 mb-2">
-            <SidebarTrigger data-testid="button-sidebar-toggle" className="h-9 w-9 flex-shrink-0" />
+            <SidebarTrigger data-testid="button-sidebar-toggle" className="h-10 w-10 flex-shrink-0" />
             <ThemeToggle />
             <Button
               variant="ghost"

@@ -67,21 +67,21 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
 
   return (
     <Card className="overflow-hidden" data-testid="card-week-summary">
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 px-4 py-2 flex items-center justify-between">
+      <div className="bg-primary px-4 py-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-white/80" />
-          <span className="text-white text-sm font-semibold">Resumen S{currentWeek.weekNumber}</span>
+          <TrendingUp className="h-4 w-4 text-primary-foreground/80" />
+          <span className="text-primary-foreground text-sm font-semibold">Resumen S{currentWeek.weekNumber}</span>
         </div>
-        <Badge className="bg-white/20 text-white text-[10px] border-0 hover:bg-white/20">
+        <Badge className="bg-primary-foreground/20 text-primary-foreground text-[10px] border-0 hover:bg-primary-foreground/20">
           Solo verificados
         </Badge>
       </div>
 
-      <CardContent className="py-3 px-4 space-y-1.5">
+      <CardContent className="py-3 px-4 space-y-2">
         {/* Ganancia estimada — siempre visible */}
         <div className={`rounded-md px-3 py-2 ${isNegative ? "bg-destructive/10" : "bg-success/10"}`} data-testid="summary-tutor-earnings">
           <div className="flex items-center justify-between">
-            <span className={`text-sm font-semibold flex items-center gap-1.5 ${isNegative ? "text-destructive" : "text-success"}`}>
+            <span className={`text-sm font-semibold flex items-center gap-2 ${isNegative ? "text-destructive" : "text-success"}`}>
               Ganancia estimada
               {isNegative && (
                 <button
@@ -98,7 +98,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
             </span>
           </div>
           {isNegative && showNegWarning && (
-            <div className="mt-2 text-xs text-destructive/80 bg-destructive/10 rounded px-2 py-1.5 border border-destructive/20" data-testid="text-neg-warning">
+            <div className="mt-2 text-xs text-destructive/80 bg-destructive/10 rounded px-2 py-2 border border-destructive/20" data-testid="text-neg-warning">
               ⚠️ El costo de publicidad de esta semana (<strong>{pen(s.advertisingCost)}</strong>) supera tu comisión sobre los pagos regulares (<strong>{pen(s.grossRegular * s.commissionPercent / 100)}</strong>). Eso genera una ganancia negativa. Si tienes pagos DIRECTO, parte de esa diferencia puede quedar cubierta por lo que le debes a la agencia.
             </div>
           )}
@@ -110,7 +110,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
           const agencyOwes = transfer > 0;
           const even = Math.abs(transfer) < 0.01;
           return (
-            <div className={`rounded-md px-3 py-2.5 border ${
+            <div className={`rounded-md px-3 py-3 border ${
               even ? "border-muted bg-muted/20" :
               agencyOwes ? "border-success/30 bg-success/5" : "border-warning/30 bg-warning/5"
             }`} data-testid="summary-net-transfer">
@@ -132,7 +132,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
                 if (agencyOwes) {
                   // Agency pays tutor: (regular * 70% - adv) - (direct * 30%)
                   return (
-                    <div className="mt-1.5 space-y-0.5 text-[10px] text-muted-foreground border-t border-success/20 pt-1.5">
+                    <div className="mt-2 space-y-1 text-[10px] text-muted-foreground border-t border-success/20 pt-2">
                       <div className="flex justify-between">
                         <span>Tu comisión ({s.commissionPercent}%) sobre PEN {fmt2(s.grossRegular)}</span>
                         <span className="font-mono text-success">+{fmt2(regularTutorGross)}</span>
@@ -152,7 +152,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
                 } else {
                   // Tutor pays agency: (direct * 30%) + uncovered advertising
                   return (
-                    <div className="mt-1.5 space-y-0.5 text-[10px] text-muted-foreground border-t border-warning/20 pt-1.5">
+                    <div className="mt-2 space-y-1 text-[10px] text-muted-foreground border-t border-warning/20 pt-2">
                       {agencyCommission > 0 && (
                         <div className="flex justify-between">
                           <span>Comisión agencia ({100 - s.commissionPercent}%) sobre PEN {fmt2(s.grossDirect)}</span>
@@ -176,10 +176,10 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
         {/* Toggle detalles */}
         <button
           onClick={() => setShowDetails(v => !v)}
-          className="w-full flex items-center justify-center gap-1.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="w-full flex items-center justify-center gap-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           data-testid="button-toggle-details"
         >
-          {showDetails ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          {showDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           {showDetails ? "Ocultar detalles" : "Ver cálculo detallado"}
         </button>
 
@@ -198,7 +198,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
               if (entries.length === 0) return null;
               return (
                 <div className="bg-muted/40 rounded-md px-3 py-2 space-y-1" data-testid="summary-currency-breakdown">
-                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium uppercase tracking-wide mb-1">
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium uppercase tracking-wide mb-1">
                     <Coins className="h-3 w-3" />
                     Cobrado por divisa
                   </div>
@@ -213,25 +213,25 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
             })()}
 
             {/* Fórmula paso a paso */}
-            <div className="bg-muted/30 rounded-md px-3 py-2 space-y-1.5 text-xs" data-testid="summary-formula">
+            <div className="bg-muted/30 rounded-md px-3 py-2 space-y-2 text-xs" data-testid="summary-formula">
               <div className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide mb-1">Cálculo</div>
 
               <div className="flex items-center justify-between" data-testid="summary-gross-income">
-                <span className="text-muted-foreground flex items-center gap-1.5">
+                <span className="text-muted-foreground flex items-center gap-2">
                   <DollarSign className="h-3 w-3" /> Ingresos brutos
                 </span>
                 <span className="font-mono font-medium">{pen(s.grossIncome)}</span>
               </div>
 
               <div className="flex items-center justify-between text-destructive" data-testid="summary-advertising">
-                <span className="flex items-center gap-1.5">
+                <span className="flex items-center gap-2">
                   <Megaphone className="h-3 w-3" /> Publicidad tutor
                 </span>
                 <span className="font-mono">− {pen(s.advertisingCost)}</span>
               </div>
 
               <div className="flex items-center justify-between text-muted-foreground" data-testid="summary-advertising-agency">
-                <span className="flex items-center gap-1.5">
+                <span className="flex items-center gap-2">
                   <Megaphone className="h-3 w-3" /> Publicidad agencia
                 </span>
                 <span className="font-mono">− {pen(s.advertisingCost)}</span>
@@ -275,12 +275,12 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
               <div className="space-y-1" data-testid="summary-payments-list">
                 <div className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide px-1">Pagos incluidos ({s.payments.length})</div>
                 {s.payments.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between bg-muted/30 rounded px-2 py-1.5 text-xs">
+                  <div key={p.id} className="flex items-center justify-between bg-muted/30 rounded px-2 py-2 text-xs">
                     <div className="flex items-center gap-2 min-w-0">
                       <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
                       <span className="font-mono truncate text-muted-foreground">{p.clientNumber}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
                       <span className="font-mono font-medium tabular-nums">
                         {fmt2(Number(p.amount))}
                       </span>
@@ -348,11 +348,11 @@ export default function TutorPaymentsPage() {
           Bienvenido, {user?.name?.split(" ")[0]} 👋
         </h1>
         {currentWeek ? (
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="text-sm text-muted-foreground mt-1">
             Semana S{currentWeek.weekNumber} · {format(new Date(currentWeek.startDate + "T12:00:00"), "d MMM", { locale: es })} – {format(new Date(currentWeek.endDate + "T12:00:00"), "d MMM yyyy", { locale: es })}
           </p>
         ) : (
-          <p className="text-sm text-muted-foreground mt-0.5">Sin semana activa</p>
+          <p className="text-sm text-muted-foreground mt-1">Sin semana activa</p>
         )}
       </div>
 
@@ -369,7 +369,7 @@ export default function TutorPaymentsPage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <CardTitle className="text-base">Historial de Pagos</CardTitle>
-              <CardDescription className="text-xs mt-0.5">
+              <CardDescription className="text-xs mt-1">
                 {selectedWeek ? `${filteredPayments?.length ?? 0} pago${filteredPayments?.length !== 1 ? "s" : ""} en S${selectedWeek.weekNumber}` : "Selecciona una semana"}
               </CardDescription>
             </div>
@@ -490,8 +490,8 @@ export default function TutorPaymentsPage() {
                   return (
                     <TableRow key={payment.id} data-testid={`payment-card-${payment.id}`} className="hover:bg-muted/30">
                       <TableCell className="py-3">
-                        <Badge className={`gap-1 text-[10px] px-1.5 py-0.5 ${status.className}`} data-testid={`badge-status-${payment.id}`}>
-                          <StatusIcon className="h-2.5 w-2.5" />
+                        <Badge className={`gap-1 text-[10px] px-2 py-1 ${status.className}`} data-testid={`badge-status-${payment.id}`}>
+                          <StatusIcon className="h-3 w-3" />
                           {status.label}
                         </Badge>
                       </TableCell>
@@ -512,7 +512,7 @@ export default function TutorPaymentsPage() {
                           </button>
                         ) : (
                           <div className="inline-flex items-center justify-center w-8 h-8 rounded border bg-muted/30 mx-auto">
-                            <ImageIcon className="h-3.5 w-3.5 text-muted-foreground/40" />
+                            <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
                           </div>
                         )}
                       </TableCell>
@@ -520,7 +520,7 @@ export default function TutorPaymentsPage() {
                         #{index + 1}
                       </TableCell>
                       <TableCell className="py-3">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Calendar className="h-3 w-3 shrink-0" />
                           <span className="text-foreground">
                             {payment.createdAt && format(new Date(payment.createdAt), "dd/MM/yyyy HH:mm", { locale: es })}
@@ -528,7 +528,7 @@ export default function TutorPaymentsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="py-3">
-                        <div className="flex items-center gap-1.5 text-xs">
+                        <div className="flex items-center gap-2 text-xs">
                           <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
                           <span className="font-mono">{payment.clientNumber}</span>
                         </div>

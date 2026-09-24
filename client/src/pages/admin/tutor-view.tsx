@@ -170,7 +170,7 @@ export default function AdminTutorViewPage() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <CardTitle className="text-base">Historial de Pagos</CardTitle>
-                  <CardDescription className="text-xs mt-0.5">
+                  <CardDescription className="text-xs mt-1">
                     {selectedWeek
                       ? `${payments?.length ?? 0} pago${payments?.length !== 1 ? "s" : ""} en S${selectedWeek.weekNumber}`
                       : "Selecciona una semana"}
@@ -248,8 +248,8 @@ export default function AdminTutorViewPage() {
                       return (
                         <TableRow key={payment.id} className="hover:bg-muted/30">
                           <TableCell className="py-3">
-                            <Badge className={`gap-1 text-[10px] px-1.5 py-0.5 ${status.className}`}>
-                              <StatusIcon className="h-2.5 w-2.5" />
+                            <Badge className={`gap-1 text-[10px] px-2 py-1 ${status.className}`}>
+                              <StatusIcon className="h-3 w-3" />
                               {status.label}
                             </Badge>
                           </TableCell>
@@ -269,7 +269,7 @@ export default function AdminTutorViewPage() {
                               </button>
                             ) : (
                               <div className="inline-flex items-center justify-center w-8 h-8 rounded border bg-muted/30 mx-auto">
-                                <ImageIcon className="h-3.5 w-3.5 text-muted-foreground/40" />
+                                <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
                               </div>
                             )}
                           </TableCell>
@@ -277,7 +277,7 @@ export default function AdminTutorViewPage() {
                             #{index + 1}
                           </TableCell>
                           <TableCell className="py-3">
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <Calendar className="h-3 w-3 shrink-0" />
                               <span className="text-foreground">
                                 {payment.createdAt && format(new Date(payment.createdAt), "dd/MM/yyyy HH:mm", { locale: es })}
@@ -285,7 +285,7 @@ export default function AdminTutorViewPage() {
                             </div>
                           </TableCell>
                           <TableCell className="py-3">
-                            <div className="flex items-center gap-1.5 text-xs">
+                            <div className="flex items-center gap-2 text-xs">
                               <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
                               <span className="font-mono">{payment.clientNumber}</span>
                             </div>

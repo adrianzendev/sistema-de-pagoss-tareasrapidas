@@ -91,15 +91,15 @@ function PaymentTable({
                   {payment.status === "pending" ? (
                     <button
                       onClick={() => setActionPayment(payment)}
-                      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium bg-warning/10 text-warning hover:bg-warning/20 border border-warning/30 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-medium bg-warning/10 text-warning hover:bg-warning/20 border border-warning/30 transition-colors cursor-pointer"
                       data-testid={`button-status-${payment.id}`}
                     >
                       <Clock className="h-3 w-3" />
                       Pendiente
                     </button>
                   ) : (
-                    <Badge className={`gap-1 text-[10px] px-1.5 py-0.5 ${status.className}`}>
-                      <StatusIcon className="h-2.5 w-2.5" />
+                    <Badge className={`gap-1 text-[10px] px-2 py-1 ${status.className}`}>
+                      <StatusIcon className="h-3 w-3" />
                       {status.label}
                     </Badge>
                   )}
@@ -121,14 +121,14 @@ function PaymentTable({
                     </button>
                   ) : (
                     <div className="inline-flex items-center justify-center w-8 h-8 rounded border bg-muted/30 mx-auto">
-                      <ImageIcon className="h-3.5 w-3.5 text-muted-foreground/40" />
+                      <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
                     </div>
                   )}
                 </TableCell>
                 <TableCell className="py-3 text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
                 <TableCell className="py-3 whitespace-nowrap">
                   {payment.createdAt && (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Calendar className="h-3 w-3 shrink-0" />
                       <div>
                         <div className="text-foreground">{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
@@ -156,7 +156,7 @@ function PaymentTable({
                     : <span className="text-muted-foreground">—</span>}
                 </TableCell>
                 <TableCell className="py-3 text-right">
-                  <div className="flex justify-end gap-0.5">
+                  <div className="flex justify-end gap-1">
                     {payment.status === "pending" && (
                       <>
                         <Button size="sm" variant="ghost" className="h-7 w-7 p-0"
@@ -178,19 +178,19 @@ function PaymentTable({
                         onClick={() => updateMutation.mutate({ id: payment.id, status: "refunded" })}
                         disabled={updateMutation.isPending}
                         data-testid={`button-refund-${payment.id}`}>
-                        <RotateCcw className="h-3.5 w-3.5 text-warning" />
+                        <RotateCcw className="h-4 w-4 text-warning" />
                       </Button>
                     )}
                     <Button size="sm" variant="ghost" className="h-7 w-7 p-0"
                       onClick={() => setMovePayment({ id: payment.id, weekId: "" })}
                       title="Mover a otra semana"
                       data-testid={`button-move-payment-${payment.id}`}>
-                      <ArrowLeftRight className="h-3.5 w-3.5 text-primary" />
+                      <ArrowLeftRight className="h-4 w-4 text-primary" />
                     </Button>
                     <Button size="sm" variant="ghost" className="h-7 w-7 p-0"
                       onClick={() => setDeleteId(payment.id)}
                       data-testid={`button-delete-payment-${payment.id}`}>
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
                 </TableCell>
@@ -298,7 +298,7 @@ function WeekSection({
         <span className="font-semibold text-sm">S{week.weekNumber}</span>
         <span className="text-xs text-muted-foreground">{dateRange}</span>
         {isCurrentWeek && (
-          <Badge className="text-[10px] px-1.5 py-0 bg-success/10 text-success ml-1">actual</Badge>
+          <Badge className="text-[10px] px-2 py-0 bg-success/10 text-success ml-1">actual</Badge>
         )}
         <div className="flex-1" />
         {!expanded && (
@@ -483,13 +483,13 @@ export default function PaymentsPage() {
                   {list.length > 1 && (
                     <span className="text-xs text-muted-foreground mr-1">{currentIdx + 1} / {list.length}</span>
                   )}
-                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(-1)} disabled={!hasPrev} data-testid="button-prev-proof">
+                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => navigate(-1)} disabled={!hasPrev} data-testid="button-prev-proof">
                     <ChevronLeft className="h-5 w-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(1)} disabled={!hasNext} data-testid="button-next-proof">
+                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => navigate(1)} disabled={!hasNext} data-testid="button-next-proof">
                     <ChevronRight className="h-5 w-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setPreviewCtx(null)} data-testid="button-close-proof">
+                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setPreviewCtx(null)} data-testid="button-close-proof">
                     <X className="h-5 w-5" />
                   </Button>
                 </div>

@@ -118,7 +118,7 @@ function WeekPayments({ tutorId, weekId }: { tutorId: string; weekId: string }) 
               ) : (
                 <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Pendiente</Badge>
               )}
-              {p.verifier && <div className="text-[9px] text-muted-foreground mt-0.5">{p.verifier.name}</div>}
+              {p.verifier && <div className="text-[9px] text-muted-foreground mt-1">{p.verifier.name}</div>}
               {p.verifiedAt && <div className="text-[9px] text-muted-foreground/60">{new Date(p.verifiedAt).toLocaleString("es-PE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</div>}
             </td>
             <td className="px-3 py-2">
@@ -504,13 +504,13 @@ export default function TutorDetailPage() {
                           {hasActivity ? (
                             isPaid ? (
                               <Badge
-                                className="text-[9px] px-1.5 py-0 h-4 bg-success cursor-pointer hover:bg-success/90"
+                                className="text-[9px] px-2 py-0 h-4 bg-success cursor-pointer hover:bg-success/90"
                                 onClick={() => !isMutating && unmarkPaidMutation.mutate({ weekId: week.id })}
                               >Pagado</Badge>
                             ) : (
                               <Badge
                                 variant="outline"
-                                className="text-[9px] px-1.5 py-0 h-4 cursor-pointer hover:bg-muted"
+                                className="text-[9px] px-2 py-0 h-4 cursor-pointer hover:bg-muted"
                                 onClick={() => !isMutating && markPaidMutation.mutate({ weekId: week.id })}
                               >Por pagar</Badge>
                             )

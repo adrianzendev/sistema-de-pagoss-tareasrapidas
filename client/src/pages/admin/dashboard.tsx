@@ -165,7 +165,7 @@ export default function AdminDashboard() {
                         {tutor.verifiedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </div>
                     </div>
-                    <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                       <div
                         className="h-full bg-primary transition-all duration-500"
                         style={{ width: `${Math.min(100, (tutor.verifiedAmount / (stats.totalAmount || 1)) * 100)}%` }}
@@ -306,7 +306,7 @@ export default function AdminDashboard() {
                           <div className={`font-semibold text-sm truncate hover:underline cursor-pointer ${tutor.isActive === false ? "text-muted-foreground" : "text-primary"}`}>{tutor.name}</div>
                         </Link>
                         {tutor.isActive === false && (
-                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 leading-none text-muted-foreground border-muted-foreground/40 mt-0.5">inactivo</Badge>
+                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 leading-none text-muted-foreground border-muted-foreground/40 mt-1">inactivo</Badge>
                         )}
                         <div className="text-[10px] text-muted-foreground">{tutor.commissionPercent}%</div>
                         {Number(tutor.advertisingCostUsd ?? 0) > 0 && (() => {
@@ -349,17 +349,17 @@ export default function AdminDashboard() {
                                   {fmt(agencyE)}
                                 </div>
                                 {isAutoVerif && (
-                                  <div className={`text-[9px] font-semibold mt-0.5 ${netTransfer < 0 ? "text-destructive" : "text-success"}`}>
+                                  <div className={`text-[9px] font-semibold mt-1 ${netTransfer < 0 ? "text-destructive" : "text-success"}`}>
                                     {netTransfer < 0
                                       ? `→ te debe ${fmt(Math.abs(netTransfer))}`
                                       : `← agencia paga ${fmt(netTransfer)}`
                                     }
                                   </div>
                                 )}
-                                <div className="flex items-center justify-end gap-1 mt-0.5">
+                                <div className="flex items-center justify-end gap-1 mt-1">
                                   <span className="text-[9px] text-muted-foreground/60">{cell?.paymentCount ?? 0} pg</span>
                                   {isTutorPaid && (
-                                    <Badge className="text-[8px] px-1 py-0 h-3.5 bg-success leading-none">Pagado</Badge>
+                                    <Badge className="text-[8px] px-1 py-0 h-4 bg-success leading-none">Pagado</Badge>
                                   )}
                                 </div>
                               </>

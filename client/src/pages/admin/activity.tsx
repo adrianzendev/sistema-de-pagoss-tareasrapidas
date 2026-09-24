@@ -76,8 +76,8 @@ export default function ActivityPage() {
                   className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                   data-testid={`row-activity-${entry.id}`}
                 >
-                  <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-950 shrink-0">
-                    <Percent className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <div className="p-2 rounded-full bg-primary/10 shrink-0">
+                    <Percent className="h-4 w-4 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -87,11 +87,11 @@ export default function ActivityPage() {
                       <Badge variant="outline" className="text-xs">cambio de comisión</Badge>
                     </div>
                     <div className="flex items-center gap-2 text-sm mb-1">
-                      <span className="font-mono bg-muted px-2 py-0.5 rounded text-destructive font-bold">
+                      <span className="font-mono bg-muted px-2 py-1 rounded text-destructive font-bold">
                         {entry.oldValue}%
                       </span>
                       <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-mono bg-muted px-2 py-0.5 rounded text-green-600 dark:text-green-400 font-bold">
+                      <span className="font-mono bg-muted px-2 py-1 rounded text-success font-bold">
                         {entry.newValue}%
                       </span>
                     </div>

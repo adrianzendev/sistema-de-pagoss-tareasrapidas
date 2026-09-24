@@ -27,7 +27,7 @@ import {
 import { Plus, Loader2, Coins, Edit, Trash2 } from "lucide-react";
 
 const colorOptions = [
-  { value: "white", label: "Blanco", preview: "bg-white border border-gray-300" },
+  { value: "white", label: "Blanco", preview: "bg-white border border-border" },
   { value: "black", label: "Negro", preview: "bg-black" },
 ];
 
@@ -50,10 +50,10 @@ type CurrencyForm = z.infer<typeof currencySchema>;
 
 const getColorPreview = (color: string) => {
   const colorMap: Record<string, string> = {
-    white: "bg-white border border-gray-300",
+    white: "bg-white border border-border",
     black: "bg-black",
   };
-  return colorMap[color] ?? "bg-gray-300";
+  return colorMap[color] ?? "bg-muted";
 };
 
 export default function CurrenciesPage() {

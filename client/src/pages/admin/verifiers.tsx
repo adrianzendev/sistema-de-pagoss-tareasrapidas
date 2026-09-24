@@ -194,7 +194,7 @@ export default function VerifiersPage() {
                   disabled={!!isOtherVerifier}
                   data-testid={`checkbox-currency-${c.id}`}
                 />
-                <label htmlFor={`currency-${c.id}`} className="text-sm flex items-center gap-1.5 cursor-pointer">
+                <label htmlFor={`currency-${c.id}`} className="text-sm flex items-center gap-2 cursor-pointer">
                   <span className="font-mono font-medium">{c.code}</span>
                   <span className="text-muted-foreground">- {c.name}</span>
                   {isOtherVerifier && (

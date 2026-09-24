@@ -553,7 +553,7 @@ export default function TutorsPage() {
                     <TableHead className="text-right">Comisión</TableHead>
                     <TableHead className="text-right">
                       <span className="flex items-center justify-end gap-1">
-                        <TrendingUp className="h-3.5 w-3.5" />
+                        <TrendingUp className="h-4 w-4" />
                         {weekSummary?.week ? `Ganancia S${weekSummary.week.weekNumber}` : "Ganancia semana actual"}
                       </span>
                     </TableHead>
@@ -575,9 +575,9 @@ export default function TutorsPage() {
                         </TableCell>
                         <TableCell>
                           {tutor.isActive !== false ? (
-                            <Badge className="bg-green-600 text-white text-[10px] px-1.5 py-0" data-testid={`status-tutor-${tutor.id}`}>Activo</Badge>
+                            <Badge className="bg-success text-success-foreground text-[10px] px-2 py-0" data-testid={`status-tutor-${tutor.id}`}>Activo</Badge>
                           ) : (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0" data-testid={`status-tutor-${tutor.id}`}>Inactivo</Badge>
+                            <Badge variant="secondary" className="text-[10px] px-2 py-0" data-testid={`status-tutor-${tutor.id}`}>Inactivo</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
@@ -589,7 +589,7 @@ export default function TutorsPage() {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div className="cursor-default">
-                                    <div className={`font-mono font-semibold text-sm tabular-nums ${s.tutorEarningsPen < 0 ? "text-red-600 dark:text-red-400" : "text-green-700 dark:text-green-400"}`}>
+                                    <div className={`font-mono font-semibold text-sm tabular-nums ${s.tutorEarningsPen < 0 ? "text-destructive" : "text-success"}`}>
                                       {pen(s.tutorEarningsPen)}
                                     </div>
                                     {s.paymentCount > 0 && (
@@ -605,7 +605,7 @@ export default function TutorsPage() {
                                     <span className="text-muted-foreground">Ingresos brutos</span>
                                     <span className="font-mono">{pen(s.grossIncomePen)}</span>
                                   </div>
-                                  <div className="flex justify-between gap-4 text-red-500">
+                                  <div className="flex justify-between gap-4 text-destructive">
                                     <span className="flex items-center gap-1"><Megaphone className="h-3 w-3" />Publicidad</span>
                                     <span className="font-mono">− {pen(s.totalAdvPen)}</span>
                                   </div>
@@ -615,7 +615,7 @@ export default function TutorsPage() {
                                   </div>
                                   <div className="flex justify-between gap-4 font-semibold">
                                     <span>Ganancia estimada</span>
-                                    <span className={`font-mono ${s.tutorEarningsPen < 0 ? "text-red-500" : "text-green-600"}`}>{pen(s.tutorEarningsPen)}</span>
+                                    <span className={`font-mono ${s.tutorEarningsPen < 0 ? "text-destructive" : "text-success"}`}>{pen(s.tutorEarningsPen)}</span>
                                   </div>
                                 </TooltipContent>
                               </Tooltip>

@@ -517,7 +517,7 @@ export default function WeeksPage() {
                             <span className={`inline-flex items-center justify-end gap-1 ${s.agencyEarnings < 0 ? "text-destructive" : ""}`}>
                               {s.agencyEarnings < 0 && (
                                 <span title={`La publicidad (S/${formatCurrency(s.tutorAdvertisingShare)}) supera los ingresos por comisión de la agencia (S/${formatCurrency(s.grossIncome * (1 - s.commissionPercent / 100))}) para este tutor. La semana tiene pérdida neta.`}>
-                                  <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0 cursor-help" />
+                                  <AlertCircle className="h-4 w-4 text-destructive shrink-0 cursor-help" />
                                 </span>
                               )}
                               {formatCurrency(s.agencyEarnings)}

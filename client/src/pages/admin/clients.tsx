@@ -296,7 +296,7 @@ export default function ClientsPage() {
                         onClick={() => setExpandedId(isExpanded ? null : client.id)}
                         data-testid={`button-expand-client-${client.id}`}
                       >
-                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                           <Phone className="h-4 w-4 text-primary" />
                         </div>
 
@@ -352,7 +352,7 @@ export default function ClientsPage() {
                           onClick={() => handleEdit(client)}
                           data-testid={`button-edit-client-${client.id}`}
                         >
-                          <Pencil className="h-3.5 w-3.5" />
+                          <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -361,7 +361,7 @@ export default function ClientsPage() {
                           onClick={() => setDeleteId(client.id)}
                           data-testid={`button-delete-client-${client.id}`}
                         >
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
                     </div>
@@ -400,7 +400,7 @@ export default function ClientsPage() {
                                           {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })} {payment.currencyCode}
                                         </TableCell>
                                         <TableCell className="text-xs py-2">
-                                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${sc.className}`}>
+                                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium ${sc.className}`}>
                                             <Icon className="h-3 w-3" />
                                             {sc.label}
                                           </span>

@@ -318,7 +318,7 @@ export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
                   <FormLabel>Monto</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium w-9 text-center">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium w-10 text-center">
                         {selectedCurrency?.code || "$"}
                       </div>
                       <Input
