@@ -9,6 +9,7 @@ import { z } from "zod";
 import { db, pool } from "./db";
 import { users, currencies, payments } from "@shared/schema";
 import { nowPeru, toDateStr } from "./utils/peru-time";
+import { DEFAULT_TUTOR_PASSWORD, hashPassword, parseNewPassword, PasswordValidationError } from "./utils/password";
 import { eq, sql } from "drizzle-orm";
 import { getVapidPublicKey, notifyPaymentStatusChange, notifyNewPaymentRequest } from "./push";
 
@@ -303,13 +304,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/admin/tutors", requireAdmin, async (req, res) => {
     try {
-      const validatedData = createTutorSchema.parse(req.body);
+      const validatedData = createTutorSchema.extend({ password: z.string().optional() }).parse(req.body);
       const username = validatedData.email.split("@")[0].toLowerCase().replace(/[^a-z0-9.]/g, "");
       const existing = await storage.getUserByUsername(username);
       if (existing) {
         return res.status(400).json({ message: "Ya existe un tutor con este email" });
       }
-      const hashedPassword = await bcrypt.hash(validatedData.password, 10);
+      // Sin contraseña => 123456 por defecto (siempre cifrada)
+      const plainPassword = parseNewPassword(validatedData.password) ?? DEFAULT_TUTOR_PASSWORD;
+      const hashedPassword = await hashPassword(plainPassword);
       const tutor = await storage.createUser({ 
         ...validatedData, 
         username, 
@@ -320,6 +323,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const { password, ...safeTutor } = tutor;
       res.status(201).json(safeTutor);
     } catch (error) {
+      if (error instanceof PasswordValidationError) {
+        return res.status(400).json({ message: error.message, field: ["password"] });
+      }
       console.error("Error creating tutor:", error);
       if (error instanceof z.ZodError) {
         console.error("Zod errors:", JSON.stringify(error.errors, null, 2));
@@ -348,7 +354,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           updateData.deactivatedAt = new Date();
         }
       }
-      if (rawPassword) updateData.password = await bcrypt.hash(rawPassword, 10);
+      // Vacía => no cambia; con texto => se valida y se cifra
+      const newPassword = parseNewPassword(rawPassword);
+      if (newPassword) updateData.password = await hashPassword(newPassword);
       if (advCost !== undefined) updateData.advertisingCostUsd = String(Number(advCost));
       if (autoVerificaPagos !== undefined) updateData.autoVerificaPagos = autoVerificaPagos;
       const [updated] = await db.update(users).set(updateData).where(eq(users.id, req.params.id)).returning();
@@ -366,6 +374,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const { password, ...safe } = updated;
       res.json(safe);
     } catch (error) {
+      if (error instanceof PasswordValidationError) {
+        return res.status(400).json({ message: error.message, field: ["password"] });
+      }
       console.error("Error updating tutor:", error);
       res.status(500).json({ message: "Error al actualizar tutor" });
     }
@@ -390,7 +401,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post("/api/admin/verifiers", requireAdmin, async (req, res) => {
     try {
       const { name, email, password: rawPassword } = req.body;
-      if (!name || !email || !rawPassword) {
+      // Los verificadores sí requieren contraseña (la regla del 123456 es solo para tutores)
+      const newPassword = parseNewPassword(rawPassword);
+      if (!name || !email || !newPassword) {
         return res.status(400).json({ message: "Nombre, email y contraseña son requeridos" });
       }
       const username = email.split("@")[0].toLowerCase().replace(/[^a-z0-9.]/g, "");
@@ -398,7 +411,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (existing) {
         return res.status(400).json({ message: "Ya existe un usuario con este email" });
       }
-      const hashedPassword = await bcrypt.hash(rawPassword, 10);
+      const hashedPassword = await hashPassword(newPassword);
       const verifier = await storage.createVerifier({
         name,
         email,
@@ -410,6 +423,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const { password, ...safeVerifier } = verifier;
       res.status(201).json(safeVerifier);
     } catch (error) {
+      if (error instanceof PasswordValidationError) {
+        return res.status(400).json({ message: error.message, field: ["password"] });
+      }
       console.error("Error creating verifier:", error);
       res.status(500).json({ message: "Error al crear verificador" });
     }
@@ -421,12 +437,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const updateData: any = {};
       if (name) updateData.name = name;
       if (email) updateData.email = email;
-      if (rawPassword) updateData.password = await bcrypt.hash(rawPassword, 10);
+      const newPassword = parseNewPassword(rawPassword);
+      if (newPassword) updateData.password = await hashPassword(newPassword);
       const [updated] = await db.update(users).set(updateData).where(eq(users.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Verificador no encontrado" });
       const { password, ...safe } = updated;
       res.json(safe);
     } catch (error) {
+      if (error instanceof PasswordValidationError) {
+        return res.status(400).json({ message: error.message, field: ["password"] });
+      }
       console.error("Error updating verifier:", error);
       res.status(500).json({ message: "Error al actualizar verificador" });
     }

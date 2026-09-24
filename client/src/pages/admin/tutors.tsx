@@ -58,7 +58,8 @@ function pen(val: number) {
 const createTutorSchema = z.object({
   name: z.string().min(2, "Nombre debe tener al menos 2 caracteres"),
   email: z.string().email("Email inválido"),
-  password: z.string().min(4, "Contraseña debe tener al menos 4 caracteres"),
+  // Vacía => el backend asigna 123456 (cifrada)
+  password: z.string().optional().refine(val => !val || val.trim().length >= 6, "Mínimo 6 caracteres"),
   commissionPercent: z.string().refine((val) => {
     const num = parseFloat(val);
     return !isNaN(num) && num >= 0 && num <= 100;
@@ -74,7 +75,7 @@ const createTutorSchema = z.object({
 const editTutorSchema = z.object({
   name: z.string().min(2, "Nombre debe tener al menos 2 caracteres"),
   email: z.string().email("Email inválido"),
-  password: z.string().optional().refine(val => !val || val.length >= 4, "Mínimo 4 caracteres"),
+  password: z.string().optional().refine(val => !val || val.trim().length >= 6, "Mínimo 6 caracteres"),
   commissionPercent: z.string().refine((val) => {
     const num = parseFloat(val);
     return !isNaN(num) && num >= 0 && num <= 100;
@@ -135,8 +136,12 @@ export default function TutorsPage() {
   const editAdvWatch = editForm.watch("advertisingCostUsd");
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateTutorForm) =>
-      apiRequest("POST", "/api/admin/tutors", { ...data, role: "tutor" }),
+    mutationFn: ({ password, ...data }: CreateTutorForm) =>
+      apiRequest("POST", "/api/admin/tutors", {
+        ...data,
+        role: "tutor",
+        ...(password?.trim() ? { password } : {}),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/tutors"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
@@ -269,8 +274,9 @@ export default function TutorsPage() {
                     <FormItem>
                       <FormLabel>Contraseña</FormLabel>
                       <FormControl>
-                        <Input {...field} type="password" placeholder="••••••" data-testid="input-tutor-password" />
+                        <Input {...field} type="password" placeholder="123456 (por defecto)" data-testid="input-tutor-password" />
                       </FormControl>
+                      <FormDescription className="text-xs">Si lo dejas vacío, la contraseña inicial será 123456</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -412,7 +418,7 @@ export default function TutorsPage() {
                     <FormItem>
                       <FormLabel>Nueva Contraseña</FormLabel>
                       <FormControl>
-                        <Input {...field} type="password" placeholder="••••••" data-testid="input-edit-tutor-password" />
+                        <Input {...field} type="password" placeholder="Dejar vacío para no cambiar" data-testid="input-edit-tutor-password" />
                       </FormControl>
                       <FormDescription className="text-xs">Dejar vacío para mantener la contraseña actual</FormDescription>
                       <FormMessage />

@@ -15,6 +15,20 @@ npm run db:push   # sincroniza el esquema de shared/schema.ts con la base
 - El servidor **no** modifica la base al arrancar (el seed de `server/seed.ts` está desconectado).
 - En desarrollo, el login muestra "Accesos Rápidos" (ruta `/api/dev/users`, solo si `NODE_ENV !== "production"`).
 
+## Contraseñas (OBLIGATORIO)
+
+Toda la lógica vive en `server/utils/password.ts` (`DEFAULT_TUTOR_PASSWORD`, `hashPassword`, `parseNewPassword`). No duplicarla.
+
+- **Tutores nuevos:** contraseña por defecto **`123456`**, salvo que el admin escriba otra en el modal "Crear tutor". `POST /api/admin/tutors` usa `parseNewPassword(password) ?? DEFAULT_TUTOR_PASSWORD` y siempre la cifra.
+- **Cifrado:** siempre con `hashPassword()` (bcrypt, 10 rondas). Nunca llamar a `bcrypt.hash` directamente ni guardar texto plano en la base.
+- **Edición desde el modal** (`PATCH /api/admin/tutors/:id` y `/verifiers/:id`): la contraseña solo cambia si el campo trae texto. `parseNewPassword` la recorta; vacía = no se cambia; menos de 6 caracteres = HTTP 400; si es válida, se cifra con `hashPassword` y se actualiza. El frontend solo envía `password` si el campo tiene texto.
+- **Mínimo 6 caracteres** en todos los formularios (crear/editar tutor y verificador), igual que en el servidor.
+- **Verificadores:** al crearlos la contraseña es obligatoria (la regla del 123456 es solo para tutores).
+- **Nunca exponer contraseñas:** quitar `password` de toda respuesta (`const { password, ...safe } = user`) y no escribirla en logs.
+- **Login:** `bcrypt.compare`; acepta usuario o correo, el correo sin distinguir mayúsculas (`storage.getUserByEmail` compara `lower(email)`).
+- **Cambios manuales en producción:** script temporal **fuera del repositorio**, con la contraseña pasada por variable de entorno y `hashPassword`; verificar con `bcrypt.compare` y borrar el script al terminar.
+- **Seed:** `server/seed.ts` está desconectado; no volver a llamarlo al arrancar (pondría `123456` a todos los usuarios).
+
 ## Sistema de diseño: Flat Outlined + rejilla 4/8 puntos (OBLIGATORIO)
 
 Toda vista o componente nuevo o modificado debe cumplir estas reglas. Los tokens viven en `client/src/index.css` y `tailwind.config.ts`; los componentes base en `client/src/components/ui/`.
