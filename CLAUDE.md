@@ -29,7 +29,13 @@ Toda vista o componente nuevo o modificado debe cumplir estas reglas. Los tokens
 - **Sin sombras.** Las clases `shadow-*` están mapeadas a variables `--shadow-*` que valen `0 0 #0000`. No usar sombras arbitrarias (`shadow-[...]`).
 - **Bordes definidos de 1 px** con tokens: `border border-border` (claro `220 13% 85%`, oscuro `220 13% 24%`). Tarjetas, inputs, selects, modales, menús, badges, botones y cajas llevan borde. Bordes de color al 30–40 % (nunca `/10`–`/20`, no se ven sin fondo).
 - **Solo tokens de color:** `primary`, `muted-foreground`, `destructive`, `success`, `warning`, `border`, `input`, `ring`, `sidebar-*`. Prohibido `text-red-500`, `bg-blue-600`, `border-gray-300`, degradados, etc.
-- **Sidebar:** fondo blanco, borde derecho `border-sidebar-border`; ítem activo `border-sidebar-border bg-background text-primary font-medium`; hover con borde (definido en `ui/sidebar.tsx`).
+- **Navegación: estado activo sin borde.** El `border` se reserva para contenedores (tarjetas, modales, tablas, cajas, inputs, botones de acción y el divisor `border-r` del sidebar). Los ítems de navegación (menú del sidebar, subítems, pestañas, toggles, paginación) **no llevan borde** en ningún estado:
+  - Activo: fondo plano sutil + texto/ícono primario → `bg-accent text-primary font-medium` (en el sidebar `bg-sidebar-accent`). Es la única excepción a "sin fondos": un gris neutro, nunca un color.
+  - Hover: el mismo gris más suave → `hover:bg-accent/60` (sidebar `hover:bg-sidebar-accent/60`).
+  - Inactivo: `text-muted-foreground`, sin fondo.
+  - Nada de subrayados (`border-b-2`) ni contornos para marcar la pestaña activa.
+  - Definido en `ui/sidebar.tsx`, `ui/tabs.tsx`, `ui/toggle.tsx` y `ui/pagination.tsx`; las pestañas hechas a mano (p. ej. `admin/tutor-view.tsx`) usan las mismas clases.
+- **Sidebar:** fondo blanco y borde derecho `border-sidebar-border`; los ítems siguen la regla de navegación de arriba.
 - **Controles:** checkbox marcado = borde y check `primary` sobre blanco; switch = pista blanca con borde (`primary` al activarse) y punto de color.
 - **Excepciones permitidas:** el oscurecido detrás de los modales (`bg-black/80`), las barras de progreso y gráficos (el relleno *es* el dato), los placeholders de carga (`animate-pulse`, `ui/skeleton.tsx`), el punto del switch y los colores que son datos (p. ej. el color blanco/negro de una moneda).
 

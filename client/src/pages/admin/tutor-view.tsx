@@ -139,23 +139,23 @@ export default function AdminTutorViewPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b">
+      <div className="flex gap-1">
         <button
           onClick={() => setActiveTab("payments")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
             activeTab === "payments"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "bg-accent text-primary"
+              : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
           }`}
         >
           Mis Pagos
         </button>
         <button
           onClick={() => setActiveTab("settlement")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
             activeTab === "settlement"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "bg-accent text-primary"
+              : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
           }`}
         >
           Liquidación

@@ -118,9 +118,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/auth/login", async (req, res) => {
     const { username, password } = req.body;
-    let user = await storage.getUserByUsername(username);
+    // Acepta usuario o correo, sin espacios ni distinción de mayúsculas en el correo
+    const login = String(username ?? "").trim();
+    let user = await storage.getUserByUsername(login);
     if (!user) {
-      user = await storage.getUserByEmail(username);
+      user = await storage.getUserByEmail(login.toLowerCase());
     }
     if (!user) {
       return res.status(401).json({ message: "Credenciales inválidas" });
