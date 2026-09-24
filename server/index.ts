@@ -2,7 +2,6 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { seedDatabase } from "./seed";
 
 const app = express();
 const httpServer = createServer(app);
@@ -62,14 +61,6 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Seed database with initial data
-  await seedDatabase();
-
-  // Sync clients from existing payments (backfill)
-  const { storage } = await import("./storage");
-  const synced = await storage.syncClientsFromPayments();
-  if (synced > 0) console.log(`[sync] Created ${synced} missing client(s) from payment history`);
-
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
@@ -104,7 +95,6 @@ app.use((req, res, next) => {
     {
       port,
       host: "0.0.0.0",
-      reusePort: true,
     },
     () => {
       log(`serving on port ${port}`);

@@ -4,11 +4,14 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "dev": "NODE_ENV=development tsx server/index.ts",
+    "dev": "cross-env NODE_ENV=development tsx --env-file-if-exists=.env server/index.ts",
     "build": "tsx script/build.ts",
-    "start": "NODE_ENV=production node dist/index.cjs",
+    "start": "cross-env NODE_ENV=production node --env-file-if-exists=.env dist/index.cjs",
     "check": "tsc",
-    "db:push": "drizzle-kit push"
+    "db:push": "node --env-file-if-exists=.env node_modules/drizzle-kit/bin.cjs push"
+  },
+  "engines": {
+    "node": ">=22"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -95,6 +98,7 @@
     "@types/ws": "^8.5.13",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.20",
+    "cross-env": "^10.1.0",
     "drizzle-kit": "^0.31.8",
     "esbuild": "^0.25.0",
     "postcss": "^8.4.47",
@@ -110,5 +114,11 @@
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
+  },
+  "allowScripts": {
+    "esbuild@0.27.2": true,
+    "esbuild@0.25.12": true,
+    "bcrypt@6.0.0": true,
+    "bufferutil@4.1.0": true
   }
 }
