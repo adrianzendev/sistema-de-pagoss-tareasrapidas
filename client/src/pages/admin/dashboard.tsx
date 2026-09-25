@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { Users, CreditCard, Coins, TableIcon } from "lucide-react";
 import type { Week } from "@shared/schema";
+import { todayPeru, formatShortDate } from "@/lib/utils";
 
 interface DashboardStats {
   totalTutors: number;
@@ -108,6 +109,7 @@ export default function AdminDashboard() {
     );
   };
 
+  const today = todayPeru();
   const weeks = matrixData?.weeks ?? [];
   const tutors = matrixData?.tutors ?? [];
   const matrix = matrixData?.matrix ?? {};
@@ -159,13 +161,14 @@ export default function AdminDashboard() {
                     );
                     const paidCount = activeTutorsThisWeek.filter(t => weekPaidMap[w.id]?.includes(t.id)).length;
                     const totalActive = activeTutorsThisWeek.length;
+                    const isCurrent = w.startDate <= today && w.endDate >= today;
                     return (
                       <div key={w.id} className="p-2 text-center border-r border-border last:border-r-0">
-                        <div className="text-foreground">S{w.weekNumber}</div>
-                        <div className="text-muted-foreground font-normal normal-case text-xs">
-                          {new Date(w.startDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
+                        <div className={isCurrent ? "font-bold text-foreground" : "font-normal text-muted-foreground"}>S{w.weekNumber}</div>
+                        <div className={`normal-case text-xs ${isCurrent ? "font-bold text-foreground" : "font-normal text-muted-foreground"}`}>
+                          {formatShortDate(new Date(w.startDate + "T00:00:00"))}
                           {" - "}
-                          {new Date(w.endDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
+                          {formatShortDate(new Date(w.endDate + "T00:00:00"))}
                         </div>
                         {totalActive > 0 && paidCount > 0 && (
                           <div className="mt-1">
@@ -235,14 +238,14 @@ export default function AdminDashboard() {
                           >
                             {showCell ? (
                               <>
-                                <div className={`text-xs font-bold ${tutorE >= 0 ? "text-success" : "text-destructive"}`}>
+                                <div className="text-xs font-bold text-foreground">
                                   {fmt(tutorE)}
                                 </div>
-                                <div className={`text-xs font-medium ${agencyE >= 0 ? "text-muted-foreground" : "text-destructive"}`}>
+                                <div className="text-xs font-medium text-muted-foreground">
                                   {fmt(agencyE)}
                                 </div>
                                 {isAutoVerif && (
-                                  <div className={`text-xs font-semibold mt-1 ${netTransfer < 0 ? "text-destructive" : "text-success"}`}>
+                                  <div className="text-xs font-semibold mt-1 text-foreground">
                                     {netTransfer < 0
                                       ? `→ te debe ${fmt(Math.abs(netTransfer))}`
                                       : `← agencia paga ${fmt(netTransfer)}`
@@ -267,10 +270,10 @@ export default function AdminDashboard() {
 
                       {/* Total cell */}
                       <div className="p-2 text-right" data-testid={`total-${tutor.id}`}>
-                        <div className={`text-xs font-bold ${rowTotal >= 0 ? "text-success" : "text-destructive"}`}>
+                        <div className="text-xs font-bold text-foreground">
                           {fmt(rowTotal)}
                         </div>
-                        <div className={`text-xs font-medium ${rowAgencyTotal >= 0 ? "text-muted-foreground" : "text-destructive"}`}>
+                        <div className="text-xs font-medium text-muted-foreground">
                           {fmt(rowAgencyTotal)}
                         </div>
                       </div>
@@ -286,7 +289,7 @@ export default function AdminDashboard() {
                   <div className="p-2 border-r border-border sticky left-0 z-10 bg-card flex flex-col justify-center">
                     <div className="text-xs uppercase text-muted-foreground/70 font-normal leading-4">Total Bruto</div>
                     <div className="text-xs uppercase text-muted-foreground/60 font-normal leading-4">Publicidad Total</div>
-                    <div className="text-xs uppercase text-success leading-4">Tutores</div>
+                    <div className="text-xs uppercase text-muted-foreground leading-4">Tutores</div>
                     <div className="text-xs uppercase text-muted-foreground leading-4">Agencia</div>
                   </div>
                   {weeks.map(w => {
@@ -326,10 +329,10 @@ export default function AdminDashboard() {
                                 );
                               })()}
                             </div>
-                            <div className={`font-bold leading-4 ${colTutor >= 0 ? "text-success" : "text-destructive"}`}>
+                            <div className="font-bold leading-4 text-foreground">
                               {fmt(colTutor)}
                             </div>
-                            <div className={`font-medium leading-4 ${colAgency >= 0 ? "text-muted-foreground" : "text-destructive"}`}>
+                            <div className="font-medium leading-4 text-muted-foreground">
                               {fmt(colAgency)}
                             </div>
                           </>
@@ -340,16 +343,10 @@ export default function AdminDashboard() {
                     );
                   })}
                   <div className="p-2 text-right">
-                    <div className={`text-xs font-bold ${
-                      tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.tutorEarnings ?? 0), 0), 0) >= 0
-                        ? "text-success" : "text-destructive"
-                    }`}>
+                    <div className="text-xs font-bold text-foreground">
                       {fmt(tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.tutorEarnings ?? 0), 0), 0))}
                     </div>
-                    <div className={`text-xs font-medium ${
-                      tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.agencyEarnings ?? 0), 0), 0) >= 0
-                        ? "text-muted-foreground" : "text-destructive"
-                    }`}>
+                    <div className="text-xs font-medium text-muted-foreground">
                       {fmt(tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.agencyEarnings ?? 0), 0), 0))}
                     </div>
                   </div>

@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/table";
 import { Calendar, Plus, Settings, Eye, Trash2, Coins, DollarSign, AlertCircle } from "lucide-react";
 import type { Week, AgencySettings } from "@shared/schema";
+import { WeekOptionLabel } from "@/components/week-option-label";
+import { todayPeru } from "@/lib/utils";
 
 type WeekSettlement = {
   week: Week;
@@ -165,13 +167,6 @@ export default function WeeksPage() {
     }).format(amount);
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr + "T00:00:00").toLocaleDateString("es-PE", {
-      day: "2-digit",
-      month: "short",
-    });
-  };
-
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "open":
@@ -242,20 +237,19 @@ export default function WeeksPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Semana</TableHead>
-                  <TableHead>Período</TableHead>
                   <TableHead>Publicidad Total</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {weeks.map((week) => (
+                {weeks.map((week) => {
+                  const today = todayPeru();
+                  const isCurrent = week.startDate <= today && week.endDate >= today;
+                  return (
                   <TableRow key={week.id} data-testid={`row-week-${week.weekNumber}`}>
                     <TableCell data-testid={`text-week-number-${week.weekNumber}`}>
-                      S{week.weekNumber}
-                    </TableCell>
-                    <TableCell>
-                      {formatDate(week.startDate)} - {formatDate(week.endDate)}
+                      <WeekOptionLabel week={week} isCurrent={isCurrent} />
                     </TableCell>
                     <TableCell data-testid={`text-advertising-${week.weekNumber}`}>
                       <span className="font-mono text-sm">
@@ -284,7 +278,8 @@ export default function WeeksPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           ) : (

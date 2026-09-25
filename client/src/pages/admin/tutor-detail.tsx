@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, ChevronDown, ChevronRight, Image, Pencil, Check, X, Power, Megaphone } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { todayPeru, formatShortDate } from "@/lib/utils";
 import type { Week } from "@shared/schema";
 
 type DailyCampaign = {
@@ -406,12 +407,20 @@ export default function TutorDetailPage() {
                             : <ChevronRight className="w-4 h-4" />)}
                         </TableCell>
                         <TableCell>
-                          <div className="font-semibold">S{week.weekNumber}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(week.startDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
-                            {" – "}
-                            {new Date(week.endDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
-                          </div>
+                          {(() => {
+                            const isCurrent = week.startDate <= todayPeru() && week.endDate >= todayPeru();
+                            const weight = isCurrent ? "font-bold text-foreground" : "font-normal text-muted-foreground";
+                            return (
+                              <>
+                                <div className={weight}>S{week.weekNumber}</div>
+                                <div className={`text-xs ${weight}`}>
+                                  {formatShortDate(new Date(week.startDate + "T00:00:00"))}
+                                  {" – "}
+                                  {formatShortDate(new Date(week.endDate + "T00:00:00"))}
+                                </div>
+                              </>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell>
                           {week.status === "paid" ? (

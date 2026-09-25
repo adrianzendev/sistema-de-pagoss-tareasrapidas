@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Week } from "@shared/schema";
+import { todayPeru, formatShortDate } from "@/lib/utils";
 
 // Liquidación semana a semana de un tutor (vista del tutor y del admin)
 export type WeeklySettlementRow = {
@@ -18,7 +19,7 @@ export type WeeklySettlementRow = {
 
 const fmt = (n: number) => n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtPen = (n: number) => `${fmt(n)} PEN`;
-const fmtDate = (d: string) => new Date(d + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" });
+const fmtDate = (d: string) => formatShortDate(new Date(d + "T00:00:00"));
 
 function weekStatusBadge(status: string) {
   switch (status) {
@@ -40,13 +41,14 @@ export function WeeklySettlementTable({ settlements, commissionPercent }: { sett
     { grossIncome: 0, netIncome: 0, advertising: 0, tutorEarnings: 0 },
   );
 
+  const today = todayPeru();
+
   return (
     <Table className="min-w-[860px]">
       <TableHeader>
         <TableRow>
           <TableHead className="text-center">#</TableHead>
           <TableHead className="text-center">Semana</TableHead>
-          <TableHead className="text-center">Período</TableHead>
           <TableHead className="text-center">Estado</TableHead>
           <TableHead className="text-center">Pagos</TableHead>
           <TableHead className="text-right">Bruto</TableHead>
@@ -58,11 +60,16 @@ export function WeeklySettlementTable({ settlements, commissionPercent }: { sett
       <TableBody>
         {settlements.map((s, index) => {
           const n = s.week.weekNumber;
+          const isCurrent = s.week.startDate <= today && s.week.endDate >= today;
           return (
             <TableRow key={s.week.id} data-testid={`row-settlement-${n}`}>
               <TableCell className="text-center text-muted-foreground">{index + 1}</TableCell>
-              <TableCell className="text-center" data-testid={`text-week-${n}`}>S{n}</TableCell>
-              <TableCell className="text-center whitespace-nowrap">{fmtDate(s.week.startDate)} - {fmtDate(s.week.endDate)}</TableCell>
+              <TableCell
+                className={`text-center whitespace-nowrap ${isCurrent ? "font-bold text-foreground" : "font-normal text-muted-foreground"}`}
+                data-testid={`text-week-${n}`}
+              >
+                S{n} ({fmtDate(s.week.startDate)} - {fmtDate(s.week.endDate)})
+              </TableCell>
               <TableCell className="text-center">{weekStatusBadge(s.week.status)}</TableCell>
               <TableCell className="text-center" data-testid={`text-payments-${n}`}>{s.payments.length}</TableCell>
               <TableCell className="text-right font-semibold tabular-nums" data-testid={`text-gross-${n}`}>{fmtPen(s.grossIncome)}</TableCell>

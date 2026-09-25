@@ -293,8 +293,9 @@ function WeekSection({
       >
         {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
         <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-        <span className="font-semibold text-sm">S{week.weekNumber}</span>
-        <span className="text-xs text-muted-foreground">{dateRange}</span>
+        <span className={`text-sm ${isCurrentWeek ? "font-semibold text-foreground" : "font-normal text-muted-foreground"}`}>
+          S{week.weekNumber} ({dateRange})
+        </span>
         <div className="flex-1" />
         {!expanded && (
           <span className="text-xs text-muted-foreground italic">clic para cargar</span>
