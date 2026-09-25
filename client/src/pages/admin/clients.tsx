@@ -8,7 +8,6 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -322,23 +321,23 @@ export default function ClientsPage() {
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
-                          <Badge variant="outline" className="text-xs" data-testid={`badge-total-${client.id}`}>
+                          <span className="text-sm text-muted-foreground" data-testid={`badge-total-${client.id}`}>
                             {stats.total} {stats.total === 1 ? "solicitud" : "solicitudes"}
-                          </Badge>
+                          </span>
                           {stats.verified > 0 && (
-                            <Badge className="text-xs text-success border-success/40" data-testid={`badge-verified-${client.id}`}>
+                            <span className="text-sm text-success" data-testid={`badge-verified-${client.id}`}>
                               ✓ {stats.verified}
-                            </Badge>
+                            </span>
                           )}
                           {stats.rejected > 0 && (
-                            <Badge className="text-xs text-destructive border-destructive/40" data-testid={`badge-rejected-${client.id}`}>
+                            <span className="text-sm text-destructive" data-testid={`badge-rejected-${client.id}`}>
                               ✗ {stats.rejected}
-                            </Badge>
+                            </span>
                           )}
                           {stats.pending > 0 && (
-                            <Badge className="text-xs text-warning border-warning/40" data-testid={`badge-pending-${client.id}`}>
+                            <span className="text-sm text-warning" data-testid={`badge-pending-${client.id}`}>
                               ⏳ {stats.pending}
-                            </Badge>
+                            </span>
                           )}
                           {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                         </div>

@@ -295,9 +295,6 @@ function WeekSection({
         <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
         <span className="font-semibold text-sm">S{week.weekNumber}</span>
         <span className="text-xs text-muted-foreground">{dateRange}</span>
-        {isCurrentWeek && (
-          <Badge className="text-xs px-2 py-0 text-success ml-1">actual</Badge>
-        )}
         <div className="flex-1" />
         {!expanded && (
           <span className="text-xs text-muted-foreground italic">clic para cargar</span>

@@ -363,7 +363,7 @@ export default function TutorDetailPage() {
                 <div className="text-xs text-muted-foreground uppercase">Pendiente</div>
                 <div className="text-sm font-bold text-warning">{fmt(totalPending)}</div>
               </div>
-              <Badge variant="outline" className="text-xs">{totalPayments} pagos</Badge>
+              <span className="text-sm text-muted-foreground">{totalPayments} pagos</span>
             </div>
           </div>
         </CardHeader>

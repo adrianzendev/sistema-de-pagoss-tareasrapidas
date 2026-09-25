@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, Percent, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
@@ -84,7 +83,7 @@ export default function ActivityPage() {
                       <span className="font-semibold text-sm" data-testid={`text-tutor-name-${entry.id}`}>
                         {entry.tutor?.name ?? "Tutor eliminado"}
                       </span>
-                      <Badge variant="outline" className="text-xs">cambio de comisión</Badge>
+                      <span className="text-xs text-muted-foreground">cambio de comisión</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm mb-1">
                       <span className="font-mono px-2 py-1 rounded-sm text-destructive font-bold border border-border">

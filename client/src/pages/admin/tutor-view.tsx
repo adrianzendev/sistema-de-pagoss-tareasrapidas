@@ -127,9 +127,9 @@ export default function AdminTutorViewPage() {
           <h1 className="text-2xl font-bold tracking-tight">{tutor?.name ?? "Tutor"}</h1>
           <p className="text-sm text-muted-foreground">{tutor?.email}</p>
         </div>
-        <Badge variant="outline" className="text-xs">
+        <span className="text-sm text-muted-foreground">
           Vista admin · comisión {commissionPercent}%
-        </Badge>
+        </span>
       </div>
 
       {/* Tabs */}

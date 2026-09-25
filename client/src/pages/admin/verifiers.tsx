@@ -12,7 +12,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -427,15 +426,9 @@ export default function VerifiersPage() {
                       <TableCell className="font-mono">{verifier.username}</TableCell>
                       <TableCell>
                         {getCurrenciesForVerifier(verifier.id).length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {getCurrenciesForVerifier(verifier.id).map(c => (
-                              <Badge key={c.id} variant="outline" className="text-xs">
-                                {c.code}
-                              </Badge>
-                            ))}
-                          </div>
+                          getCurrenciesForVerifier(verifier.id).map(c => c.code).join(", ")
                         ) : (
-                          <span className="text-xs text-muted-foreground">Sin divisas</span>
+                          <span className="text-muted-foreground">Sin divisas</span>
                         )}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground" data-testid={`text-created-verifier-${verifier.id}`}>

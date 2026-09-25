@@ -587,7 +587,7 @@ export default function TutorsPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Badge variant="outline">{tutor.commissionPercent}%</Badge>
+                          {tutor.commissionPercent}%
                         </TableCell>
                         <TableCell className="text-right" data-testid={`text-earnings-tutor-${tutor.id}`}>
                           {s && weekSummary?.week ? (

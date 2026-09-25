@@ -505,7 +505,7 @@ export default function WeeksPage() {
                         <TableRow key={s.tutorId}>
                           <TableCell>{s.tutorName}</TableCell>
                           <TableCell className="text-right">
-                            <Badge variant="outline">{s.commissionPercent}%</Badge>
+                            {s.commissionPercent}%
                           </TableCell>
                           <TableCell className="text-right">{formatCurrency(s.grossIncome)}</TableCell>
                           <TableCell className="text-right">{formatCurrency(s.netIncome)}</TableCell>

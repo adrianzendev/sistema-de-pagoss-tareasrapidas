@@ -47,6 +47,7 @@ Toda vista o componente nuevo o modificado debe cumplir estas reglas. Los tokens
   - Correcto: `border border-success/40 text-success` (estado), `border border-primary/30` (caja destacada), `border border-border` (caja neutra).
 - **Botones sin relleno:** todas las variantes de `ui/button.tsx` son de contorno. `default` = borde y texto `primary`; `destructive` = borde y texto `destructive`; `secondary`/`outline` = borde `border`. Nunca `bg-primary` ni `text-primary-foreground` en un botón.
 - **Badges sin relleno:** variantes de `ui/badge.tsx` con fondo blanco, borde del tono al 40 % y texto del tono (`border-success/40 text-success`). Nunca `border-0`.
+- **Badges solo para estados.** `<Badge>`/píldoras se usan únicamente para estados de sistema: Activo/Inactivo, Pendiente/Verificado/Rechazado/Reembolsado, Abierta/Cerrada/Pagada, Pagado/Por pagar, "Ya cobrado", y el contador de avisos del sidebar. Todo dato informativo (comisiones %, divisas —separadas por comas: "PEN, USD"—, montos, fechas, teléfonos, contadores, etiquetas descriptivas) va en texto plano (`text-sm`, `text-muted-foreground` si es secundario), sin borde ni recuadro.
 - **Hover y foco:** solo gris neutro muy claro (`hover:bg-accent`, `hover:bg-muted/40`, `focus:bg-accent`) o el efecto `hover-elevate`. Nunca hover de color (`hover:bg-success/20`).
 - **Sin sombras.** Ningún componente usa clases `shadow-*` (ni `shadow-[...]`). Por si la CLI de shadcn las reintroduce, las variables `--shadow-*` valen `0 0 #0000`.
 - **Bordes definidos de 1 px** con tokens: `border border-border` (claro `220 13% 85%`, oscuro `220 13% 24%`). Tarjetas, inputs, selects, modales, menús, badges, botones y cajas llevan borde. Bordes de color al 30–40 % (nunca `/10`–`/20`, no se ven sin fondo).
@@ -111,4 +112,5 @@ grep -rnE '(^|[ "`])bg-(primary|success|destructive|warning|muted|secondary)(/[0
 grep -rnE '(bg|text|border|fill|stroke|ring)-\[(#|rgb|hsl)|#[0-9a-fA-F]{6}\b' client/src --include=*.tsx   # colores arbitrarios / hex
 grep -rnE '(^|[ "`:])shadow(-[a-z0-9]+)?([ "`]|$)' client/src --include=*.tsx | grep -v shadow-none   # sombras
 grep -rlE '<(table|td|th)[ >]' client/src/pages client/src/components/*.tsx   # tablas a mano (solo el detalle anidado de tutor-detail)
+grep -rnE '<Badge[^>]*>[^<]*(%|\{[^}]*(Percent|amount|code|total|length)[^}]*\})' client/src/pages client/src/components/*.tsx   # badges con datos
 ```
