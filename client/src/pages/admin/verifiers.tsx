@@ -422,9 +422,9 @@ export default function VerifiersPage() {
                 <TableBody>
                   {verifiers?.map((verifier) => (
                     <TableRow key={verifier.id} data-testid={`row-verifier-${verifier.id}`}>
-                      <TableCell className="font-medium">{verifier.name}</TableCell>
+                      <TableCell>{verifier.name}</TableCell>
                       <TableCell className="text-muted-foreground">{verifier.email}</TableCell>
-                      <TableCell className="font-mono text-sm">{verifier.username}</TableCell>
+                      <TableCell className="font-mono">{verifier.username}</TableCell>
                       <TableCell>
                         {getCurrenciesForVerifier(verifier.id).length > 0 ? (
                           <div className="flex flex-wrap gap-1">

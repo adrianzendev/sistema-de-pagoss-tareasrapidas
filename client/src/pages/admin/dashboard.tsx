@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import { Users, CreditCard, Coins, CheckCircle, Clock, XCircle, Calendar, TableIcon } from "lucide-react";
+import { Users, CreditCard, Coins, Calendar, TableIcon } from "lucide-react";
 import type { Week } from "@shared/schema";
 
 interface DashboardStats {
@@ -43,6 +43,8 @@ type SettlementsMatrix = {
   matrix: Record<string, Record<string, MatrixCell>>;
   currencyTotals: CurrencyTotal[];
   weekPaidMap: Record<string, string[]>;
+  weekCurrencyTotals: Record<string, Record<string, { code: string; symbol: string; total: number }>>;
+  tutorWeekAdvMap: Record<string, Record<string, number>>;
   usdRate: number;
 };
 
@@ -144,85 +146,6 @@ export default function AdminDashboard() {
       </div>
 
 
-      <div className="hidden grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="md:col-span-2 lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Ingresos por Tutor</CardTitle>
-            <CardDescription>Monto verificado en el periodo seleccionado</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {stats?.tutorStats?.map((tutor) => (
-                  <div key={tutor.id} className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="font-medium">{tutor.name}</div>
-                      <div className="font-mono font-bold text-primary">
-                        {tutor.verifiedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </div>
-                    </div>
-                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary transition-all duration-500"
-                        style={{ width: `${Math.min(100, (tutor.verifiedAmount / (stats.totalAmount || 1)) * 100)}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-                        {tutor.totalPayments} pagos verificados
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {((tutor.verifiedAmount / (stats.totalAmount || 1)) * 100).toFixed(1)}% del periodo
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                {(!stats?.tutorStats || stats.tutorStats.filter(t => t.totalPayments > 0).length === 0) && (
-                  <div className="text-center py-8">
-                    <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-20" />
-                    <p className="text-sm text-muted-foreground">No hay pagos verificados en este periodo</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Estado de Pagos</CardTitle>
-            <CardDescription>En el periodo seleccionado</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-4 p-3 rounded-lg border border-warning/30">
-              <Clock className="h-5 w-5 text-warning" />
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Pendientes</p>
-                <p className="text-lg font-bold">{stats?.pendingPayments ?? 0}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 p-3 rounded-lg border border-success/30">
-              <CheckCircle className="h-5 w-5 text-success" />
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Verificados</p>
-                <p className="text-lg font-bold">{stats?.verifiedPayments ?? 0}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 p-3 rounded-lg border border-destructive/30">
-              <XCircle className="h-5 w-5 text-destructive" />
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Rechazados</p>
-                <p className="text-lg font-bold">{stats?.rejectedPayments ?? 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Settlements matrix table */}
       <Card>
         <CardHeader>
@@ -245,7 +168,7 @@ export default function AdminDashboard() {
             </div>
           ) : tutorsWithAnyPayment.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <TableIcon className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <TableIcon className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
               <p>No hay liquidaciones registradas aún</p>
             </div>
           ) : (
@@ -256,7 +179,7 @@ export default function AdminDashboard() {
                   className="grid border-b-2 border-border text-xs font-bold uppercase"
                   style={{ gridTemplateColumns: `160px repeat(${weeks.length}, 120px) 130px` }}
                 >
-                  <div className="p-3 border-r border-border sticky left-0 z-10">
+                  <div className="p-3 border-r border-border sticky left-0 z-10 bg-card">
                     Tutor
                   </div>
                   {weeks.map(w => {
@@ -290,18 +213,18 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Tutor rows */}
-                {tutorsWithAnyPayment.map((tutor, rowIdx) => {
+                {tutorsWithAnyPayment.map((tutor) => {
                   const rowTotal = weeks.reduce((sum, w) => sum + (matrix[tutor.id]?.[w.id]?.tutorEarnings ?? 0), 0);
                   const rowAgencyTotal = weeks.reduce((sum, w) => sum + (matrix[tutor.id]?.[w.id]?.agencyEarnings ?? 0), 0);
                   return (
                     <div
                       key={tutor.id}
-                      className="grid border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors"
+                      className="grid border-b border-border last:border-b-0 hover:bg-muted/40 transition-colors"
                       style={{ gridTemplateColumns: `160px repeat(${weeks.length}, 120px) 130px` }}
                       data-testid={`row-matrix-${tutor.id}`}
                     >
                       {/* Tutor name cell */}
-                      <div className={`p-3 border-r border-border sticky left-0 z-10 ${rowIdx % 2 === 0 ? "bg-background" : ""} ${tutor.isActive === false ? "opacity-50" : ""}`}>
+                      <div className="p-3 border-r border-border sticky left-0 z-10 bg-card">
                         <Link href={`/admin/tutors/${tutor.id}/detail`}>
                           <div className={`font-semibold text-sm truncate hover:underline cursor-pointer ${tutor.isActive === false ? "text-muted-foreground" : "text-primary"}`}>{tutor.name}</div>
                         </Link>
@@ -390,7 +313,7 @@ export default function AdminDashboard() {
                   className="grid border-t-2 border-border font-bold text-sm"
                   style={{ gridTemplateColumns: `160px repeat(${weeks.length}, 120px) 130px` }}
                 >
-                  <div className="p-2 border-r border-border sticky left-0 z-10 flex flex-col justify-center">
+                  <div className="p-2 border-r border-border sticky left-0 z-10 bg-card flex flex-col justify-center">
                     <div className="text-xs uppercase text-muted-foreground/70 font-normal leading-4">Total Bruto</div>
                     <div className="text-xs uppercase text-muted-foreground/60 font-normal leading-4">Publicidad Total</div>
                     <div className="text-xs uppercase text-success leading-4">Tutores</div>

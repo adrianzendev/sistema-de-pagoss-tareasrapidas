@@ -45,7 +45,7 @@ export default function ActivityPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2" data-testid="text-page-title">
-          <Activity className="h-6 w-6" />
+          <Activity className="h-5 w-5" />
           Registro de Actividad
         </h1>
         <p className="text-muted-foreground">Historial de cambios de comisión de tutores</p>
@@ -64,7 +64,7 @@ export default function ActivityPage() {
         <CardContent>
           {entries.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <Activity className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
               <p>No hay registros de actividad aún</p>
               <p className="text-sm">Los cambios de comisión aparecerán aquí</p>
             </div>
@@ -87,11 +87,11 @@ export default function ActivityPage() {
                       <Badge variant="outline" className="text-xs">cambio de comisión</Badge>
                     </div>
                     <div className="flex items-center gap-2 text-sm mb-1">
-                      <span className="font-mono px-2 py-1 rounded text-destructive font-bold border border-border">
+                      <span className="font-mono px-2 py-1 rounded-sm text-destructive font-bold border border-border">
                         {entry.oldValue}%
                       </span>
                       <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-mono px-2 py-1 rounded text-success font-bold border border-border">
+                      <span className="font-mono px-2 py-1 rounded-sm text-success font-bold border border-border">
                         {entry.newValue}%
                       </span>
                     </div>

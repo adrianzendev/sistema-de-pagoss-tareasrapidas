@@ -350,9 +350,9 @@ export default function CurrenciesPage() {
                   {currencies?.map((currency) => (
                     <TableRow key={currency.id} data-testid={`row-currency-${currency.id}`}>
                       <TableCell>
-                        <div className={`w-6 h-6 rounded ${getColorPreview(currency.color ?? "gray")}`} />
+                        <div className={`w-6 h-6 rounded-sm ${getColorPreview(currency.color ?? "gray")}`} />
                       </TableCell>
-                      <TableCell className="font-mono font-medium">{currency.code}</TableCell>
+                      <TableCell className="font-mono">{currency.code}</TableCell>
                       <TableCell>{currency.name}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {currency.verifierId 

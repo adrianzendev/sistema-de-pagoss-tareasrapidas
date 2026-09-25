@@ -239,7 +239,7 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
                         }}
                       />
                       {showSuggestions && filteredClients.length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        <div className="absolute z-50 w-full mt-1 bg-background border rounded-md max-h-48 overflow-y-auto">
                           {filteredClients.map(client => (
                             <button
                               key={client.id}

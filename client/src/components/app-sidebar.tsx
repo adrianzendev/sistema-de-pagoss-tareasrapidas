@@ -84,6 +84,11 @@ export function AppSidebar() {
   const isTutor = user?.role === "tutor";
   const isVerifier = user?.role === "verifier";
   const items = isAdmin ? adminItems : isVerifier ? verifierItems : tutorItems;
+  // Activo = la URL más larga que coincide, así /admin/tutors/:id/detail marca "Tutores" y no "Dashboard"
+  const activeUrl = items
+    .map(i => i.url)
+    .filter(u => location === u || location.startsWith(u + "/"))
+    .sort((a, b) => b.length - a.length)[0];
 
   const { data: stats } = useQuery<Stats>({
     queryKey: ["/api/admin/stats"],
@@ -176,7 +181,7 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {items.map((item) => {
-                  const isActive = location === item.url;
+                  const isActive = item.url === activeUrl;
                   const showBadge = item.title === "Pagos" && stats && stats.pendingPayments > 0;
                   return (
                     <SidebarMenuItem key={item.title}>

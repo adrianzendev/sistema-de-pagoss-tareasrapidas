@@ -22,6 +22,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { todayPeru } from "@/lib/utils";
 
 const weekPaymentsCache = new Map<string, PaymentWithDetails[]>();
 
@@ -70,15 +71,15 @@ function PaymentTable({
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-muted/40">
-            <TableHead className="text-xs">Estado</TableHead>
-            <TableHead className="text-right text-xs">Monto</TableHead>
-            <TableHead className="text-center text-xs">Img</TableHead>
-            <TableHead className="text-xs">Tutor</TableHead>
-            <TableHead className="text-xs w-32">Fecha</TableHead>
-            <TableHead className="text-xs">Teléfono</TableHead>
-            <TableHead className="text-xs">Verificado</TableHead>
-            <TableHead className="text-xs">Por</TableHead>
-            <TableHead className="text-right text-xs">Acciones</TableHead>
+            <TableHead>Estado</TableHead>
+            <TableHead className="text-right">Monto</TableHead>
+            <TableHead className="text-center">Img</TableHead>
+            <TableHead>Tutor</TableHead>
+            <TableHead className="w-32">Fecha</TableHead>
+            <TableHead>Teléfono</TableHead>
+            <TableHead>Verificado</TableHead>
+            <TableHead>Por</TableHead>
+            <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -86,7 +87,7 @@ function PaymentTable({
             const status = statusLabels[payment.status] ?? statusLabels.pending;
             const StatusIcon = status.icon;
             return (
-              <TableRow key={payment.id} data-testid={`row-payment-${payment.id}`} className="hover:bg-muted/30">
+              <TableRow key={payment.id} data-testid={`row-payment-${payment.id}`} className="hover:bg-muted/40">
                 <TableCell>
                   {payment.status === "pending" ? (
                     <button
@@ -114,80 +115,77 @@ function PaymentTable({
                   {payment.proofImage ? (
                     <button
                       onClick={() => setPreviewPayment({ payment, list: filtered.filter(p => p.proofImage) })}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
+                      className="inline-flex items-center justify-center w-8 h-8 rounded-sm overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
                       data-testid={`button-view-proof-${payment.id}`}
                     >
                       <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
                     </button>
                   ) : (
-                    <div className="inline-flex items-center justify-center w-8 h-8 rounded border mx-auto">
+                    <div className="inline-flex items-center justify-center w-8 h-8 rounded-sm border mx-auto">
                       <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
                     </div>
                   )}
                 </TableCell>
-                <TableCell className="text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
+                <TableCell>{payment.tutor?.name ?? "—"}</TableCell>
                 <TableCell className="whitespace-nowrap">
                   {payment.createdAt && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3 shrink-0" />
-                      <div>
-                        <div className="text-foreground">{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
-                        <div>{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
-                      </div>
-                    </div>
+                    <>
+                      <div>{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
+                      <div className="text-xs text-muted-foreground">{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
+                    </>
                   )}
                 </TableCell>
                 <TableCell>
-                  <span className="font-mono text-xs">{payment.clientNumber}</span>
+                  <span className="font-mono">{payment.clientNumber}</span>
                 </TableCell>
                 <TableCell className="whitespace-nowrap">
                   {payment.verifiedAt ? (
-                    <div className="text-xs text-muted-foreground">
-                      <div className="text-foreground">{format(new Date(payment.verifiedAt), "dd/MM/yyyy", { locale: es })}</div>
-                      <div>{format(new Date(payment.verifiedAt), "HH:mm", { locale: es })}</div>
-                    </div>
+                    <>
+                      <div>{format(new Date(payment.verifiedAt), "dd/MM/yyyy", { locale: es })}</div>
+                      <div className="text-xs text-muted-foreground">{format(new Date(payment.verifiedAt), "HH:mm", { locale: es })}</div>
+                    </>
                   ) : (
                     <span className="text-xs text-muted-foreground">—</span>
                   )}
                 </TableCell>
-                <TableCell className="text-xs whitespace-nowrap" data-testid={`cell-verifier-${payment.id}`}>
+                <TableCell className="whitespace-nowrap" data-testid={`cell-verifier-${payment.id}`}>
                   {payment.verifier?.name
-                    ? <span className="font-medium">{payment.verifier.name}</span>
+                    ? payment.verifier.name
                     : <span className="text-muted-foreground">—</span>}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     {payment.status === "pending" && (
                       <>
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0"
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
                           onClick={() => updateMutation.mutate({ id: payment.id, status: "verified" })}
                           disabled={updateMutation.isPending}
                           data-testid={`button-verify-${payment.id}`}>
                           <CheckCircle className="h-4 w-4 text-success" />
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0"
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
                           onClick={() => updateMutation.mutate({ id: payment.id, status: "rejected" })}
                           disabled={updateMutation.isPending}
                           data-testid={`button-reject-${payment.id}`}>
                           <XCircle className="h-4 w-4 text-destructive" />
                         </Button>
-                      </>
+                    </>
                     )}
                     {payment.status === "verified" && (
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0"
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
                         onClick={() => updateMutation.mutate({ id: payment.id, status: "refunded" })}
                         disabled={updateMutation.isPending}
                         data-testid={`button-refund-${payment.id}`}>
                         <RotateCcw className="h-4 w-4 text-warning" />
                       </Button>
                     )}
-                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0"
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
                       onClick={() => setMovePayment({ id: payment.id, weekId: "" })}
                       title="Mover a otra semana"
                       data-testid={`button-move-payment-${payment.id}`}>
                       <ArrowLeftRight className="h-4 w-4 text-primary" />
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0"
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
                       onClick={() => setDeleteId(payment.id)}
                       data-testid={`button-delete-payment-${payment.id}`}>
                       <Trash2 className="h-4 w-4 text-destructive" />
@@ -218,7 +216,7 @@ function PaymentTable({
               </div>
               <div className="text-xs text-muted-foreground mt-1">Cliente: {actionPayment.clientNumber}</div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <Button
                 className="gap-2 text-success hover:bg-accent border border-success/30"
                 variant="ghost"
@@ -289,7 +287,7 @@ function WeekSection({
   return (
     <Card className="overflow-hidden">
       <button
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors text-left"
         onClick={() => setExpanded(v => !v)}
         data-testid={`week-toggle-${week.weekNumber}`}
       >
@@ -350,7 +348,7 @@ export default function PaymentsPage() {
     queryKey: ["/api/weeks"],
   });
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayPeru();
   const sortedWeeks = [...weeks].sort((a, b) => b.weekNumber - a.weekNumber);
   const currentWeekId = sortedWeeks.find(w => w.startDate <= today && w.endDate >= today)?.id
     ?? sortedWeeks[0]?.id;
@@ -483,13 +481,13 @@ export default function PaymentsPage() {
                   {list.length > 1 && (
                     <span className="text-xs text-muted-foreground mr-1">{currentIdx + 1} / {list.length}</span>
                   )}
-                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => navigate(-1)} disabled={!hasPrev} data-testid="button-prev-proof">
+                  <Button variant="ghost" size="icon" onClick={() => navigate(-1)} disabled={!hasPrev} data-testid="button-prev-proof">
                     <ChevronLeft className="h-5 w-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => navigate(1)} disabled={!hasNext} data-testid="button-next-proof">
+                  <Button variant="ghost" size="icon" onClick={() => navigate(1)} disabled={!hasNext} data-testid="button-next-proof">
                     <ChevronRight className="h-5 w-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setPreviewCtx(null)} data-testid="button-close-proof">
+                  <Button variant="ghost" size="icon" onClick={() => setPreviewCtx(null)} data-testid="button-close-proof">
                     <X className="h-5 w-5" />
                   </Button>
                 </div>

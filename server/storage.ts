@@ -36,6 +36,7 @@ import {
   normalizePhone,
 } from "@shared/schema";
 import { db } from "./db";
+import { todayPeru } from "./utils/peru-time";
 import { eq, desc, and, sql, gte, lte, inArray, isNull } from "drizzle-orm";
 
 export interface IStorage {
@@ -63,7 +64,7 @@ export interface IStorage {
   getPaymentById(id: string): Promise<Payment | undefined>;
   getPaymentsByTutor(tutorId: string): Promise<PaymentWithDetails[]>;
   getPaymentsInRange(startDate: string, endDate: string): Promise<PaymentWithDetails[]>;
-  createPayment(payment: InsertPayment): Promise<Payment>;
+  createPayment(payment: typeof payments.$inferInsert): Promise<Payment>;
   updatePaymentStatus(id: string, status: string, verifiedBy: string, notes?: string): Promise<Payment | undefined>;
   movePaymentToWeek(id: string, weekId: string): Promise<Payment | undefined>;
   deletePayment(id: string): Promise<void>;
@@ -126,7 +127,7 @@ export interface IStorage {
 
   // Activity Log
   createActivityLog(entry: InsertActivityLog): Promise<ActivityLog>;
-  getActivityLog(): Promise<(ActivityLog & { tutor?: User; performer?: User })[]>;
+  getActivityLog(): Promise<(ActivityLog & { tutor?: Omit<User, "password">; performer?: Omit<User, "password"> })[]>;
 
   // Week Tutor Paid
   getWeekPaidTutors(weekId: string): Promise<WeekTutorPaid[]>;
@@ -287,7 +288,7 @@ export class DatabaseStorage implements IStorage {
     return result.map(p => ({ ...p, currency: currencyMap[p.currencyId] }));
   }
 
-  async createPayment(insertPayment: InsertPayment): Promise<Payment> {
+  async createPayment(insertPayment: typeof payments.$inferInsert): Promise<Payment> {
     const [payment] = await db.insert(payments).values(insertPayment).returning();
     return payment;
   }
@@ -349,14 +350,10 @@ export class DatabaseStorage implements IStorage {
     if (weekId) {
       const [week] = await db.select().from(weeks).where(eq(weeks.id, weekId));
       if (week) {
-        const start = new Date(week.startDate);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(week.endDate);
-        end.setHours(23, 59, 59, 999);
+        // Mismo criterio que el resto: fecha del pago en hora Perú dentro de lunes–domingo
         whereClause = and(
           inArray(payments.currencyId, currencyIds),
-          gte(payments.createdAt, start),
-          lte(payments.createdAt, end)
+          sql`DATE(${payments.createdAt}::timestamptz AT TIME ZONE 'America/Lima') BETWEEN ${week.startDate}::date AND ${week.endDate}::date`
         ) as any;
       }
     }
@@ -539,7 +536,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCurrentWeek(): Promise<Week | undefined> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayPeru(); // la semana vigente se decide con la fecha de Perú, no UTC
     const [week] = await db
       .select()
       .from(weeks)

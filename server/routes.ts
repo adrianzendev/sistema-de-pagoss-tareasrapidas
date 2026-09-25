@@ -8,7 +8,7 @@ import { insertUserSchema, insertCurrencySchema, insertPaymentSchema, createTuto
 import { z } from "zod";
 import { db, pool } from "./db";
 import { users, currencies, payments } from "@shared/schema";
-import { nowPeru, toDateStr } from "./utils/peru-time";
+import { nowPeru, toDateStr, todayPeru, addDays, weekRangeOf, peruDateOf } from "./utils/peru-time";
 import { DEFAULT_TUTOR_PASSWORD, hashPassword, parseNewPassword, PasswordValidationError } from "./utils/password";
 import { eq, sql } from "drizzle-orm";
 import { getVapidPublicKey, notifyPaymentStatusChange, notifyNewPaymentRequest } from "./push";
@@ -49,14 +49,14 @@ function wasActiveForWeek(tutor: { activatedAt?: Date | string | null; deactivat
   return true;
 }
 
-function requireAuth(req: Request, res: Response, next: () => void) {
+function requireAuth<P>(req: Request<P>, res: Response, next: () => void) {
   if (!req.session.userId) {
     return res.status(401).json({ message: "No autorizado" });
   }
   next();
 }
 
-async function requireAdmin(req: Request, res: Response, next: () => void) {
+async function requireAdmin<P>(req: Request<P>, res: Response, next: () => void) {
   if (!req.session.userId) {
     return res.status(401).json({ message: "No autorizado" });
   }
@@ -67,7 +67,7 @@ async function requireAdmin(req: Request, res: Response, next: () => void) {
   next();
 }
 
-async function requireVerifier(req: Request, res: Response, next: () => void) {
+async function requireVerifier<P>(req: Request<P>, res: Response, next: () => void) {
   if (!req.session.userId) {
     return res.status(401).json({ message: "No autorizado" });
   }
@@ -158,6 +158,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }).from(users).where(sql`role IN ('admin','verifier')`);
       const tutorRows = allUsers.map(({ id, username, name, role }) => ({ id, username, name, role }));
       res.json([...adminsAndVerifiers, ...tutorRows]);
+    });
+
+    // Accesos rápidos: inicia sesión por id sin contraseña, así no se rompe al cambiar contraseñas
+    app.post("/api/dev/login", async (req, res) => {
+      const user = await storage.getUser(String(req.body?.userId ?? ""));
+      if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+      req.session.userId = user.id;
+      const { password: _, ...safeUser } = user;
+      req.session.save((err) => {
+        if (err) return res.status(500).json({ message: "Error al iniciar sesión" });
+        res.json(safeUser);
+      });
     });
   }
 
@@ -512,7 +524,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       "Fecha,Tutor,Email Tutor,Cliente,Monto,Divisa,Estado,Verificado Por,Fecha Verificación",
       ...allPayments.map((p) =>
         [
-          p.createdAt?.toISOString().split("T")[0] ?? "",
+          (p.createdAt ? peruDateOf(p.createdAt) : ""),
           p.tutor?.name ?? "",
           p.tutor?.email ?? "",
           p.clientNumber,
@@ -520,7 +532,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           p.currency?.code ?? "",
           p.status === "pending" ? "Pendiente" : p.status === "verified" ? "Verificado" : "Rechazado",
           p.verifier?.name ?? "",
-          p.verifiedAt?.toISOString().split("T")[0] ?? "",
+          (p.verifiedAt ? peruDateOf(p.verifiedAt) : ""),
         ].join(",")
       ),
     ].join("\n");
@@ -895,17 +907,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         nextWeekNumber = Math.max(...existingWeeks.map(w => w.weekNumber)) + 1;
       }
 
-      const now = nowPeru(); // hora Perú UTC-5
-      const dayOfWeek = now.getUTCDay(); // 0=Dom, 1=Lun, ..., 6=Sab (sobre fecha Perú)
-      const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-      const monday = new Date(now);
-      monday.setUTCDate(now.getUTCDate() - daysFromMonday);
-
-      const sunday = new Date(monday);
-      sunday.setUTCDate(monday.getUTCDate() + 6);
-
-      const startDate = toDateStr(monday);
-      const endDate = toDateStr(sunday);
+      // Semana contable: lunes a domingo (hora Perú)
+      const { startDate, endDate } = weekRangeOf(todayPeru());
 
       const existing = await storage.getWeekByNumber(nextWeekNumber);
       if (existing) {
@@ -1190,6 +1193,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const matrix: Record<string, Record<string, {
         grossIncome: number; netIncome: number; tutorEarnings: number;
         tutorAdvertisingShare: number; paymentCount: number;
+        grossDirect: number; agencyEarnings: number; netTransfer: number;
+        currencies: { code: string; symbol: string; total: number }[]; wasActive: boolean;
       }>> = {};
 
       // Load all per-week advertising overrides once
@@ -1578,29 +1583,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const existingWeeks = await storage.getWeeks();
       
       let newWeekNumber = settings?.currentWeekNumber ?? 166;
-      let startDate: Date;
-      let endDate: Date;
+      // Semana contable: lunes a domingo (hora Perú). La nueva sigue a la última; si no hay, la de hoy.
+      let range = weekRangeOf(todayPeru());
 
       if (existingWeeks.length > 0) {
-        // Find the latest week by week number
-        const latestWeek = existingWeeks.reduce((max, w) => 
+        const latestWeek = existingWeeks.reduce((max, w) =>
           w.weekNumber > max.weekNumber ? w : max, existingWeeks[0]);
         newWeekNumber = latestWeek.weekNumber + 1;
-        
-        // New week starts the day after the latest week ends
-        startDate = new Date(latestWeek.endDate + "T00:00:00");
-        startDate.setDate(startDate.getDate() + 1);
-        endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + 6);
-      } else {
-        // Primera semana: usar semana actual en hora Perú (lunes a domingo)
-        const today = nowPeru(); // hora Perú UTC-5
-        const dayOfWeek = today.getUTCDay(); // 0=Dom, 1=Lun, ..., 6=Sab
-        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        startDate = new Date(today);
-        startDate.setUTCDate(today.getUTCDate() - daysFromMonday);
-        endDate = new Date(startDate);
-        endDate.setUTCDate(startDate.getUTCDate() + 6);
+        range = weekRangeOf(addDays(latestWeek.endDate, 1));
       }
 
       const prevSharedAdv = existingWeeks.length > 0
@@ -1609,8 +1599,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       const week = await storage.createWeek({
         weekNumber: newWeekNumber,
-        startDate: startDate.toISOString().split("T")[0],
-        endDate: endDate.toISOString().split("T")[0],
+        startDate: range.startDate,
+        endDate: range.endDate,
         status: "open",
         advertisingCost: "0",
         sharedAdvertisingUsd: prevSharedAdv,

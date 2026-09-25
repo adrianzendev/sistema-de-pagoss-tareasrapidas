@@ -3,14 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowLeft, Calculator, Calendar, Coins, DollarSign, FileText, Image as ImageIcon, Phone, CheckCircle, XCircle, Clock, RotateCcw } from "lucide-react";
+import { ArrowLeft, Calculator, Calendar, Coins, DollarSign, FileText, Image as ImageIcon, CheckCircle, XCircle, Clock, RotateCcw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { WeeklySettlementTable } from "@/components/weekly-settlement-table";
 import type { PaymentWithDetails, Week } from "@shared/schema";
+import { todayPeru } from "@/lib/utils";
 
 type TutorSettlement = {
   week: Week;
@@ -50,15 +52,6 @@ function fmt2(val: number) {
   return val.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function getStatusBadge(status: string) {
-  switch (status) {
-    case "open": return <Badge variant="default">Abierta</Badge>;
-    case "closed": return <Badge variant="secondary">Cerrada</Badge>;
-    case "paid": return <Badge className="border-success/40 bg-background text-success">Pagada</Badge>;
-    default: return <Badge variant="outline">{status}</Badge>;
-  }
-}
-
 export default function AdminTutorViewPage() {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<"payments" | "settlement">("payments");
@@ -73,7 +66,7 @@ export default function AdminTutorViewPage() {
     queryKey: ["/api/weeks"],
   });
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayPeru();
   const sortedWeeks = [...(allWeeks ?? [])].sort((a, b) => a.weekNumber - b.weekNumber);
   const currentWeek = sortedWeeks.find(w => w.startDate <= today && w.endDate >= today);
   const activeWeekId = selectedWeekId ?? currentWeek?.id ?? sortedWeeks[sortedWeeks.length - 1]?.id ?? null;
@@ -128,9 +121,9 @@ export default function AdminTutorViewPage() {
         </Link>
       </div>
 
-      <div className="flex items-start justify-between flex-wrap gap-2">
+      <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-bold">{tutor?.name ?? "Tutor"}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{tutor?.name ?? "Tutor"}</h1>
           <p className="text-sm text-muted-foreground">{tutor?.email}</p>
         </div>
         <Badge variant="outline" className="text-xs">
@@ -144,7 +137,7 @@ export default function AdminTutorViewPage() {
           onClick={() => setActiveTab("payments")}
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
             activeTab === "payments"
-              ? "bg-accent text-primary"
+              ? "text-primary font-semibold"
               : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
           }`}
         >
@@ -154,7 +147,7 @@ export default function AdminTutorViewPage() {
           onClick={() => setActiveTab("settlement")}
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
             activeTab === "settlement"
-              ? "bg-accent text-primary"
+              ? "text-primary font-semibold"
               : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
           }`}
         >
@@ -167,7 +160,7 @@ export default function AdminTutorViewPage() {
         <div className="space-y-4">
           <Card>
             <CardHeader className="pb-2">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-4">
                 <div>
                   <CardTitle className="text-base">Historial de Pagos</CardTitle>
                   <CardDescription className="text-xs mt-1">
@@ -180,7 +173,7 @@ export default function AdminTutorViewPage() {
                   value={activeWeekId ?? ""}
                   onValueChange={(val) => setSelectedWeekId(val)}
                 >
-                  <SelectTrigger className="w-44 h-8 text-xs">
+                  <SelectTrigger className="w-44">
                     <SelectValue placeholder="Semana…" />
                   </SelectTrigger>
                   <SelectContent>
@@ -213,7 +206,7 @@ export default function AdminTutorViewPage() {
                     <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-4 w-24" />
                     <Skeleton className="h-4 w-20" />
-                    <Skeleton className="h-8 w-8 rounded" />
+                    <Skeleton className="h-8 w-8 rounded-sm" />
                     <Skeleton className="h-5 w-20 rounded-full" />
                   </div>
                 ))}
@@ -233,12 +226,12 @@ export default function AdminTutorViewPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-muted/40">
-                      <TableHead className="text-xs">Estado</TableHead>
-                      <TableHead className="text-right text-xs">Monto</TableHead>
-                      <TableHead className="text-center text-xs">Img</TableHead>
-                      <TableHead className="w-10 text-xs">#</TableHead>
-                      <TableHead className="text-xs">Fecha y hora</TableHead>
-                      <TableHead className="text-xs">Teléfono</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead className="text-right">Monto</TableHead>
+                      <TableHead className="text-center">Img</TableHead>
+                      <TableHead className="w-10">#</TableHead>
+                      <TableHead>Fecha y hora</TableHead>
+                      <TableHead>Teléfono</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -246,7 +239,7 @@ export default function AdminTutorViewPage() {
                       const status = statusConfig[payment.status] ?? statusConfig.pending;
                       const StatusIcon = status.icon;
                       return (
-                        <TableRow key={payment.id} className="hover:bg-muted/30">
+                        <TableRow key={payment.id} className="hover:bg-muted/40">
                           <TableCell>
                             <Badge className={`gap-1 text-xs px-2 py-1 ${status.className}`}>
                               <StatusIcon className="h-3 w-3" />
@@ -263,32 +256,24 @@ export default function AdminTutorViewPage() {
                             {payment.proofImage ? (
                               <button
                                 onClick={() => setPreviewImage(payment.proofImage!)}
-                                className="inline-flex items-center justify-center w-8 h-8 rounded overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-sm overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
                               >
                                 <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
                               </button>
                             ) : (
-                              <div className="inline-flex items-center justify-center w-8 h-8 rounded border mx-auto">
+                              <div className="inline-flex items-center justify-center w-8 h-8 rounded-sm border mx-auto">
                                 <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
                               </div>
                             )}
                           </TableCell>
-                          <TableCell className="text-xs font-bold text-muted-foreground">
+                          <TableCell className="text-xs text-muted-foreground">
                             #{index + 1}
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Calendar className="h-3 w-3 shrink-0" />
-                              <span className="text-foreground">
-                                {payment.createdAt && format(new Date(payment.createdAt), "dd/MM/yyyy HH:mm", { locale: es })}
-                              </span>
-                            </div>
+                            {payment.createdAt && format(new Date(payment.createdAt), "dd/MM/yyyy HH:mm", { locale: es })}
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-2 text-xs">
-                              <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
-                              <span className="font-mono">{payment.clientNumber}</span>
-                            </div>
+                            <span className="font-mono">{payment.clientNumber}</span>
                           </TableCell>
                         </TableRow>
                       );
@@ -309,7 +294,7 @@ export default function AdminTutorViewPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
                   <div className="p-3 rounded-lg border border-primary/30">
-                    <Coins className="h-6 w-6 text-primary" />
+                    <Coins className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Ingreso Bruto Total</p>
@@ -322,7 +307,7 @@ export default function AdminTutorViewPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
                   <div className="p-3 rounded-lg border border-destructive/30">
-                    <DollarSign className="h-6 w-6 text-destructive" />
+                    <DollarSign className="h-5 w-5 text-destructive" />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Publicidad Compartida</p>
@@ -335,7 +320,7 @@ export default function AdminTutorViewPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
                   <div className="p-3 rounded-lg border border-success/30">
-                    <Calculator className="h-6 w-6 text-success" />
+                    <Calculator className="h-5 w-5 text-success" />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Ganancia Total</p>
@@ -356,64 +341,10 @@ export default function AdminTutorViewPage() {
             </CardHeader>
             <CardContent className="p-0">
               {settlements.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <div className="min-w-[860px]">
-                    <div className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-b-2 border-border font-bold text-xs uppercase">
-                      <div className="p-2 text-center border-r border-border text-muted-foreground">#</div>
-                      <div className="p-2 text-center border-r border-primary/25 text-primary">SEMANA</div>
-                      <div className="p-2 text-center border-r border-border text-muted-foreground">PERÍODO</div>
-                      <div className="p-2 text-center border-r border-border text-muted-foreground">ESTADO</div>
-                      <div className="p-2 text-center border-r border-border text-muted-foreground">PAGOS</div>
-                      <div className="p-2 text-center border-r border-success/25 text-success">BRUTO</div>
-                      <div className="p-2 text-center border-r border-primary/30 text-primary">× {commissionPercent}%</div>
-                      <div className="p-2 text-center border-r border-destructive/25 text-destructive">− PUBLICIDAD</div>
-                      <div className="p-2 text-center text-success">GANANCIA</div>
-                    </div>
-
-                    {settlements.map((s, index) => (
-                      <div
-                        key={s.week.id}
-                        className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-b border-border text-sm"
-                      >
-                        <div className="p-2 text-center border-r border-border font-medium text-muted-foreground">{index + 1}</div>
-                        <div className="p-2 text-center border-r border-primary/30 font-bold">S{s.week.weekNumber}</div>
-                        <div className="p-2 text-center border-r border-border text-xs">
-                          {new Date(s.week.startDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })} - {new Date(s.week.endDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
-                        </div>
-                        <div className="p-2 text-center border-r border-border flex items-center justify-center">
-                          {getStatusBadge(s.week.status)}
-                        </div>
-                        <div className="p-2 text-center border-r border-border font-medium">{s.payments.length}</div>
-                        <div className="p-2 text-right border-r border-success/30 font-medium text-success">{fmt2(s.grossIncome)}</div>
-                        <div className="p-2 text-right border-r border-primary/30 font-medium text-primary">{fmt2(s.netIncome)}</div>
-                        <div className="p-2 text-right border-r border-destructive/30 font-medium text-destructive">
-                          {s.tutorAdvertisingShare > 0 ? (
-                            <span title={`$${fmt2(s.sharedAdvertisingUsd)} USD × TC ${fmt2(s.usdRate)}`}>
-                              -{fmt2(s.tutorAdvertisingShare)}
-                            </span>
-                          ) : "—"}
-                        </div>
-                        <div className={`p-2 text-right font-bold ${s.tutorEarnings < 0 ? "text-destructive" : "text-success"}`}>
-                          {fmt2(s.tutorEarnings)}
-                        </div>
-                      </div>
-                    ))}
-
-                    <div className="grid grid-cols-[40px_100px_140px_80px_80px_120px_130px_130px_130px] border-t-2 border-border font-bold text-sm">
-                      <div className="p-3 text-center border-r border-border" />
-                      <div className="p-3 border-r border-border col-span-4 text-right pr-4">TOTALES:</div>
-                      <div className="p-3 text-right border-r border-success/30 text-success">{fmt2(totals.grossIncome)}</div>
-                      <div className="p-3 text-right border-r border-primary/30 text-primary">{fmt2(totals.netIncome)}</div>
-                      <div className="p-3 text-right border-r border-destructive/30 text-destructive">
-                        {totals.advertisingCost > 0 ? `-${fmt2(totals.advertisingCost)}` : "—"}
-                      </div>
-                      <div className="p-3 text-right text-success">{fmt2(totals.tutorEarnings)}</div>
-                    </div>
-                  </div>
-                </div>
+                <WeeklySettlementTable settlements={settlements} commissionPercent={commissionPercent} />
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
-                  <Calculator className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <Calculator className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
                   <p>No hay semanas con pagos aún</p>
                 </div>
               )}
@@ -425,7 +356,7 @@ export default function AdminTutorViewPage() {
               <CardTitle>Fórmula de Cálculo</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="p-3 rounded-lg border border-success/30">
                   <p className="font-bold text-success">1. Ingreso Bruto</p>
                   <p className="text-success/70 text-xs">Pagos verificados convertidos a PEN</p>

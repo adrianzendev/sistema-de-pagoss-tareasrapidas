@@ -52,7 +52,7 @@ const PaginationLink = ({
         variant: "ghost",
         size,
       }),
-      isActive && "bg-accent text-primary font-medium",
+      isActive && "text-primary font-semibold",
       className
     )}
     {...props}

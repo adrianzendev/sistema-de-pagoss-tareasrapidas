@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
+  devLogin: (userId: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -48,11 +49,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (username: string, password: string) => {
-    const res = await fetch("/api/auth/login", {
+  const login = (username: string, password: string) => startSession("/api/auth/login", { username, password });
+
+  // Solo desarrollo: el servidor expone /api/dev/login únicamente fuera de producción
+  const devLogin = (userId: string) => startSession("/api/dev/login", { userId });
+
+  const startSession = async (url: string, payload: object) => {
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify(payload),
       credentials: "include",
     });
     const text = await res.text();
@@ -82,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, devLogin, logout }}>
       {children}
     </AuthContext.Provider>
   );

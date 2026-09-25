@@ -1,6 +1,6 @@
 import { Fragment, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { format, parseISO, startOfDay, endOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { PaymentWithDetails, Week } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -17,7 +17,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CheckCircle, XCircle, Clock, Image as ImageIcon, ShieldCheck, Calendar, Phone, RotateCcw, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Image as ImageIcon, ShieldCheck, Calendar, RotateCcw, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { peruDate } from "@/lib/utils";
 
 const statusConfig: Record<string, { label: string; icon: any; className: string }> = {
   pending:  { label: "Pendiente",   icon: Clock,        className: "text-foreground border-border" },
@@ -44,7 +45,8 @@ function groupPaymentsByWeek(payments: PaymentWithDetails[], weeks: Week[]): Wee
     const end = endOfDay(parseISO(week.endDate));
     const weekPayments = payments.filter(p => {
       if (assigned.has(p.id)) return false;
-      return isWithinInterval(new Date(p.createdAt), { start, end });
+      const day = peruDate(p.createdAt); // fecha del pago en hora Perú
+      return day >= week.startDate && day <= week.endDate;
     });
     if (weekPayments.length === 0) continue;
     weekPayments.forEach(p => assigned.add(p.id));
@@ -171,8 +173,8 @@ export default function VerifierPaymentsPage() {
                   <Skeleton className="h-4 w-20" />
                   <Skeleton className="h-4 w-24" />
                   <Skeleton className="h-4 w-16" />
-                  <Skeleton className="h-8 w-8 rounded" />
-                  <Skeleton className="h-7 w-20 rounded" />
+                  <Skeleton className="h-8 w-8 rounded-sm" />
+                  <Skeleton className="h-7 w-20 rounded-sm" />
                 </div>
               ))}
             </div>
@@ -185,12 +187,12 @@ export default function VerifierPaymentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-muted/40">
-                    <TableHead className="text-xs">Estado</TableHead>
-                    <TableHead className="text-right text-xs">Monto</TableHead>
-                    <TableHead className="text-center text-xs">Img</TableHead>
-                    <TableHead className="text-xs">Tutor</TableHead>
-                    <TableHead className="text-xs w-32">Fecha</TableHead>
-                    <TableHead className="text-xs">Teléfono</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="text-right">Monto</TableHead>
+                    <TableHead className="text-center">Img</TableHead>
+                    <TableHead>Tutor</TableHead>
+                    <TableHead className="w-32">Fecha</TableHead>
+                    <TableHead>Teléfono</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -198,7 +200,7 @@ export default function VerifierPaymentsPage() {
                     <Fragment key={group.weekLabel}>
                       <WeekSeparatorRow group={group} colSpan={6} showPending />
                       {group.payments.map((payment) => (
-                        <TableRow key={payment.id} data-testid={`card-payment-${payment.id}`} className="hover:bg-muted/30">
+                        <TableRow key={payment.id} data-testid={`card-payment-${payment.id}`} className="hover:bg-muted/40">
                           <TableCell>
                             <button
                               onClick={() => setActionPayment({ payment, action: "verified" })}
@@ -219,32 +221,24 @@ export default function VerifierPaymentsPage() {
                             {payment.proofImage ? (
                               <button
                                 onClick={() => setPreviewPayment(payment)}
-                                className="inline-flex items-center justify-center w-8 h-8 rounded overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-sm overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
                                 data-testid={`button-proof-${payment.id}`}
                               >
                                 <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
                               </button>
                             ) : (
-                              <div className="inline-flex items-center justify-center w-8 h-8 rounded border mx-auto">
+                              <div className="inline-flex items-center justify-center w-8 h-8 rounded-sm border mx-auto">
                                 <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
                               </div>
                             )}
                           </TableCell>
-                          <TableCell className="text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
+                          <TableCell>{payment.tutor?.name ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Calendar className="h-3 w-3 shrink-0" />
-                              <div>
-                                <div className="text-foreground">{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
-                                <div>{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
-                              </div>
-                            </div>
+                            <div>{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
+                            <div className="text-xs text-muted-foreground">{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-2 text-xs">
-                              <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
-                              <span className="font-mono">{payment.clientNumber}</span>
-                            </div>
+                            <span className="font-mono">{payment.clientNumber}</span>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -269,12 +263,12 @@ export default function VerifierPaymentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-muted/40">
-                    <TableHead className="text-xs">Estado</TableHead>
-                    <TableHead className="text-right text-xs">Monto</TableHead>
-                    <TableHead className="text-center text-xs">Img</TableHead>
-                    <TableHead className="text-xs">Tutor</TableHead>
-                    <TableHead className="text-xs w-32">Fecha</TableHead>
-                    <TableHead className="text-xs">Teléfono</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="text-right">Monto</TableHead>
+                    <TableHead className="text-center">Img</TableHead>
+                    <TableHead>Tutor</TableHead>
+                    <TableHead className="w-32">Fecha</TableHead>
+                    <TableHead>Teléfono</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -285,7 +279,7 @@ export default function VerifierPaymentsPage() {
                         const status = statusConfig[payment.status] ?? statusConfig.pending;
                         const StatusIcon = status.icon;
                         return (
-                          <TableRow key={payment.id} data-testid={`card-history-${payment.id}`} className="hover:bg-muted/30">
+                          <TableRow key={payment.id} data-testid={`card-history-${payment.id}`} className="hover:bg-muted/40">
                             <TableCell>
                               <Badge className={`gap-1 text-xs px-2 py-1 ${status.className}`}>
                                 <StatusIcon className="h-3 w-3" />
@@ -302,32 +296,24 @@ export default function VerifierPaymentsPage() {
                               {payment.proofImage ? (
                                 <button
                                   onClick={() => setPreviewPayment(payment)}
-                                  className="inline-flex items-center justify-center w-8 h-8 rounded overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
+                                  className="inline-flex items-center justify-center w-8 h-8 rounded-sm overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
                                   data-testid={`button-proof-history-${payment.id}`}
                                 >
                                   <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
                                 </button>
                               ) : (
-                                <div className="inline-flex items-center justify-center w-8 h-8 rounded border mx-auto">
+                                <div className="inline-flex items-center justify-center w-8 h-8 rounded-sm border mx-auto">
                                   <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
                                 </div>
                               )}
                             </TableCell>
-                            <TableCell className="text-xs font-medium">{payment.tutor?.name ?? "—"}</TableCell>
+                            <TableCell>{payment.tutor?.name ?? "—"}</TableCell>
                             <TableCell className="whitespace-nowrap">
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <Calendar className="h-3 w-3 shrink-0" />
-                                <div>
-                                  <div className="text-foreground">{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
-                                  <div>{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
-                                </div>
-                              </div>
+                              <div>{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
+                              <div className="text-xs text-muted-foreground">{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-2 text-xs">
-                                <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
-                                <span className="font-mono">{payment.clientNumber}</span>
-                              </div>
+                              <span className="font-mono">{payment.clientNumber}</span>
                             </TableCell>
                           </TableRow>
                         );
@@ -361,7 +347,7 @@ export default function VerifierPaymentsPage() {
                   Cliente: {actionPayment.payment.clientNumber}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   className="gap-2 text-success hover:bg-accent border border-success/30"
                   variant="ghost"
@@ -418,13 +404,13 @@ export default function VerifierPaymentsPage() {
                   <span className="text-xs text-muted-foreground mr-2">
                     {currentIdx + 1} / {paymentsWithImage.length}
                   </span>
-                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => navigate(-1)} disabled={!hasPrev} data-testid="button-prev-payment">
+                  <Button variant="ghost" size="icon" onClick={() => navigate(-1)} disabled={!hasPrev} data-testid="button-prev-payment">
                     <ChevronLeft className="h-5 w-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => navigate(1)} disabled={!hasNext} data-testid="button-next-payment">
+                  <Button variant="ghost" size="icon" onClick={() => navigate(1)} disabled={!hasNext} data-testid="button-next-payment">
                     <ChevronRight className="h-5 w-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setPreviewPayment(null)} data-testid="button-close-preview">
+                  <Button variant="ghost" size="icon" onClick={() => setPreviewPayment(null)} data-testid="button-close-preview">
                     <X className="h-5 w-5" />
                   </Button>
                 </div>

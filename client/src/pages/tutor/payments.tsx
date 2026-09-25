@@ -11,9 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, Calendar, Phone, RotateCcw, PlusCircle, Lock, TrendingUp, Megaphone, DollarSign, Coins, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
+import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, Phone, RotateCcw, PlusCircle, Lock, TrendingUp, Megaphone, DollarSign, Coins, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 import { NewPaymentModal } from "@/components/new-payment-modal";
 import { VerifiedPaymentModal } from "@/components/verified-payment-modal";
+import { todayPeru } from "@/lib/utils";
 
 const statusConfig: Record<string, { label: string; variant: "secondary" | "default" | "destructive" | "outline"; icon: typeof Clock; className: string }> = {
   pending: { label: "Pendiente", variant: "secondary", icon: Clock, className: "text-warning border-warning/40" },
@@ -55,7 +56,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
   if (!s) {
     return (
       <Card className="border-dashed" data-testid="card-week-summary">
-        <CardContent className="py-3 px-4">
+        <CardContent className="pt-6">
           <p className="text-xs text-muted-foreground text-center">Sin pagos verificados esta semana (S{currentWeek.weekNumber})</p>
         </CardContent>
       </Card>
@@ -77,7 +78,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
         </Badge>
       </div>
 
-      <CardContent className="py-3 px-4 space-y-2">
+      <CardContent className="pt-6 space-y-2">
         {/* Ganancia estimada — siempre visible */}
         <div className={`rounded-md border px-3 py-2 ${isNegative ? "border-destructive/30" : "border-success/30"}`} data-testid="summary-tutor-earnings">
           <div className="flex items-center justify-between">
@@ -98,7 +99,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
             </span>
           </div>
           {isNegative && showNegWarning && (
-            <div className="mt-2 text-xs text-destructive/80 rounded px-2 py-2 border border-destructive/30" data-testid="text-neg-warning">
+            <div className="mt-2 text-xs text-destructive/80 rounded-sm px-2 py-2 border border-destructive/30" data-testid="text-neg-warning">
               ⚠️ El costo de publicidad de esta semana (<strong>{pen(s.advertisingCost)}</strong>) supera tu comisión sobre los pagos regulares (<strong>{pen(s.grossRegular * s.commissionPercent / 100)}</strong>). Eso genera una ganancia negativa. Si tienes pagos DIRECTO, parte de esa diferencia puede quedar cubierta por lo que le debes a la agencia.
             </div>
           )}
@@ -275,7 +276,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
               <div className="space-y-1" data-testid="summary-payments-list">
                 <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide px-1">Pagos incluidos ({s.payments.length})</div>
                 {s.payments.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between rounded px-2 py-2 text-xs border border-border">
+                  <div key={p.id} className="flex items-center justify-between rounded-sm px-2 py-2 text-xs border border-border">
                     <div className="flex items-center gap-2 min-w-0">
                       <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
                       <span className="font-mono truncate text-muted-foreground">{p.clientNumber}</span>
@@ -316,7 +317,7 @@ export default function TutorPaymentsPage() {
 
   const sortedWeeks = [...(weeks ?? [])].sort((a, b) => a.weekNumber - b.weekNumber);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayPeru();
   const currentWeek = sortedWeeks.find(w => w.startDate <= today && w.endDate >= today);
   const isWeekPast = (week: Week) => week.endDate < today;
 
@@ -344,7 +345,7 @@ export default function TutorPaymentsPage() {
 
       {/* Saludo de bienvenida */}
       <div className="px-1">
-        <h1 className="text-xl font-bold text-foreground">
+        <h1 className="text-2xl font-bold tracking-tight">
           Bienvenido, {user?.name?.split(" ")[0]} 👋
         </h1>
         {currentWeek ? (
@@ -366,7 +367,7 @@ export default function TutorPaymentsPage() {
 
       <Card>
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <CardTitle className="text-base">Historial de Pagos</CardTitle>
               <CardDescription className="text-xs mt-1">
@@ -378,7 +379,7 @@ export default function TutorPaymentsPage() {
               onValueChange={(val) => setSelectedWeekId(val)}
               data-testid="select-week"
             >
-              <SelectTrigger className="w-44 h-8 text-xs" data-testid="trigger-select-week">
+              <SelectTrigger className="w-44" data-testid="trigger-select-week">
                 <SelectValue placeholder="Semana…" />
               </SelectTrigger>
               <SelectContent>
@@ -453,7 +454,7 @@ export default function TutorPaymentsPage() {
                 <Skeleton className="h-4 w-32" />
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-8 w-8 rounded" />
+                <Skeleton className="h-8 w-8 rounded-sm" />
                 <Skeleton className="h-5 w-20 rounded-full" />
               </div>
             ))}
@@ -475,12 +476,12 @@ export default function TutorPaymentsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-muted/40">
-                  <TableHead className="text-xs">Estado</TableHead>
-                  <TableHead className="text-right text-xs">Monto</TableHead>
-                  <TableHead className="text-center text-xs">Img</TableHead>
-                  <TableHead className="w-10 text-xs">#</TableHead>
-                  <TableHead className="text-xs">Fecha y hora</TableHead>
-                  <TableHead className="text-xs">Teléfono</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead className="text-right">Monto</TableHead>
+                  <TableHead className="text-center">Img</TableHead>
+                  <TableHead className="w-10">#</TableHead>
+                  <TableHead>Fecha y hora</TableHead>
+                  <TableHead>Teléfono</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -488,7 +489,7 @@ export default function TutorPaymentsPage() {
                   const status = statusConfig[payment.status] ?? statusConfig.pending;
                   const StatusIcon = status.icon;
                   return (
-                    <TableRow key={payment.id} data-testid={`payment-card-${payment.id}`} className="hover:bg-muted/30">
+                    <TableRow key={payment.id} data-testid={`payment-card-${payment.id}`} className="hover:bg-muted/40">
                       <TableCell>
                         <Badge className={`gap-1 text-xs px-2 py-1 ${status.className}`} data-testid={`badge-status-${payment.id}`}>
                           <StatusIcon className="h-3 w-3" />
@@ -505,33 +506,25 @@ export default function TutorPaymentsPage() {
                         {payment.proofImage ? (
                           <button
                             onClick={() => setPreviewImage(payment.proofImage!)}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-sm overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
                             data-testid={`button-proof-${payment.id}`}
                           >
                             <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
                           </button>
                         ) : (
-                          <div className="inline-flex items-center justify-center w-8 h-8 rounded border mx-auto">
+                          <div className="inline-flex items-center justify-center w-8 h-8 rounded-sm border mx-auto">
                             <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="text-xs font-bold text-muted-foreground">
+                      <TableCell className="text-xs text-muted-foreground">
                         #{index + 1}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3 shrink-0" />
-                          <span className="text-foreground">
-                            {payment.createdAt && format(new Date(payment.createdAt), "dd/MM/yyyy HH:mm", { locale: es })}
-                          </span>
-                        </div>
+                        {payment.createdAt && format(new Date(payment.createdAt), "dd/MM/yyyy HH:mm", { locale: es })}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2 text-xs">
-                          <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
-                          <span className="font-mono">{payment.clientNumber}</span>
-                        </div>
+                        <span className="font-mono">{payment.clientNumber}</span>
                       </TableCell>
                     </TableRow>
                   );

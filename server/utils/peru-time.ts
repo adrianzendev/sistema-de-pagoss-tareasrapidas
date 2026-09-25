@@ -20,3 +20,22 @@ export function nowPeru(): Date {
 export function toDateStr(d: Date): string {
   return d.toISOString().split('T')[0];
 }
+
+/** Suma días a una fecha YYYY-MM-DD */
+export function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return toDateStr(d);
+}
+
+/** Regla de negocio: semana contable = LUNES a DOMINGO (hora Perú) que contiene la fecha dada */
+export function weekRangeOf(dateStr: string): { startDate: string; endDate: string } {
+  const d = new Date(dateStr + "T00:00:00Z");
+  const startDate = addDays(dateStr, -((d.getUTCDay() + 6) % 7));
+  return { startDate, endDate: addDays(startDate, 6) };
+}
+
+/** Fecha YYYY-MM-DD en hora Perú de un instante (p. ej. createdAt de un pago) */
+export function peruDateOf(d: Date): string {
+  return d.toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+}

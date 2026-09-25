@@ -262,7 +262,7 @@ export default function BlacklistPage() {
                 <TableBody>
                   {filteredEntries?.map((entry) => (
                     <TableRow key={entry.id} data-testid={`row-blacklist-${entry.id}`}>
-                      <TableCell className="font-medium">{entry.clientNumber}</TableCell>
+                      <TableCell>{entry.clientNumber}</TableCell>
                       <TableCell className="max-w-xs truncate">{entry.reason}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {entry.createdAt && format(new Date(entry.createdAt), "dd MMM yyyy", { locale: es })}

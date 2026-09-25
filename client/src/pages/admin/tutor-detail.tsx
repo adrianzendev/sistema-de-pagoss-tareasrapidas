@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, ChevronDown, ChevronRight, Image, Pencil, Check, X, Power, Megaphone } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Week } from "@shared/schema";
@@ -253,7 +254,7 @@ export default function TutorDetailPage() {
   const totalPending = totalTutor - totalPaid;
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Link href="/admin/tutors">
           <button className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -263,8 +264,13 @@ export default function TutorDetailPage() {
         </Link>
       </div>
 
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">{tutor.name}</h1>
+        <p className="text-muted-foreground">Campaña de publicidad y liquidación semanal</p>
+      </div>
+
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2">
           <div className="flex items-center gap-2 flex-wrap">
             <Megaphone className="w-4 h-4 text-primary" />
             <CardTitle className="text-sm">Campaña de publicidad diaria</CardTitle>
@@ -272,7 +278,7 @@ export default function TutorDetailPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {activeCampaign ? (
-            <div className="flex items-center justify-between flex-wrap gap-3 rounded-md border border-success/40 p-3" data-testid="active-campaign">
+            <div className="flex items-center justify-between flex-wrap gap-4 rounded-lg border border-success/40 p-3" data-testid="active-campaign">
               <div className="text-sm">
                 <span className="font-semibold text-success">Activa</span>{" "}
                 <span className="font-medium">USD {Number(activeCampaign.dailyCostUsd).toFixed(2)}/día</span>
@@ -340,10 +346,10 @@ export default function TutorDetailPage() {
       </Card>
 
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between flex-wrap gap-3">
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between flex-wrap gap-4">
             <div>
-              <CardTitle className="text-xl">{tutor.name}</CardTitle>
+              <CardTitle>Liquidación por semana</CardTitle>
               <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                 <span>Comisión: <strong>{tutor.commissionPercent}%</strong></span>
               </div>
@@ -362,77 +368,73 @@ export default function TutorDetailPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b-2 border-border">
-                  <th className="text-left px-4 py-3 w-6" />
-                  <th className="text-left px-4 py-3 font-semibold">Semana</th>
-                  <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground">Estado</th>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-left" />
+                  <TableHead className="text-left">Semana</TableHead>
+                  <TableHead className="text-left">Estado</TableHead>
                   {allCurrencies.map(c => (
-                    <th key={c.code} className="text-right px-4 py-3 font-semibold text-xs text-warning">{c.code}</th>
+                    <TableHead key={c.code} className="text-right text-warning">{c.code}</TableHead>
                   ))}
-                  <th className="text-right px-4 py-3 font-semibold">Bruto</th>
-                  <th className="text-right px-4 py-3 font-semibold text-muted-foreground/70">Pub.</th>
-                  <th className="text-right px-4 py-3 font-semibold">Neto</th>
-                  <th className="text-right px-4 py-3 font-semibold text-success">Tutor</th>
-                  <th className="text-right px-4 py-3 font-semibold text-muted-foreground">Agencia</th>
-                  <th className="text-center px-4 py-3 font-semibold text-xs text-muted-foreground">Pago tutor</th>
-                  <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs">Pgs</th>
-                </tr>
-              </thead>
-              <tbody>
+                  <TableHead className="text-right">Bruto</TableHead>
+                  <TableHead className="text-right">Pub.</TableHead>
+                  <TableHead className="text-right">Neto</TableHead>
+                  <TableHead className="text-right text-success">Tutor</TableHead>
+                  <TableHead className="text-right">Agencia</TableHead>
+                  <TableHead className="text-center">Pago tutor</TableHead>
+                  <TableHead className="text-right">Pgs</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {tutorRows.map(({ week, cell }) => {
                   const hasActivity = (cell?.paymentCount ?? 0) > 0 || (cell?.tutorAdvertisingShare ?? 0) > 0;
                   const isExpanded = expandedWeek === week.id;
                   const isPaid = weekPaidMap[week.id]?.includes(tutor.id) ?? false;
                   const isMutating = markPaidMutation.isPending || unmarkPaidMutation.isPending;
                   return (
-                    <>
-                      <tr
-                        key={week.id}
-                        className={`border-b border-border transition-colors cursor-pointer select-none ${
-                          hasActivity ? "hover:bg-muted/40" : "opacity-40"
-                        } ${isExpanded ? "" : ""}`}
+                    <Fragment key={week.id}>
+                      <TableRow
+                        className={`cursor-pointer select-none ${hasActivity ? "" : "opacity-40"}`}
                         onClick={() => hasActivity && setExpandedWeek(isExpanded ? null : week.id)}
                         data-testid={`row-week-${week.id}`}
                       >
-                        <td className="px-4 py-3 text-muted-foreground/50">
+                        <TableCell className="text-muted-foreground/50">
                           {hasActivity && (isExpanded
                             ? <ChevronDown className="w-4 h-4" />
                             : <ChevronRight className="w-4 h-4" />)}
-                        </td>
-                        <td className="px-4 py-3">
+                        </TableCell>
+                        <TableCell>
                           <div className="font-semibold">S{week.weekNumber}</div>
                           <div className="text-xs text-muted-foreground">
                             {new Date(week.startDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
                             {" – "}
                             {new Date(week.endDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
                           </div>
-                        </td>
-                        <td className="px-4 py-3">
+                        </TableCell>
+                        <TableCell>
                           {week.status === "paid" ? (
-                            <Badge className="text-xs px-2 py-0 h-5 border-success/40 bg-background text-success">Cerrada</Badge>
+                            <Badge className="border-success/40 bg-background text-success">Cerrada</Badge>
                           ) : week.status === "closed" ? (
-                            <Badge variant="secondary" className="text-xs px-2 py-0 h-5">Cerrada</Badge>
+                            <Badge variant="secondary">Cerrada</Badge>
                           ) : (
-                            <Badge variant="outline" className="text-xs px-2 py-0 h-5">Abierta</Badge>
+                            <Badge variant="outline">Abierta</Badge>
                           )}
-                        </td>
+                        </TableCell>
                         {allCurrencies.map(c => {
                           const entry = cell?.currencies?.find(x => x.code === c.code);
                           return (
-                            <td key={c.code} className="px-4 py-3 text-right tabular-nums text-xs text-warning">
+                            <TableCell key={c.code} className="text-right tabular-nums text-warning">
                               {entry ? `${c.code} ${new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(entry.total)}` : "—"}
-                            </td>
+                            </TableCell>
                           );
                         })}
-                        <td className="px-4 py-3 text-right tabular-nums">{hasActivity ? fmt(cell?.grossIncome ?? 0) : "—"}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-muted-foreground/70 text-xs" onClick={e => e.stopPropagation()}>
+                        <TableCell className="text-right tabular-nums">{hasActivity ? fmt(cell?.grossIncome ?? 0) : "—"}</TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground/70" onClick={e => e.stopPropagation()}>
                           {editingAdv === week.id ? (
                             <div className="flex items-center gap-1 justify-end">
                               <Input
-                                className="h-6 w-20 text-xs text-right px-1"
+                                className="h-8 w-20 text-right px-2"
                                 type="number"
                                 min="0"
                                 step="0.01"
@@ -492,67 +494,66 @@ export default function TutorDetailPage() {
                               ><Power className="w-3 h-3" /></button>
                             </div>
                           )}
-                        </td>
-                        <td className="px-4 py-3 text-right tabular-nums font-medium">{hasActivity ? fmt(cell?.netIncome ?? 0) : "—"}</td>
-                        <td className="px-4 py-3 text-right tabular-nums font-bold text-success">
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{hasActivity ? fmt(cell?.netIncome ?? 0) : "—"}</TableCell>
+                        <TableCell className="text-right tabular-nums font-semibold text-success">
                           {hasActivity ? fmt(cell?.tutorEarnings ?? 0) : "—"}
-                        </td>
-                        <td className="px-4 py-3 text-right tabular-nums font-medium text-muted-foreground">
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">
                           {hasActivity ? fmt(cell?.agencyEarnings ?? 0) : "—"}
-                        </td>
-                        <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
+                        </TableCell>
+                        <TableCell className="text-center" onClick={e => e.stopPropagation()}>
                           {hasActivity ? (
                             isPaid ? (
                               <Badge
-                                className="text-xs px-2 py-0 h-5 border-success/40 bg-background text-success cursor-pointer hover:bg-accent"
+                                className="border-success/40 bg-background text-success cursor-pointer hover:bg-accent"
                                 onClick={() => !isMutating && unmarkPaidMutation.mutate({ weekId: week.id })}
                               >Pagado</Badge>
                             ) : (
                               <Badge
                                 variant="outline"
-                                className="text-xs px-2 py-0 h-4 cursor-pointer hover:bg-muted"
+                                className="cursor-pointer hover:bg-accent"
                                 onClick={() => !isMutating && markPaidMutation.mutate({ weekId: week.id })}
                               >Por pagar</Badge>
                             )
                           ) : null}
-                        </td>
-                        <td className="px-4 py-3 text-right tabular-nums text-muted-foreground text-xs">
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">
                           {(cell?.paymentCount ?? 0) > 0 ? cell!.paymentCount : "—"}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                       {isExpanded && <WeekPayments tutorId={tutor.id} weekId={week.id} />}
-                    </>
+                    </Fragment>
                   );
                 })}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-border font-bold">
-                  <td className="px-4 py-3" />
-                  <td className="px-4 py-3 text-sm uppercase text-muted-foreground" colSpan={2}>Total</td>
+              </TableBody>
+              <TableFooter>
+                <TableRow className="font-semibold hover:bg-transparent">
+                  <TableCell />
+                  <TableCell className="text-muted-foreground" colSpan={2}>Total</TableCell>
                   {allCurrencies.map(c => {
                     const total = tutorRows.reduce((s, r) => s + (r.cell?.currencies?.find(x => x.code === c.code)?.total ?? 0), 0);
                     return (
-                      <td key={c.code} className="px-4 py-3 text-right tabular-nums text-xs text-warning">
+                      <TableCell key={c.code} className="text-right tabular-nums text-warning">
                         {`${c.code} ${new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(total)}`}
-                      </td>
+                      </TableCell>
                     );
                   })}
-                  <td className="px-4 py-3 text-right tabular-nums">{fmt(totalGross)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground/70 text-xs">
+                  <TableCell className="text-right tabular-nums">{fmt(totalGross)}</TableCell>
+                  <TableCell className="text-right tabular-nums text-muted-foreground/70">
                     {totalAdv > 0 ? `−${fmt(totalAdv)}` : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums">{fmt(totalNet)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-success">{fmt(totalTutor)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{fmt(totalAgency)}</td>
-                  <td className="px-4 py-3 text-center">
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{fmt(totalNet)}</TableCell>
+                  <TableCell className="text-right tabular-nums text-success">{fmt(totalTutor)}</TableCell>
+                  <TableCell className="text-right tabular-nums text-muted-foreground">{fmt(totalAgency)}</TableCell>
+                  <TableCell className="text-center">
                     <div className="text-xs text-success">{fmt(totalPaid)} cobrado</div>
                     <div className="text-xs text-warning">{fmt(totalPending)} pendiente</div>
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground text-xs">{totalPayments}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums text-muted-foreground">{totalPayments}</TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
         </CardContent>
       </Card>
     </div>

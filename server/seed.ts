@@ -129,12 +129,12 @@ export async function seedDatabase() {
       }
     }
 
-    // === WEEKS: ensure base weeks and auto-generate up to current week ===
-    await ensureWeek({ weekNumber: 166, startDate: "2026-02-01", endDate: "2026-02-07" });
-    await ensureWeek({ weekNumber: 167, startDate: "2026-02-08", endDate: "2026-02-14" });
-    await ensureWeek({ weekNumber: 168, startDate: "2026-02-15", endDate: "2026-02-21" });
-    await ensureWeek({ weekNumber: 169, startDate: "2026-02-22", endDate: "2026-02-28" });
-    await ensureWeek({ weekNumber: 170, startDate: "2026-03-01", endDate: "2026-03-07" });
+    // === WEEKS (lunes a domingo, hora Perú): base weeks and auto-generate up to current week ===
+    await ensureWeek({ weekNumber: 166, startDate: "2026-02-02", endDate: "2026-02-08" });
+    await ensureWeek({ weekNumber: 167, startDate: "2026-02-09", endDate: "2026-02-15" });
+    await ensureWeek({ weekNumber: 168, startDate: "2026-02-16", endDate: "2026-02-22" });
+    await ensureWeek({ weekNumber: 169, startDate: "2026-02-23", endDate: "2026-03-01" });
+    await ensureWeek({ weekNumber: 170, startDate: "2026-03-02", endDate: "2026-03-08" });
 
     // Auto-generate missing weeks until today is covered
     await autoGenerateWeeksUntilToday();

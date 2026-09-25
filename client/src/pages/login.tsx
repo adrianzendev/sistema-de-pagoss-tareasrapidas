@@ -5,7 +5,7 @@ import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -23,7 +23,7 @@ type DevUser = { id: string; username: string; name: string; role: string };
 const ROLE_LABEL: Record<string, string> = { admin: "Admin", tutor: "Tutor", verifier: "Verificador" };
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, devLogin } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [quickLoading, setQuickLoading] = useState<string | null>(null);
@@ -67,17 +67,11 @@ export default function LoginPage() {
         <div className="flex flex-col items-center mb-8">
           <img src="/favicon.png" alt="TR Pagos" className="h-16 w-16 rounded-xl object-contain mb-4" />
           <h1 className="text-2xl font-bold">TR Pagos</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Sistema de Gestión de Tutores y Pagos
-          </p>
         </div>
 
         <Card>
           <CardHeader className="space-y-1">
             <CardTitle className="text-xl">Iniciar Sesión</CardTitle>
-            <CardDescription>
-              Ingresa tus credenciales para acceder al sistema
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -152,13 +146,13 @@ export default function LoginPage() {
         </p>
 
         {devUsers && devUsers.length > 0 && (
-          <Card className="mt-4 border-dashed border-warning/50">
-            <CardHeader className="py-3">
+          <Card className="mt-4 border-dashed border-warning/40">
+            <CardHeader>
               <CardTitle className="text-sm text-warning">
                 Accesos Rápidos (Solo Desarrollo)
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-0 pb-3 flex flex-wrap gap-2">
+            <CardContent className="flex flex-wrap gap-2">
               {devUsers.map(u => (
                 <Button
                   key={u.id}
@@ -168,7 +162,7 @@ export default function LoginPage() {
                   onClick={async () => {
                     setQuickLoading(u.id);
                     try {
-                      await login(u.username, "123456");
+                      await devLogin(u.id);
                     } catch {
                       toast({ title: "Error", description: "No se pudo iniciar sesión", variant: "destructive" });
                     } finally {

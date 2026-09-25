@@ -226,7 +226,7 @@ export default function ClientsPage() {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground mb-1">Total clientes</p>
@@ -290,7 +290,7 @@ export default function ClientsPage() {
                 const isExpanded = expandedId === client.id;
                 return (
                   <div key={client.id} data-testid={`row-client-${client.id}`}>
-                    <div className="flex items-center gap-3 px-6 py-4 hover:bg-muted/30 transition-colors">
+                    <div className="flex items-center gap-3 px-6 py-4 hover:bg-muted/40 transition-colors">
                       <button
                         className="flex-1 flex items-center gap-4 text-left"
                         onClick={() => setExpandedId(isExpanded ? null : client.id)}
@@ -376,10 +376,10 @@ export default function ClientsPage() {
                             <Table>
                               <TableHeader>
                                 <TableRow>
-                                  <TableHead className="text-xs">Fecha</TableHead>
-                                  <TableHead className="text-xs">Tutor</TableHead>
-                                  <TableHead className="text-xs text-right">Monto</TableHead>
-                                  <TableHead className="text-xs">Estado</TableHead>
+                                  <TableHead>Fecha</TableHead>
+                                  <TableHead>Tutor</TableHead>
+                                  <TableHead className="text-right">Monto</TableHead>
+                                  <TableHead>Estado</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
@@ -395,11 +395,11 @@ export default function ClientsPage() {
                                             ? format(new Date(payment.createdAt), "dd/MM/yyyy HH:mm", { locale: es })
                                             : "—"}
                                         </TableCell>
-                                        <TableCell className="text-xs font-medium">{payment.tutorName}</TableCell>
-                                        <TableCell className="text-xs text-right font-mono">
+                                        <TableCell>{payment.tutorName}</TableCell>
+                                        <TableCell className="text-right font-semibold tabular-nums">
                                           {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })} {payment.currencyCode}
                                         </TableCell>
-                                        <TableCell className="text-xs">
+                                        <TableCell>
                                           <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${sc.className}`}>
                                             <Icon className="h-3 w-3" />
                                             {sc.label}

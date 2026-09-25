@@ -220,7 +220,7 @@ export default function WeeksPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold" data-testid="text-page-title">Semanas de Pago</h1>
+          <h1 className="text-2xl font-bold tracking-tight" data-testid="text-page-title">Semanas de Pago</h1>
           <p className="text-muted-foreground">Gestiona las semanas y liquidaciones</p>
         </div>
         <div className="flex gap-2">
@@ -255,7 +255,7 @@ export default function WeeksPage() {
               <TableBody>
                 {weeks.map((week) => (
                   <TableRow key={week.id} data-testid={`row-week-${week.weekNumber}`}>
-                    <TableCell className="font-medium" data-testid={`text-week-number-${week.weekNumber}`}>
+                    <TableCell data-testid={`text-week-number-${week.weekNumber}`}>
                       S{week.weekNumber}
                     </TableCell>
                     <TableCell>
@@ -293,7 +293,7 @@ export default function WeeksPage() {
             </Table>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <Calendar className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
               <p>No hay semanas creadas</p>
               <p className="text-sm">Haz clic en "Nueva Semana" para comenzar</p>
             </div>
@@ -374,7 +374,7 @@ export default function WeeksPage() {
               {Number(sharedAdvertisingUsd) > 0 ? (
                 <div className="text-xs space-y-1 p-3 rounded-md border border border-border">
                   <p className="font-semibold text-foreground mb-2">Desglose del costo:</p>
-                  <div className="grid grid-cols-2 gap-1">
+                  <div className="grid grid-cols-2 gap-2">
                     <span className="text-muted-foreground">Total USD ingresado:</span>
                     <span className="font-mono font-bold text-right">${formatCurrency(Number(sharedAdvertisingUsd))}</span>
                     <span className="text-muted-foreground">Total en soles:</span>
@@ -464,7 +464,7 @@ export default function WeeksPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="text-center p-3 rounded-lg border border-border">
                   <div className="text-lg font-bold">{formatCurrency(settlement.totals.grossIncome)}</div>
                   <div className="text-xs text-muted-foreground">Ingreso Bruto</div>
@@ -493,9 +493,9 @@ export default function WeeksPage() {
                       <TableHead className="text-right">Bruto S/</TableHead>
                       <TableHead className="text-right">× %</TableHead>
                       <TableHead className="text-right">− Pub. S/</TableHead>
-                      <TableHead className="text-right font-semibold">Gan. Tutor S/</TableHead>
-                      <TableHead className="text-right font-semibold">Gan. Agencia S/</TableHead>
-                      <TableHead className="text-right font-semibold">Transf. neta</TableHead>
+                      <TableHead className="text-right">Gan. Tutor S/</TableHead>
+                      <TableHead className="text-right">Gan. Agencia S/</TableHead>
+                      <TableHead className="text-right">Transf. neta</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -503,7 +503,7 @@ export default function WeeksPage() {
                       const owesAgency = s.netTransfer < 0;
                       return (
                         <TableRow key={s.tutorId}>
-                          <TableCell className="font-medium">{s.tutorName}</TableCell>
+                          <TableCell>{s.tutorName}</TableCell>
                           <TableCell className="text-right">
                             <Badge variant="outline">{s.commissionPercent}%</Badge>
                           </TableCell>
@@ -512,8 +512,8 @@ export default function WeeksPage() {
                           <TableCell className="text-right">
                             {s.tutorAdvertisingShare > 0 ? `-${formatCurrency(s.tutorAdvertisingShare)}` : "—"}
                           </TableCell>
-                          <TableCell className="text-right font-bold">{formatCurrency(s.tutorEarnings)}</TableCell>
-                          <TableCell className="text-right font-bold">
+                          <TableCell className="text-right font-semibold">{formatCurrency(s.tutorEarnings)}</TableCell>
+                          <TableCell className="text-right font-semibold">
                             <span className={`inline-flex items-center justify-end gap-1 ${s.agencyEarnings < 0 ? "text-destructive" : ""}`}>
                               {s.agencyEarnings < 0 && (
                                 <span title={`La publicidad (S/${formatCurrency(s.tutorAdvertisingShare)}) supera los ingresos por comisión de la agencia (S/${formatCurrency(s.grossIncome * (1 - s.commissionPercent / 100))}) para este tutor. La semana tiene pérdida neta.`}>
