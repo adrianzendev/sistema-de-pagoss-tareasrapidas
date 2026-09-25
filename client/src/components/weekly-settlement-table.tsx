@@ -17,6 +17,7 @@ export type WeeklySettlementRow = {
 };
 
 const fmt = (n: number) => n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtPen = (n: number) => `${fmt(n)} PEN`;
 const fmtDate = (d: string) => new Date(d + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" });
 
 function weekStatusBadge(status: string) {
@@ -27,8 +28,6 @@ function weekStatusBadge(status: string) {
     default: return <Badge variant="outline">{status}</Badge>;
   }
 }
-
-const earningsClass = (n: number) => (n < 0 ? "text-destructive" : "text-success");
 
 export function WeeklySettlementTable({ settlements, commissionPercent }: { settlements: WeeklySettlementRow[]; commissionPercent: number }) {
   const totals = settlements.reduce(
@@ -46,14 +45,14 @@ export function WeeklySettlementTable({ settlements, commissionPercent }: { sett
       <TableHeader>
         <TableRow>
           <TableHead className="text-center">#</TableHead>
-          <TableHead className="text-center text-primary">Semana</TableHead>
+          <TableHead className="text-center">Semana</TableHead>
           <TableHead className="text-center">Período</TableHead>
           <TableHead className="text-center">Estado</TableHead>
           <TableHead className="text-center">Pagos</TableHead>
-          <TableHead className="text-right text-success">Bruto</TableHead>
-          <TableHead className="text-right text-primary">× {commissionPercent}%</TableHead>
-          <TableHead className="text-right text-destructive">− Publicidad</TableHead>
-          <TableHead className="text-right text-success">Ganancia</TableHead>
+          <TableHead className="text-right">Bruto</TableHead>
+          <TableHead className="text-right">× {commissionPercent}%</TableHead>
+          <TableHead className="text-right">− Publicidad</TableHead>
+          <TableHead className="text-right">Ganancia</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -66,22 +65,22 @@ export function WeeklySettlementTable({ settlements, commissionPercent }: { sett
               <TableCell className="text-center whitespace-nowrap">{fmtDate(s.week.startDate)} - {fmtDate(s.week.endDate)}</TableCell>
               <TableCell className="text-center">{weekStatusBadge(s.week.status)}</TableCell>
               <TableCell className="text-center" data-testid={`text-payments-${n}`}>{s.payments.length}</TableCell>
-              <TableCell className="text-right font-semibold text-success" data-testid={`text-gross-${n}`}>{fmt(s.grossIncome)}</TableCell>
-              <TableCell className="text-right font-semibold text-primary" data-testid={`text-net-commission-${n}`}>{fmt(s.netIncome)}</TableCell>
-              <TableCell className="text-right font-semibold text-destructive" data-testid={`text-advertising-${n}`}>
+              <TableCell className="text-right font-semibold tabular-nums" data-testid={`text-gross-${n}`}>{fmtPen(s.grossIncome)}</TableCell>
+              <TableCell className="text-right font-semibold tabular-nums" data-testid={`text-net-commission-${n}`}>{fmtPen(s.netIncome)}</TableCell>
+              <TableCell className="text-right font-semibold tabular-nums" data-testid={`text-advertising-${n}`}>
                 {s.tutorAdvertisingShare > 0 ? (
                   <>
-                    <span title={`$${fmt(s.sharedAdvertisingUsd)} USD × TC ${fmt(s.usdRate)}`}>-{fmt(s.tutorAdvertisingShare)}</span>
+                    <span title={`$${fmt(s.sharedAdvertisingUsd)} USD × TC ${fmt(s.usdRate)}`}>-{fmtPen(s.tutorAdvertisingShare)}</span>
                     {(s.dailyAdvUsd ?? 0) > 0 && (
-                      <div className="text-xs font-normal" data-testid={`text-daily-adv-${n}`}>
+                      <div className="text-xs font-normal text-muted-foreground" data-testid={`text-daily-adv-${n}`}>
                         incl. diaria: {s.dailyAdvDays} {s.dailyAdvDays === 1 ? "día" : "días"} = ${fmt(s.dailyAdvUsd ?? 0)} USD (50%)
                       </div>
                     )}
                   </>
-                ) : "—"}
+                ) : fmtPen(0)}
               </TableCell>
-              <TableCell className={`text-right font-semibold ${earningsClass(s.tutorEarnings)}`} data-testid={`text-earnings-${n}`}>
-                {fmt(s.tutorEarnings)}
+              <TableCell className="text-right font-semibold tabular-nums" data-testid={`text-earnings-${n}`}>
+                {fmtPen(s.tutorEarnings)}
               </TableCell>
             </TableRow>
           );
@@ -90,13 +89,13 @@ export function WeeklySettlementTable({ settlements, commissionPercent }: { sett
       <TableFooter>
         <TableRow className="font-semibold hover:bg-transparent">
           <TableCell colSpan={5} className="text-right">TOTALES:</TableCell>
-          <TableCell className="text-right text-success" data-testid="text-total-gross-row">{fmt(totals.grossIncome)}</TableCell>
-          <TableCell className="text-right text-primary" data-testid="text-total-net-row">{fmt(totals.netIncome)}</TableCell>
-          <TableCell className="text-right text-destructive" data-testid="text-total-advertising-row">
-            {totals.advertising > 0 ? `-${fmt(totals.advertising)}` : "—"}
+          <TableCell className="text-right tabular-nums" data-testid="text-total-gross-row">{fmtPen(totals.grossIncome)}</TableCell>
+          <TableCell className="text-right tabular-nums" data-testid="text-total-net-row">{fmtPen(totals.netIncome)}</TableCell>
+          <TableCell className="text-right tabular-nums" data-testid="text-total-advertising-row">
+            {totals.advertising > 0 ? `-${fmtPen(totals.advertising)}` : fmtPen(0)}
           </TableCell>
-          <TableCell className={`text-right ${earningsClass(totals.tutorEarnings)}`} data-testid="text-total-earnings-row">
-            {fmt(totals.tutorEarnings)}
+          <TableCell className="text-right tabular-nums" data-testid="text-total-earnings-row">
+            {fmtPen(totals.tutorEarnings)}
           </TableCell>
         </TableRow>
       </TableFooter>

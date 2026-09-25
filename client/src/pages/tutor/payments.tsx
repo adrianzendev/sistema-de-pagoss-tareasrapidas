@@ -5,17 +5,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, RotateCcw, TrendingUp, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
+import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, RotateCcw, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 import { PaymentActions } from "@/components/payment-actions";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { todayPeru } from "@/lib/utils";
-import { WeekOptionLabel } from "@/components/week-option-label";
+import { WeekSelector } from "@/components/week-selector";
 
 const statusConfig: Record<string, { label: string; variant: "secondary" | "default" | "destructive" | "outline"; icon: typeof Clock; className: string }> = {
   pending: { label: "Pendiente", variant: "secondary", icon: Clock, className: "text-warning border-warning/40" },
@@ -71,10 +70,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
   return (
     <Card className="overflow-hidden" data-testid="card-week-summary">
       <div className="border-b border-border px-4 py-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-primary" />
-          <span className="text-foreground text-sm font-semibold">Resumen S{currentWeek.weekNumber}</span>
-        </div>
+        <span className="text-foreground text-sm font-semibold">Resumen S{currentWeek.weekNumber}</span>
         {/* Popover y no tooltip: en móvil se abre con un toque */}
         <Popover>
           <PopoverTrigger asChild>
@@ -95,7 +91,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
         {!(s.grossRegular > 0 || s.grossDirect > 0) && (
         <div data-testid="summary-tutor-earnings">
           <div className="flex items-center justify-between">
-            <span className={`text-sm font-semibold flex items-center gap-2 ${isNegative ? "text-destructive" : "text-success"}`}>
+            <span className="text-sm font-semibold flex items-center gap-2 text-foreground">
               Ganancia estimada
               {isNegative && (
                 <button
@@ -107,7 +103,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
                 </button>
               )}
             </span>
-            <span className={`font-mono text-base font-bold ${isNegative ? "text-destructive" : "text-success"}`}>
+            <span className="font-mono text-base font-bold text-foreground">
               {pen(s.tutorEarnings)}
             </span>
           </div>
@@ -190,13 +186,13 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
               if (entries.length === 0) return null;
               return (
                 <div className="space-y-1" data-testid="summary-currency-breakdown">
-                  <div className="text-sm font-semibold text-foreground mb-1">
+                  <div className="text-sm font-normal text-muted-foreground">
                     Cobrado por divisa
                   </div>
                   {entries.map(([code, total]) => (
-                    <div key={code} className="flex items-center justify-between text-sm text-muted-foreground">
+                    <div key={code} className="flex items-center justify-between text-sm font-normal text-muted-foreground">
                       <span>Ingresos en {code}</span>
-                      <span className="text-right font-mono tabular-nums">{fmt2(total)} {code}</span>
+                      <span className="text-right font-mono tabular-nums text-foreground">{fmt2(total)} {code}</span>
                     </div>
                   ))}
                 </div>
@@ -204,62 +200,52 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
             })()}
 
             {/* Fórmula paso a paso */}
-            <div className="space-y-2 text-sm text-muted-foreground" data-testid="summary-formula">
-              <div className="text-sm font-semibold text-foreground mb-1">Cálculo</div>
+            <div className="space-y-2 text-sm font-normal text-muted-foreground" data-testid="summary-formula">
+              <div className="text-sm font-normal text-muted-foreground">Cálculo</div>
 
               <div className="flex items-center justify-between" data-testid="summary-gross-income">
                 <span className="flex items-center gap-2">
                   Ingresos brutos
                 </span>
-                <span className="text-right font-mono tabular-nums">{pen(s.grossIncome)}</span>
+                <span className="text-right font-mono tabular-nums text-foreground">{pen(s.grossIncome)}</span>
               </div>
 
               <div className="flex items-center justify-between" data-testid="summary-advertising">
                 <span className="flex items-center gap-2">
                   Publicidad tutor
                 </span>
-                <span className="text-right font-mono tabular-nums">- {pen(s.advertisingCost)}</span>
+                <span className="text-right font-mono tabular-nums text-foreground">- {pen(s.advertisingCost)}</span>
               </div>
 
               <div className="flex items-center justify-between" data-testid="summary-advertising-agency">
                 <span className="flex items-center gap-2">
                   Publicidad agencia
                 </span>
-                <span className="text-right font-mono tabular-nums">- {pen(s.advertisingCost)}</span>
+                <span className="text-right font-mono tabular-nums text-foreground">- {pen(s.advertisingCost)}</span>
               </div>
 
-              <div className="text-sm font-semibold text-foreground mb-1 pt-3">Reparto</div>
-
-              <div className="flex items-center justify-between" data-testid="summary-net-income">
-                <span>Ingresos netos</span>
-                <span className="text-right font-mono tabular-nums">{pen(s.grossIncome - s.advertisingCost)}</span>
+              <div className="border-t border-border pt-1 flex items-center justify-between" data-testid="summary-net-income">
+                <span>Ingresos netos base</span>
+                <span className="text-right font-mono tabular-nums text-foreground">{pen(s.grossIncome - s.advertisingCost)}</span>
               </div>
 
-              <div className="flex items-center justify-between text-muted-foreground">
-                <span>Comisión tutor ({s.commissionPercent}%)</span>
-                <span className="text-right font-mono tabular-nums">× {s.commissionPercent / 100}</span>
+              <div className="text-sm font-normal text-muted-foreground pt-3">Reparto</div>
+
+              <div className="flex items-center justify-between">
+                <span>Tutor ({s.commissionPercent}%)</span>
+                <span className="text-right font-mono tabular-nums text-foreground">{pen(s.tutorEarnings)}</span>
               </div>
 
-              <div className="flex items-center justify-between text-muted-foreground">
-                <span>Comisión agencia ({100 - s.commissionPercent}%)</span>
-                <span className="text-right font-mono tabular-nums">× {(100 - s.commissionPercent) / 100}</span>
-              </div>
-
-              <div className="border-t border-border pt-1 flex items-center justify-between font-semibold text-foreground">
-                <span>Ingresos tutor</span>
-                <span className={`text-right font-mono tabular-nums ${isNegative ? "text-destructive" : "text-success"}`}>{pen(s.tutorEarnings)}</span>
-              </div>
-
-              <div className="flex items-center justify-between text-muted-foreground">
+              <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1">
-                  Ingresos agencia ({100 - s.commissionPercent}%)
+                  Agencia ({100 - s.commissionPercent}%)
                   {s.agencyEarnings < 0 && (
                     <button onClick={() => setShowNegWarning(v => !v)} className="inline-flex">
                       <AlertCircle className="h-3 w-3 text-destructive" />
                     </button>
                   )}
                 </span>
-                <span className={`text-right font-mono tabular-nums ${s.agencyEarnings < 0 ? "text-destructive" : ""}`}>{pen(s.agencyEarnings)}</span>
+                <span className="text-right font-mono tabular-nums text-foreground">{pen(s.agencyEarnings)}</span>
               </div>
             </div>
 
@@ -319,25 +305,12 @@ export default function TutorPaymentsPage() {
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-        <Select
-          value={activeWeekId ?? ""}
-          onValueChange={(val) => setSelectedWeekId(val)}
-          data-testid="select-week"
-        >
-          <SelectTrigger className="w-auto gap-2 border-transparent hover:bg-accent/60 focus:ring-0 focus:ring-offset-0 focus-visible:ring-2 focus-visible:ring-ring" data-testid="trigger-select-week">
-            <SelectValue placeholder="Semana…" />
-          </SelectTrigger>
-          <SelectContent>
-            {[...sortedWeeks].reverse().map((week) => {
-              const isCurrent = currentWeek?.id === week.id;
-              return (
-                <SelectItem key={week.id} value={week.id} data-testid={`option-week-${week.weekNumber}`}>
-                  <WeekOptionLabel week={week} isCurrent={isCurrent} />
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
+          <WeekSelector
+            weeks={sortedWeeks}
+            value={activeWeekId}
+            onValueChange={setSelectedWeekId}
+            currentWeekId={currentWeek?.id}
+          />
         </div>
       </div>
 

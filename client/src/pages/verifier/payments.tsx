@@ -1,10 +1,10 @@
-import { Fragment, useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { format, parseISO, startOfDay, endOfDay } from "date-fns";
+import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { PaymentWithDetails, Week } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,119 +17,43 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CheckCircle, XCircle, Clock, Image as ImageIcon, ShieldCheck, Calendar, RotateCcw, ChevronLeft, ChevronRight, X } from "lucide-react";
-import { peruDate } from "@/lib/utils";
+import { CheckCircle, XCircle, Image as ImageIcon, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { todayPeru } from "@/lib/utils";
+import { WeekSelector } from "@/components/week-selector";
 
-const statusConfig: Record<string, { label: string; icon: any; className: string }> = {
-  pending:  { label: "Pendiente",   icon: Clock,        className: "text-foreground border-border" },
-  verified: { label: "Verificado",  icon: CheckCircle,  className: "text-success border-success/40" },
-  rejected: { label: "Rechazado",   icon: XCircle,      className: "text-destructive border-destructive/40" },
-  refunded: { label: "Reembolsado", icon: RotateCcw,    className: "text-muted-foreground border-border" },
+const statusConfig: Record<string, { label: string; className: string }> = {
+  pending:  { label: "Pendiente",   className: "text-warning border-warning/40" },
+  verified: { label: "Verificado",  className: "text-success border-success/40" },
+  rejected: { label: "Rechazado",   className: "text-destructive border-destructive/40" },
+  refunded: { label: "Reembolsado", className: "text-muted-foreground border-border" },
 };
-
-type WeekGroup = {
-  weekLabel: string;
-  dateRange: string;
-  payments: PaymentWithDetails[];
-  verifiedTotals: { code: string; total: number }[];
-  pendingCount: number;
-};
-
-function groupPaymentsByWeek(payments: PaymentWithDetails[], weeks: Week[]): WeekGroup[] {
-  const sortedWeeks = [...weeks].sort((a, b) => b.weekNumber - a.weekNumber);
-  const groups: WeekGroup[] = [];
-  const assigned = new Set<string>();
-
-  for (const week of sortedWeeks) {
-    const start = startOfDay(parseISO(week.startDate));
-    const end = endOfDay(parseISO(week.endDate));
-    const weekPayments = payments.filter(p => {
-      if (assigned.has(p.id)) return false;
-      const day = peruDate(p.createdAt); // fecha del pago en hora Perú
-      return day >= week.startDate && day <= week.endDate;
-    });
-    if (weekPayments.length === 0) continue;
-    weekPayments.forEach(p => assigned.add(p.id));
-
-    const verifiedMap: Record<string, number> = {};
-    for (const p of weekPayments) {
-      if (p.status === "verified" && p.currency?.code) {
-        verifiedMap[p.currency.code] = (verifiedMap[p.currency.code] ?? 0) + Number(p.amount);
-      }
-    }
-    groups.push({
-      weekLabel: `S${week.weekNumber}`,
-      dateRange: `${format(start, "d MMM", { locale: es })} – ${format(end, "d MMM", { locale: es })}`,
-      payments: weekPayments,
-      verifiedTotals: Object.entries(verifiedMap).map(([code, total]) => ({ code, total })),
-      pendingCount: weekPayments.filter(p => p.status === "pending").length,
-    });
-  }
-
-  const unassigned = payments.filter(p => !assigned.has(p.id));
-  if (unassigned.length > 0) {
-    const verifiedMap: Record<string, number> = {};
-    for (const p of unassigned) {
-      if (p.status === "verified" && p.currency?.code) {
-        verifiedMap[p.currency.code] = (verifiedMap[p.currency.code] ?? 0) + Number(p.amount);
-      }
-    }
-    groups.push({
-      weekLabel: "Sin semana",
-      dateRange: "",
-      payments: unassigned,
-      verifiedTotals: Object.entries(verifiedMap).map(([code, total]) => ({ code, total })),
-      pendingCount: unassigned.filter(p => p.status === "pending").length,
-    });
-  }
-
-  return groups;
-}
-
-function WeekSeparatorRow({ group, colSpan, showPending }: { group: WeekGroup; colSpan: number; showPending?: boolean }) {
-  return (
-    <TableRow className="hover:bg-transparent border-0" data-testid={`week-header-${group.weekLabel}`}>
-      <TableCell colSpan={colSpan} className="py-2 px-1">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="text-sm font-semibold text-foreground">{group.weekLabel}</span>
-            {group.dateRange && (
-              <span className="text-xs text-muted-foreground">{group.dateRange}</span>
-            )}
-          </div>
-          <div className="flex-1 h-px bg-border" />
-          <div className="flex items-center gap-2 shrink-0 text-xs">
-            {showPending && group.pendingCount > 0 && (
-              <span className="font-medium text-warning">
-                {group.pendingCount} pendiente{group.pendingCount !== 1 ? "s" : ""}
-              </span>
-            )}
-            {group.verifiedTotals.length > 0 && (
-              <span className="font-medium text-success">
-                ✓ {group.verifiedTotals.map(v =>
-                  `${v.code} ${v.total.toLocaleString("es-PE", { minimumFractionDigits: 2 })}`
-                ).join(" · ")}
-              </span>
-            )}
-          </div>
-        </div>
-      </TableCell>
-    </TableRow>
-  );
-}
 
 export default function VerifierPaymentsPage() {
   const { toast } = useToast();
   const [previewPayment, setPreviewPayment] = useState<PaymentWithDetails | null>(null);
-  const [actionPayment, setActionPayment] = useState<{ payment: PaymentWithDetails; action: "verified" | "rejected" } | null>(null);
+  const [actionPayment, setActionPayment] = useState<PaymentWithDetails | null>(null);
+  const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
 
-  const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
-    queryKey: ["/api/verifier/payments"],
+  const { data: weeks } = useQuery<Week[]>({
+    queryKey: ["/api/weeks"],
   });
 
-  const { data: weeks = [] } = useQuery<Week[]>({
-    queryKey: ["/api/weeks"],
+  const sortedWeeks = [...(weeks ?? [])].sort((a, b) => a.weekNumber - b.weekNumber);
+  const today = todayPeru();
+  const currentWeek = sortedWeeks.find(w => w.startDate <= today && w.endDate >= today);
+  const activeWeekId = selectedWeekId ?? currentWeek?.id ?? sortedWeeks[sortedWeeks.length - 1]?.id ?? null;
+
+  const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
+    queryKey: ["/api/verifier/payments", "week", activeWeekId],
+    queryFn: async () => {
+      if (!activeWeekId) return [];
+      const res = await fetch(`/api/verifier/payments?weekId=${activeWeekId}`);
+      if (!res.ok) throw new Error("Error al cargar pagos");
+      return res.json();
+    },
+    enabled: !!activeWeekId,
+    staleTime: Infinity,
+    gcTime: Infinity,
   });
 
   const updateMutation = useMutation({
@@ -145,25 +69,29 @@ export default function VerifierPaymentsPage() {
     },
   });
 
-  const pendingPayments = payments?.filter(p => p.status === "pending") ?? [];
-  const processedPayments = payments?.filter(p => p.status !== "pending") ?? [];
-  const pendingGroups = groupPaymentsByWeek(pendingPayments, weeks);
-  const processedGroups = groupPaymentsByWeek(processedPayments, weeks);
+  // Pendientes primero (prioridad operativa), luego verificados/rechazados
+  const sortedPayments = [
+    ...(payments?.filter(p => p.status === "pending") ?? []),
+    ...(payments?.filter(p => p.status !== "pending") ?? []),
+  ];
 
   return (
     <div className="space-y-6">
 
-      {/* Pending */}
+      <div className="flex flex-col gap-4 px-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight" data-testid="text-page-title">Verificación de Pagos</h1>
+          <p className="text-muted-foreground">Gestiona y aprueba los comprobantes de pago recibidos</p>
+        </div>
+        <WeekSelector
+          weeks={sortedWeeks}
+          value={activeWeekId}
+          onValueChange={setSelectedWeekId}
+          currentWeekId={currentWeek?.id}
+        />
+      </div>
+
       <Card className="overflow-hidden">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5" />
-            Pagos Pendientes
-          </CardTitle>
-          <CardDescription>
-            {pendingPayments.length} pagos esperando verificación
-          </CardDescription>
-        </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="space-y-0 divide-y divide-border px-4 py-2">
@@ -178,9 +106,9 @@ export default function VerifierPaymentsPage() {
                 </div>
               ))}
             </div>
-          ) : pendingPayments.length === 0 ? (
+          ) : sortedPayments.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground text-sm px-4 pb-4">
-              No hay pagos pendientes de verificación
+              No hay pagos en esta semana
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -193,139 +121,77 @@ export default function VerifierPaymentsPage() {
                     <TableHead>Tutor</TableHead>
                     <TableHead className="w-32">Fecha</TableHead>
                     <TableHead>Teléfono</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pendingGroups.map((group) => (
-                    <Fragment key={group.weekLabel}>
-                      <WeekSeparatorRow group={group} colSpan={6} showPending />
-                      {group.payments.map((payment) => (
-                        <TableRow key={payment.id} data-testid={`card-payment-${payment.id}`} className="hover:bg-muted/40">
-                          <TableCell>
+                  {sortedPayments.map((payment) => {
+                    const status = statusConfig[payment.status] ?? statusConfig.pending;
+                    return (
+                      <TableRow key={payment.id} data-testid={`card-payment-${payment.id}`} className="hover:bg-muted/40">
+                        <TableCell>
+                          <Badge className={`text-xs px-2 py-1 ${status.className}`} data-testid={`badge-status-${payment.id}`}>
+                            {status.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold text-sm tabular-nums text-foreground">
+                          {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })} {payment.currency?.code}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {payment.proofImage ? (
                             <button
-                              onClick={() => setActionPayment({ payment, action: "verified" })}
-                              className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium text-warning hover:bg-accent border border-warning/30 transition-colors cursor-pointer"
-                              data-testid={`button-status-${payment.id}`}
+                              onClick={() => setPreviewPayment(payment)}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-sm overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
+                              data-testid={`button-proof-${payment.id}`}
                             >
-                              <Clock className="h-3 w-3" />
-                              Pendiente
+                              <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
                             </button>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span className="font-semibold text-sm tabular-nums">
-                              {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
-                            </span>
-                            <span className="text-xs text-muted-foreground ml-1">{payment.currency?.code}</span>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {payment.proofImage ? (
-                              <button
-                                onClick={() => setPreviewPayment(payment)}
-                                className="inline-flex items-center justify-center w-8 h-8 rounded-sm overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
-                                data-testid={`button-proof-${payment.id}`}
+                          ) : (
+                            <div className="inline-flex items-center justify-center w-8 h-8 rounded-sm border mx-auto">
+                              <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>{payment.tutor?.name ?? "—"}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <div>{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
+                          <div className="text-xs text-muted-foreground">{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono">{payment.clientNumber}</span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {payment.status === "pending" ? (
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                size="sm" variant="ghost" className="h-8 w-8 p-0"
+                                onClick={() => setActionPayment(payment)}
+                                data-testid={`button-status-${payment.id}`}
                               >
-                                <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
-                              </button>
-                            ) : (
-                              <div className="inline-flex items-center justify-center w-8 h-8 rounded-sm border mx-auto">
-                                <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell>{payment.tutor?.name ?? "—"}</TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            <div>{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
-                            <div className="text-xs text-muted-foreground">{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-mono">{payment.clientNumber}</span>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </Fragment>
-                  ))}
+                                <CheckCircle className="h-4 w-4 text-success" />
+                              </Button>
+                              <Button
+                                size="sm" variant="ghost" className="h-8 w-8 p-0"
+                                onClick={() => updateMutation.mutate({ id: payment.id, status: "rejected" })}
+                                disabled={updateMutation.isPending}
+                                data-testid={`button-reject-${payment.id}`}
+                              >
+                                <XCircle className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
           )}
         </CardContent>
       </Card>
-
-      {/* History */}
-      {processedPayments.length > 0 && (
-        <Card className="overflow-hidden">
-          <CardHeader>
-            <CardTitle>Historial</CardTitle>
-            <CardDescription>{processedPayments.length} pagos procesados</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-muted/40">
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="text-right">Monto</TableHead>
-                    <TableHead className="text-center">Img</TableHead>
-                    <TableHead>Tutor</TableHead>
-                    <TableHead className="w-32">Fecha</TableHead>
-                    <TableHead>Teléfono</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {processedGroups.map((group) => (
-                    <Fragment key={group.weekLabel}>
-                      <WeekSeparatorRow group={group} colSpan={6} />
-                      {group.payments.map((payment) => {
-                        const status = statusConfig[payment.status] ?? statusConfig.pending;
-                        const StatusIcon = status.icon;
-                        return (
-                          <TableRow key={payment.id} data-testid={`card-history-${payment.id}`} className="hover:bg-muted/40">
-                            <TableCell>
-                              <Badge className={`gap-1 text-xs px-2 py-1 ${status.className}`}>
-                                <StatusIcon className="h-3 w-3" />
-                                {status.label}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <span className="font-semibold text-sm tabular-nums">
-                                {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
-                              </span>
-                              <span className="text-xs text-muted-foreground ml-1">{payment.currency?.code}</span>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {payment.proofImage ? (
-                                <button
-                                  onClick={() => setPreviewPayment(payment)}
-                                  className="inline-flex items-center justify-center w-8 h-8 rounded-sm overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
-                                  data-testid={`button-proof-history-${payment.id}`}
-                                >
-                                  <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
-                                </button>
-                              ) : (
-                                <div className="inline-flex items-center justify-center w-8 h-8 rounded-sm border mx-auto">
-                                  <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
-                                </div>
-                              )}
-                            </TableCell>
-                            <TableCell>{payment.tutor?.name ?? "—"}</TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              <div>{format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es })}</div>
-                              <div className="text-xs text-muted-foreground">{format(new Date(payment.createdAt), "HH:mm", { locale: es })}</div>
-                            </TableCell>
-                            <TableCell>
-                              <span className="font-mono">{payment.clientNumber}</span>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </Fragment>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Confirm action dialog */}
       <Dialog open={!!actionPayment} onOpenChange={(open) => { if (!open) setActionPayment(null); }}>
@@ -338,20 +204,20 @@ export default function VerifierPaymentsPage() {
             <div className="space-y-4">
               <div className="border rounded-lg p-3">
                 <div className="flex justify-between">
-                  <span className="text-sm font-medium">{actionPayment.payment.tutor?.name}</span>
+                  <span className="text-sm font-medium">{actionPayment.tutor?.name}</span>
                   <span className="font-mono font-bold">
-                    {Number(actionPayment.payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })} {actionPayment.payment.currency?.code}
+                    {Number(actionPayment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })} {actionPayment.currency?.code}
                   </span>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  Cliente: {actionPayment.payment.clientNumber}
+                  Cliente: {actionPayment.clientNumber}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <Button
                   className="gap-2 text-success hover:bg-accent border border-success/30"
                   variant="ghost"
-                  onClick={() => updateMutation.mutate({ id: actionPayment.payment.id, status: "verified" })}
+                  onClick={() => updateMutation.mutate({ id: actionPayment.id, status: "verified" })}
                   disabled={updateMutation.isPending}
                   data-testid="button-confirm-verify"
                 >
@@ -361,7 +227,7 @@ export default function VerifierPaymentsPage() {
                 <Button
                   className="gap-2 text-destructive hover:bg-accent border border-destructive/30"
                   variant="ghost"
-                  onClick={() => updateMutation.mutate({ id: actionPayment.payment.id, status: "rejected" })}
+                  onClick={() => updateMutation.mutate({ id: actionPayment.id, status: "rejected" })}
                   disabled={updateMutation.isPending}
                   data-testid="button-confirm-reject"
                 >
@@ -379,7 +245,7 @@ export default function VerifierPaymentsPage() {
 
       {/* Preview image dialog */}
       {(() => {
-        const paymentsWithImage = (payments ?? []).filter(p => p.proofImage);
+        const paymentsWithImage = sortedPayments.filter(p => p.proofImage);
         const currentIdx = previewPayment ? paymentsWithImage.findIndex(p => p.id === previewPayment.id) : -1;
         const hasPrev = currentIdx > 0;
         const hasNext = currentIdx < paymentsWithImage.length - 1;

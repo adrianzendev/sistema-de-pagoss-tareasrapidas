@@ -346,27 +346,28 @@ export default function TutorDetailPage() {
       </Card>
 
       <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-start justify-between flex-wrap gap-4">
-            <div>
-              <CardTitle>Liquidación por semana</CardTitle>
-              <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                <span>Comisión: <strong>{tutor.commissionPercent}%</strong></span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="text-right">
-                <div className="text-xs text-muted-foreground uppercase">Cobrado</div>
-                <div className="text-sm font-bold text-success">{fmt(totalPaid)}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-xs text-muted-foreground uppercase">Pendiente</div>
-                <div className="text-sm font-bold text-warning">{fmt(totalPending)}</div>
-              </div>
-              <span className="text-sm text-muted-foreground">{totalPayments} pagos</span>
+        <CardContent className="flex items-start justify-between flex-wrap gap-4 py-4">
+          <div>
+            <CardTitle>Liquidación por semana</CardTitle>
+            <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+              <span>Comisión: <strong>{tutor.commissionPercent}%</strong></span>
             </div>
           </div>
-        </CardHeader>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="text-right">
+              <div className="text-xs text-muted-foreground uppercase">Cobrado</div>
+              <div className="text-sm font-bold text-success">{fmt(totalPaid)}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-muted-foreground uppercase">Pendiente</div>
+              <div className="text-sm font-bold text-warning">{fmt(totalPending)}</div>
+            </div>
+            <span className="text-sm text-muted-foreground">{totalPayments} pagos</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardContent className="p-0">
             <Table>
               <TableHeader>

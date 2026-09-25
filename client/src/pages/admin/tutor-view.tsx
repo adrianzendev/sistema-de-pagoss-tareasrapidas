@@ -8,12 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { WeeklySettlementTable } from "@/components/weekly-settlement-table";
 import type { PaymentWithDetails, Week } from "@shared/schema";
 import { todayPeru } from "@/lib/utils";
-import { WeekOptionLabel } from "@/components/week-option-label";
+import { WeekSelector } from "@/components/week-selector";
 
 type TutorSettlement = {
   week: Week;
@@ -170,24 +169,12 @@ export default function AdminTutorViewPage() {
                       : "Selecciona una semana"}
                   </CardDescription>
                 </div>
-                <Select
-                  value={activeWeekId ?? ""}
+                <WeekSelector
+                  weeks={sortedWeeks}
+                  value={activeWeekId ?? null}
                   onValueChange={(val) => setSelectedWeekId(val)}
-                >
-                  <SelectTrigger className="w-auto gap-2">
-                    <SelectValue placeholder="Semana…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[...sortedWeeks].reverse().map((week) => {
-                      const isCurrent = currentWeek?.id === week.id;
-                      return (
-                        <SelectItem key={week.id} value={week.id}>
-                          <WeekOptionLabel week={week} isCurrent={isCurrent} />
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                  currentWeekId={currentWeek?.id}
+                />
               </div>
             </CardHeader>
             <div className="px-4 py-2 border-t flex flex-wrap gap-4 text-xs text-muted-foreground">

@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Blacklist } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -128,112 +128,104 @@ export default function BlacklistPage() {
           <p className="text-muted-foreground">Clientes que han intentado estafar</p>
         </div>
 
-        <Dialog open={isOpen || !!editingEntry} onOpenChange={(open) => !open && handleClose()}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-new-blacklist" onClick={() => setIsOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Agregar Cliente
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-                {editingEntry ? "Editar Entrada" : "Agregar a Lista Negra"}
-              </DialogTitle>
-              <DialogDescription>
-                {editingEntry ? "Modifica los datos de la entrada" : "Registra un cliente problemático"}
-              </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="clientNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Número de Cliente</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input {...field} placeholder="Ej: CLI-001" className="pl-10" data-testid="input-blacklist-client" />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="reason"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Motivo</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          {...field}
-                          placeholder="Describe por qué este cliente está en la lista negra..."
-                          rows={3}
-                          data-testid="input-blacklist-reason"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button type="button" variant="outline" onClick={handleClose}>
-                    Cancelar
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={createMutation.isPending || updateMutation.isPending}
-                    data-testid="button-submit-blacklist"
-                  >
-                    {(createMutation.isPending || updateMutation.isPending) ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Guardando...
-                      </>
-                    ) : editingEntry ? (
-                      "Actualizar"
-                    ) : (
-                      "Agregar"
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar cliente..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+              data-testid="input-search-blacklist"
+            />
+          </div>
+          <Dialog open={isOpen || !!editingEntry} onOpenChange={(open) => !open && handleClose()}>
+            <DialogTrigger asChild>
+              <Button data-testid="button-new-blacklist" onClick={() => setIsOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Agregar Cliente
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                  {editingEntry ? "Editar Entrada" : "Agregar a Lista Negra"}
+                </DialogTitle>
+                <DialogDescription>
+                  {editingEntry ? "Modifica los datos de la entrada" : "Registra un cliente problemático"}
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="clientNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Número de Cliente</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input {...field} placeholder="Ej: CLI-001" className="pl-10" data-testid="input-blacklist-client" />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+                  />
+  
+                  <FormField
+                    control={form.control}
+                    name="reason"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Motivo</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            placeholder="Describe por qué este cliente está en la lista negra..."
+                            rows={3}
+                            data-testid="input-blacklist-reason"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+  
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button type="button" variant="outline" onClick={handleClose}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={createMutation.isPending || updateMutation.isPending}
+                      data-testid="button-submit-blacklist"
+                    >
+                      {(createMutation.isPending || updateMutation.isPending) ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Guardando...
+                        </>
+                      ) : editingEntry ? (
+                        "Actualizar"
+                      ) : (
+                        "Agregar"
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="flex-1">
-              <CardTitle>Clientes en Lista Negra</CardTitle>
-              <CardDescription>
-                {entries?.length ?? 0} clientes registrados
-              </CardDescription>
-            </div>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar cliente..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-                data-testid="input-search-blacklist"
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-3 p-4">
               {[1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-16 w-full" />
               ))}

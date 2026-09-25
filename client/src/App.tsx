@@ -20,7 +20,6 @@ import WeeksPage from "@/pages/admin/weeks";
 import VerifiersPage from "@/pages/admin/verifiers";
 import ClientsPage from "@/pages/admin/clients";
 import TutorPaymentsPage from "@/pages/tutor/payments";
-import TutorSettlementPage from "@/pages/tutor/settlement";
 import VerifierPaymentsPage from "@/pages/verifier/payments";
 import ActivityPage from "@/pages/admin/activity";
 import NotFound from "@/pages/not-found";
@@ -62,7 +61,6 @@ function TutorRoutes() {
   return (
     <Switch>
       <Route path="/tutor" component={TutorPaymentsPage} />
-      <Route path="/tutor/settlement" component={TutorSettlementPage} />
       <Route>
         <Redirect to="/tutor" />
       </Route>

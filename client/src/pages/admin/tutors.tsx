@@ -8,7 +8,7 @@ import { es } from "date-fns/locale";
 import type { User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -52,7 +52,8 @@ type CurrentWeekSummaryData = {
 };
 
 function pen(val: number) {
-  return `PEN ${val.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  // Formato único: valor primero, divisa después ("49.00 PEN")
+  return `${val.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} PEN`;
 }
 
 const createTutorSchema = z.object({
@@ -221,152 +222,164 @@ export default function TutorsPage() {
           <p className="text-muted-foreground">Gestiona los perfiles de tutores</p>
         </div>
 
-        <Dialog open={isOpen} onOpenChange={(open) => { if (!open) { setIsOpen(false); createForm.reset(); } }}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setIsOpen(true)} data-testid="button-new-tutor">
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Tutor
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <UserPlus className="h-5 w-5" />
-                Crear Tutor
-              </DialogTitle>
-              <DialogDescription>Ingresa los datos del nuevo tutor</DialogDescription>
-            </DialogHeader>
-            <Form {...createForm}>
-              <form onSubmit={createForm.handleSubmit((data) => createMutation.mutate(data))} className="space-y-4">
-                <FormField
-                  control={createForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nombre Completo</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Juan Pérez" data-testid="input-tutor-name" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={createForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Correo Electrónico</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input {...field} type="email" placeholder="juan@ejemplo.com" className="pl-10" data-testid="input-tutor-email" />
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar tutor..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+              data-testid="input-search-tutors"
+            />
+          </div>
+          <Dialog open={isOpen} onOpenChange={(open) => { if (!open) { setIsOpen(false); createForm.reset(); } }}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setIsOpen(true)} data-testid="button-new-tutor">
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Tutor
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <UserPlus className="h-5 w-5" />
+                  Crear Tutor
+                </DialogTitle>
+                <DialogDescription>Ingresa los datos del nuevo tutor</DialogDescription>
+              </DialogHeader>
+              <Form {...createForm}>
+                <form onSubmit={createForm.handleSubmit((data) => createMutation.mutate(data))} className="space-y-4">
+                  <FormField
+                    control={createForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre Completo</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Juan Pérez" data-testid="input-tutor-name" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={createForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Correo Electrónico</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input {...field} type="email" placeholder="juan@ejemplo.com" className="pl-10" data-testid="input-tutor-email" />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={createForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contraseña</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="password" placeholder="123456 (por defecto)" data-testid="input-tutor-password" />
+                        </FormControl>
+                        <FormDescription className="text-xs">Si lo dejas vacío, la contraseña inicial será 123456</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={createForm.control}
+                    name="commissionPercent"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Comisión (%)</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input {...field} type="number" step="0.01" min="0" max="100" placeholder="10" className="pl-10" data-testid="input-tutor-commission" />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={createForm.control}
+                    name="advertisingCostUsd"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Publicidad semana actual (USD)</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input {...field} type="number" step="0.01" min="0" placeholder="0" className="pl-10" data-testid="input-tutor-advertising" />
+                          </div>
+                        </FormControl>
+                        <AdvertisingPreview value={createAdvWatch} />
+                        <FormDescription className="text-xs">Valor por defecto. Aplica a semanas sin P.C asignado. 0 = sin publicidad.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={createForm.control}
+                    name="isActive"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                        <div>
+                          <FormLabel className="text-sm font-medium">Colaborador activo</FormLabel>
+                          <FormDescription className="text-xs">
+                            Si está activo se le carga publicidad. Inactivo = sin cargo.
+                          </FormDescription>
                         </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={createForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contraseña</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="password" placeholder="123456 (por defecto)" data-testid="input-tutor-password" />
-                      </FormControl>
-                      <FormDescription className="text-xs">Si lo dejas vacío, la contraseña inicial será 123456</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={createForm.control}
-                  name="commissionPercent"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Comisión (%)</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input {...field} type="number" step="0.01" min="0" max="100" placeholder="10" className="pl-10" data-testid="input-tutor-commission" />
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="switch-tutor-active"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={createForm.control}
+                    name="autoVerificaPagos"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                        <div>
+                          <FormLabel className="text-sm font-medium">Auto-verificar pagos</FormLabel>
+                          <FormDescription className="text-xs">
+                            El tutor puede registrar pagos directamente como verificados.
+                          </FormDescription>
                         </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={createForm.control}
-                  name="advertisingCostUsd"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Publicidad semana actual (USD)</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input {...field} type="number" step="0.01" min="0" placeholder="0" className="pl-10" data-testid="input-tutor-advertising" />
-                        </div>
-                      </FormControl>
-                      <AdvertisingPreview value={createAdvWatch} />
-                      <FormDescription className="text-xs">Valor por defecto. Aplica a semanas sin P.C asignado. 0 = sin publicidad.</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={createForm.control}
-                  name="isActive"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                      <div>
-                        <FormLabel className="text-sm font-medium">Colaborador activo</FormLabel>
-                        <FormDescription className="text-xs">
-                          Si está activo se le carga publicidad. Inactivo = sin cargo.
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          data-testid="switch-tutor-active"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={createForm.control}
-                  name="autoVerificaPagos"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                      <div>
-                        <FormLabel className="text-sm font-medium">Auto-verificar pagos</FormLabel>
-                        <FormDescription className="text-xs">
-                          El tutor puede registrar pagos directamente como verificados.
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          data-testid="switch-tutor-auto-verifica"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button type="button" variant="outline" onClick={() => { setIsOpen(false); createForm.reset(); }}>Cancelar</Button>
-                  <Button type="submit" disabled={createMutation.isPending} data-testid="button-submit-tutor">
-                    {createMutation.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creando...</> : "Crear Tutor"}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="switch-tutor-auto-verifica"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button type="button" variant="outline" onClick={() => { setIsOpen(false); createForm.reset(); }}>Cancelar</Button>
+                    <Button type="submit" disabled={createMutation.isPending} data-testid="button-submit-tutor">
+                      {createMutation.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creando...</> : "Crear Tutor"}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         <Dialog
           open={!!editingTutor}
@@ -516,27 +529,9 @@ export default function TutorsPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="flex-1">
-              <CardTitle>Lista de Tutores</CardTitle>
-              <CardDescription>{tutors?.length ?? 0} tutores registrados</CardDescription>
-            </div>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar tutor..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-                data-testid="input-search-tutors"
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-3 p-4">
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}
             </div>
           ) : filteredTutors?.length === 0 ? (
@@ -574,16 +569,16 @@ export default function TutorsPage() {
                         <TableCell>
                           <Link href={`/admin/tutors/${tutor.id}/view`}>
                             <div className="cursor-pointer hover:underline">
-                              <div className="font-medium">{tutor.name}</div>
+                              <div>{tutor.name}</div>
                               <div className="text-xs text-muted-foreground">{tutor.email}</div>
                             </div>
                           </Link>
                         </TableCell>
                         <TableCell>
                           {tutor.isActive !== false ? (
-                            <Badge className="border-success/40 bg-background text-success text-xs px-2 py-0" data-testid={`status-tutor-${tutor.id}`}>Activo</Badge>
+                            <Badge className="border-success/40 bg-background text-success" data-testid={`status-tutor-${tutor.id}`}>Activo</Badge>
                           ) : (
-                            <Badge variant="secondary" className="text-xs px-2 py-0" data-testid={`status-tutor-${tutor.id}`}>Inactivo</Badge>
+                            <Badge variant="secondary" data-testid={`status-tutor-${tutor.id}`}>Inactivo</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
@@ -595,12 +590,12 @@ export default function TutorsPage() {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div className="cursor-default">
-                                    <div className={`font-mono font-semibold text-sm tabular-nums ${s.tutorEarningsPen < 0 ? "text-destructive" : "text-success"}`}>
+                                    <div className="tabular-nums">
                                       {pen(s.tutorEarningsPen)}
                                     </div>
                                     {s.paymentCount > 0 && (
                                       <div className="text-xs text-muted-foreground tabular-nums">
-                                        bruto {pen(s.grossIncomePen)}
+                                        bruto: {pen(s.grossIncomePen)}
                                       </div>
                                     )}
                                   </div>
@@ -611,9 +606,9 @@ export default function TutorsPage() {
                                     <span className="text-muted-foreground">Ingresos brutos</span>
                                     <span className="font-mono">{pen(s.grossIncomePen)}</span>
                                   </div>
-                                  <div className="flex justify-between gap-4 text-destructive">
+                                  <div className="flex justify-between gap-4">
                                     <span className="flex items-center gap-1"><Megaphone className="h-3 w-3" />Publicidad</span>
-                                    <span className="font-mono">− {pen(s.totalAdvPen)}</span>
+                                    <span className="font-mono">- {pen(s.totalAdvPen)}</span>
                                   </div>
                                   <div className="flex justify-between gap-4 border-t pt-1">
                                     <span className="text-muted-foreground">Ingreso neto ({s.commissionPercent}%)</span>
@@ -621,7 +616,7 @@ export default function TutorsPage() {
                                   </div>
                                   <div className="flex justify-between gap-4 font-semibold">
                                     <span>Ganancia estimada</span>
-                                    <span className={`font-mono ${s.tutorEarningsPen < 0 ? "text-destructive" : "text-success"}`}>{pen(s.tutorEarningsPen)}</span>
+                                    <span className="font-mono">{pen(s.tutorEarningsPen)}</span>
                                   </div>
                                 </TooltipContent>
                               </Tooltip>

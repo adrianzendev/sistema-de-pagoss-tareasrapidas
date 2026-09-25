@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import { Users, CreditCard, Coins, Calendar, TableIcon } from "lucide-react";
+import { Users, CreditCard, Coins, TableIcon } from "lucide-react";
 import type { Week } from "@shared/schema";
 
 interface DashboardStats {
@@ -51,13 +50,12 @@ type SettlementsMatrix = {
 type TutorRow = { id: string; name: string; commissionPercent: string };
 
 export default function AdminDashboard() {
-  const [period, setPeriod] = useState("all");
   const [selectedTutor, setSelectedTutor] = useState<TutorRow | null>(null);
 
   const { data: stats, isLoading } = useQuery<DashboardStats>({
-    queryKey: ["/api/admin/stats", period],
+    queryKey: ["/api/admin/stats"],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/stats?period=${period}`);
+      const res = await fetch(`/api/admin/stats?period=all`);
       if (!res.ok) throw new Error("Failed to fetch stats");
       return res.json();
     },
@@ -123,44 +121,16 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Resumen general del sistema de gestión de tutores</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Periodo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todo el tiempo</SelectItem>
-              <SelectItem value="week">Esta semana</SelectItem>
-              <SelectItem value="month">Este mes</SelectItem>
-              <SelectItem value="quarter">Último trimestre</SelectItem>
-              <SelectItem value="year">Este año</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground">Resumen general del sistema de gestión de tutores</p>
       </div>
 
 
       {/* Settlements matrix table */}
+      <h2 className="text-lg font-semibold">Ganancias por Tutor y Semana</h2>
+
       <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <TableIcon className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <CardTitle>Ganancias por Tutor y Semana</CardTitle>
-                <CardDescription>
-                  Liquidación neta (bruto × comisión − publicidad) — últimas {weeks.length} semanas
-                </CardDescription>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
         <CardContent className="p-0">
           {matrixLoading ? (
             <div className="p-6 space-y-3">

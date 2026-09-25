@@ -92,7 +92,7 @@ function PaymentTable({
                   {payment.status === "pending" ? (
                     <button
                       onClick={() => setActionPayment(payment)}
-                      className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium text-warning hover:bg-accent border border-warning/30 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-warning hover:bg-accent border border-warning/40 transition-colors cursor-pointer"
                       data-testid={`button-status-${payment.id}`}
                     >
                       <Clock className="h-3 w-3" />

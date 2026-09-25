@@ -5,7 +5,6 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -27,7 +26,6 @@ import {
   FileText,
   AlertTriangle,
   Calendar,
-  Calculator,
   ShieldCheck,
   Phone,
   Activity,
@@ -47,7 +45,6 @@ const adminItems = [
 
 const tutorItems = [
   { title: "Mis Pagos", url: "/tutor", icon: FileText },
-  { title: "Liquidación", url: "/tutor/settlement", icon: Calculator },
 ];
 
 const verifierItems = [
@@ -63,7 +60,6 @@ export function AppSidebar() {
   const { user, logout } = useAuth();
 
   const isAdmin = user?.role === "admin";
-  const isTutor = user?.role === "tutor";
   const isVerifier = user?.role === "verifier";
   const items = isAdmin ? adminItems : isVerifier ? verifierItems : tutorItems;
   // Activo = la URL más larga que coincide, así /admin/tutors/:id/detail marca "Tutores" y no "Dashboard"
@@ -103,7 +99,6 @@ export function AppSidebar() {
 
         <SidebarContent>
           <SidebarGroup>
-            {!isTutor && <SidebarGroupLabel>{isAdmin ? "Administración" : "Verificación"}</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
                 {items.map((item) => {
