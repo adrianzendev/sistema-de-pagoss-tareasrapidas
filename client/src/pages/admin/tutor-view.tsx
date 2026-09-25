@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { WeeklySettlementTable } from "@/components/weekly-settlement-table";
 import type { PaymentWithDetails, Week } from "@shared/schema";
 import { todayPeru } from "@/lib/utils";
+import { WeekOptionLabel } from "@/components/week-option-label";
 
 type TutorSettlement = {
   week: Week;
@@ -173,7 +174,7 @@ export default function AdminTutorViewPage() {
                   value={activeWeekId ?? ""}
                   onValueChange={(val) => setSelectedWeekId(val)}
                 >
-                  <SelectTrigger className="w-44">
+                  <SelectTrigger className="w-auto gap-2">
                     <SelectValue placeholder="Semana…" />
                   </SelectTrigger>
                   <SelectContent>
@@ -181,8 +182,7 @@ export default function AdminTutorViewPage() {
                       const isCurrent = currentWeek?.id === week.id;
                       return (
                         <SelectItem key={week.id} value={week.id}>
-                          <span className="font-mono">S{week.weekNumber}</span>
-                          {isCurrent && <span className="ml-2 text-xs text-success font-medium">● actual</span>}
+                          <WeekOptionLabel week={week} isCurrent={isCurrent} />
                         </SelectItem>
                       );
                     })}

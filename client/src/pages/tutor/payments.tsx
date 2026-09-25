@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { PaymentWithDetails, Week } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, Phone, RotateCcw, PlusCircle, Lock, TrendingUp, Megaphone, DollarSign, Coins, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
-import { NewPaymentModal } from "@/components/new-payment-modal";
-import { VerifiedPaymentModal } from "@/components/verified-payment-modal";
+import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, RotateCcw, TrendingUp, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
+import { PaymentActions } from "@/components/payment-actions";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { todayPeru } from "@/lib/utils";
+import { WeekOptionLabel } from "@/components/week-option-label";
 
 const statusConfig: Record<string, { label: string; variant: "secondary" | "default" | "destructive" | "outline"; icon: typeof Clock; className: string }> = {
   pending: { label: "Pendiente", variant: "secondary", icon: Clock, className: "text-warning border-warning/40" },
@@ -43,7 +44,8 @@ type SettlementData = {
 };
 
 function pen(val: number) {
-  return `PEN ${val.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  // Formato único de montos: valor primero, divisa después ("70.00 PEN")
+  return `${val.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} PEN`;
 }
 
 function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: SettlementRow[]; currentWeek: Week | undefined }) {
@@ -73,14 +75,25 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
           <TrendingUp className="h-4 w-4 text-primary" />
           <span className="text-foreground text-sm font-semibold">Resumen S{currentWeek.weekNumber}</span>
         </div>
-        <Badge className="border-primary/40 bg-background text-primary text-xs">
-          Solo verificados
-        </Badge>
+        {/* Popover y no tooltip: en móvil se abre con un toque */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-primary"
+              aria-label="Solo pagos verificados"
+              data-testid="button-summary-info"
+            >
+              <AlertCircle className="h-4 w-4" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-auto px-3 py-2 text-xs">Solo pagos verificados</PopoverContent>
+        </Popover>
       </div>
 
       <CardContent className="pt-6 space-y-2">
-        {/* Ganancia estimada — siempre visible */}
-        <div className={`rounded-md border px-3 py-2 ${isNegative ? "border-destructive/30" : "border-success/30"}`} data-testid="summary-tutor-earnings">
+        {/* Ganancia estimada: solo cuando no hay balance de transferencia (sin pagos, p. ej. solo publicidad); si lo hay, repetiría el mismo monto */}
+        {!(s.grossRegular > 0 || s.grossDirect > 0) && (
+        <div data-testid="summary-tutor-earnings">
           <div className="flex items-center justify-between">
             <span className={`text-sm font-semibold flex items-center gap-2 ${isNegative ? "text-destructive" : "text-success"}`}>
               Ganancia estimada
@@ -104,6 +117,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
             </div>
           )}
         </div>
+        )}
 
         {/* Balance de transferencia — quién le debe a quién */}
         {(s.grossRegular > 0 || s.grossDirect > 0) && (() => {
@@ -111,16 +125,13 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
           const agencyOwes = transfer > 0;
           const even = Math.abs(transfer) < 0.01;
           return (
-            <div className={`rounded-md px-3 py-3 border ${
-              even ? "border-muted" :
-              agencyOwes ? "border-success/30" : "border-warning/30"
-            }`} data-testid="summary-net-transfer">
+            <div data-testid="summary-net-transfer">
               <div className="flex items-center justify-between">
-                <span className={`text-xs font-semibold ${even ? "text-muted-foreground" : agencyOwes ? "text-success" : "text-warning"}`}>
-                  {even ? "⚖️ Estamos al día" : agencyOwes ? "✅ La agencia te debe" : "🔴 Debes transferir a la agencia"}
+                <span className={`text-sm ${even ? "font-semibold text-muted-foreground" : agencyOwes ? "text-foreground" : "font-semibold text-warning"}`}>
+                  {even ? "⚖️ Estamos al día" : agencyOwes ? "Tus ingresos" : "🔴 Debes transferir a la agencia"}
                 </span>
                 {!even && (
-                  <span className={`font-mono text-sm font-bold ${agencyOwes ? "text-success" : "text-warning"}`}>
+                  <span className={`font-mono text-base font-bold ${agencyOwes ? "text-success" : "text-warning"}`}>
                     {pen(Math.abs(transfer))}
                   </span>
                 )}
@@ -130,45 +141,25 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
                 const agencyCommission = s.grossDirect * (1 - commission);
                 const regularTutorGross = s.grossRegular * commission;
                 const uncoveredAdv = Math.max(0, s.advertisingCost - regularTutorGross);
-                if (agencyOwes) {
-                  // Agency pays tutor: (regular * 70% - adv) - (direct * 30%)
-                  return (
-                    <div className="mt-2 space-y-1 text-xs text-muted-foreground border-t border-success/30 pt-2">
+                // Si la agencia te debe, el desglose ya está en "Ver cálculo detallado"
+                if (agencyOwes) return null;
+                // Tutor pays agency: (direct * 30%) + uncovered advertising
+                return (
+                  <div className="mt-2 space-y-1 text-xs text-muted-foreground border-t border-border pt-2">
+                    {agencyCommission > 0 && (
                       <div className="flex justify-between">
-                        <span>Tu comisión ({s.commissionPercent}%) sobre PEN {fmt2(s.grossRegular)}</span>
-                        <span className="font-mono text-success">+{fmt2(regularTutorGross)}</span>
+                        <span>Comisión agencia ({100 - s.commissionPercent}%) sobre {pen(s.grossDirect)}</span>
+                        <span className="text-right font-mono tabular-nums">{fmt2(agencyCommission)} PEN</span>
                       </div>
+                    )}
+                    {uncoveredAdv > 0 && (
                       <div className="flex justify-between">
-                        <span>Menos publicidad</span>
-                        <span className="font-mono text-destructive">−{fmt2(s.advertisingCost)}</span>
+                        <span>Publicidad sin cubrir por tus ingresos regulares</span>
+                        <span className="text-right font-mono tabular-nums">{fmt2(uncoveredAdv)} PEN</span>
                       </div>
-                      {agencyCommission > 0 && (
-                        <div className="flex justify-between">
-                          <span>Menos comisión agencia sobre tus cobros directos</span>
-                          <span className="font-mono text-destructive">−{fmt2(agencyCommission)}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                } else {
-                  // Tutor pays agency: (direct * 30%) + uncovered advertising
-                  return (
-                    <div className="mt-2 space-y-1 text-xs text-muted-foreground border-t border-warning/30 pt-2">
-                      {agencyCommission > 0 && (
-                        <div className="flex justify-between">
-                          <span>Comisión agencia ({100 - s.commissionPercent}%) sobre PEN {fmt2(s.grossDirect)}</span>
-                          <span className="font-mono">+{fmt2(agencyCommission)}</span>
-                        </div>
-                      )}
-                      {uncoveredAdv > 0 && (
-                        <div className="flex justify-between">
-                          <span>Publicidad sin cubrir por tus ingresos regulares</span>
-                          <span className="font-mono">+{fmt2(uncoveredAdv)}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
+                    )}
+                  </div>
+                );
               })()}
             </div>
           );
@@ -198,15 +189,14 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
               const entries = Object.entries(byCode);
               if (entries.length === 0) return null;
               return (
-                <div className="rounded-md px-3 py-2 space-y-1 border border-border" data-testid="summary-currency-breakdown">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">
-                    <Coins className="h-3 w-3" />
+                <div className="space-y-1" data-testid="summary-currency-breakdown">
+                  <div className="text-sm font-semibold text-foreground mb-1">
                     Cobrado por divisa
                   </div>
                   {entries.map(([code, total]) => (
-                    <div key={code} className="flex items-center justify-between text-xs">
-                      <span className="font-mono text-muted-foreground">{code}</span>
-                      <span className="font-mono font-medium tabular-nums">{fmt2(total)}</span>
+                    <div key={code} className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>Ingresos en {code}</span>
+                      <span className="text-right font-mono tabular-nums">{fmt2(total)} {code}</span>
                     </div>
                   ))}
                 </div>
@@ -214,48 +204,50 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
             })()}
 
             {/* Fórmula paso a paso */}
-            <div className="rounded-md px-3 py-2 space-y-2 text-xs border border-border" data-testid="summary-formula">
-              <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">Cálculo</div>
+            <div className="space-y-2 text-sm text-muted-foreground" data-testid="summary-formula">
+              <div className="text-sm font-semibold text-foreground mb-1">Cálculo</div>
 
               <div className="flex items-center justify-between" data-testid="summary-gross-income">
-                <span className="text-muted-foreground flex items-center gap-2">
-                  <DollarSign className="h-3 w-3" /> Ingresos brutos
-                </span>
-                <span className="font-mono font-medium">{pen(s.grossIncome)}</span>
-              </div>
-
-              <div className="flex items-center justify-between text-destructive" data-testid="summary-advertising">
                 <span className="flex items-center gap-2">
-                  <Megaphone className="h-3 w-3" /> Publicidad tutor
+                  Ingresos brutos
                 </span>
-                <span className="font-mono">− {pen(s.advertisingCost)}</span>
+                <span className="text-right font-mono tabular-nums">{pen(s.grossIncome)}</span>
               </div>
 
-              <div className="flex items-center justify-between text-muted-foreground" data-testid="summary-advertising-agency">
+              <div className="flex items-center justify-between" data-testid="summary-advertising">
                 <span className="flex items-center gap-2">
-                  <Megaphone className="h-3 w-3" /> Publicidad agencia
+                  Publicidad tutor
                 </span>
-                <span className="font-mono">− {pen(s.advertisingCost)}</span>
+                <span className="text-right font-mono tabular-nums">- {pen(s.advertisingCost)}</span>
               </div>
 
-              <div className="border-t pt-1 flex items-center justify-between text-muted-foreground" data-testid="summary-net-income">
+              <div className="flex items-center justify-between" data-testid="summary-advertising-agency">
+                <span className="flex items-center gap-2">
+                  Publicidad agencia
+                </span>
+                <span className="text-right font-mono tabular-nums">- {pen(s.advertisingCost)}</span>
+              </div>
+
+              <div className="text-sm font-semibold text-foreground mb-1 pt-3">Reparto</div>
+
+              <div className="flex items-center justify-between" data-testid="summary-net-income">
                 <span>Ingresos netos</span>
-                <span className="font-mono">= {pen(s.grossIncome - s.advertisingCost)}</span>
+                <span className="text-right font-mono tabular-nums">{pen(s.grossIncome - s.advertisingCost)}</span>
               </div>
 
               <div className="flex items-center justify-between text-muted-foreground">
                 <span>Comisión tutor ({s.commissionPercent}%)</span>
-                <span className="font-mono">× {s.commissionPercent / 100}</span>
+                <span className="text-right font-mono tabular-nums">× {s.commissionPercent / 100}</span>
               </div>
 
               <div className="flex items-center justify-between text-muted-foreground">
                 <span>Comisión agencia ({100 - s.commissionPercent}%)</span>
-                <span className="font-mono">× {(100 - s.commissionPercent) / 100}</span>
+                <span className="text-right font-mono tabular-nums">× {(100 - s.commissionPercent) / 100}</span>
               </div>
 
-              <div className="border-t pt-1 flex items-center justify-between font-semibold">
-                <span>= Ingresos tutor</span>
-                <span className={`font-mono ${isNegative ? "text-destructive" : "text-success"}`}>{pen(s.tutorEarnings)}</span>
+              <div className="border-t border-border pt-1 flex items-center justify-between font-semibold text-foreground">
+                <span>Ingresos tutor</span>
+                <span className={`text-right font-mono tabular-nums ${isNegative ? "text-destructive" : "text-success"}`}>{pen(s.tutorEarnings)}</span>
               </div>
 
               <div className="flex items-center justify-between text-muted-foreground">
@@ -267,32 +259,10 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
                     </button>
                   )}
                 </span>
-                <span className={`font-mono ${s.agencyEarnings < 0 ? "text-destructive" : ""}`}>{pen(s.agencyEarnings)}</span>
+                <span className={`text-right font-mono tabular-nums ${s.agencyEarnings < 0 ? "text-destructive" : ""}`}>{pen(s.agencyEarnings)}</span>
               </div>
             </div>
 
-            {/* Lista de pagos */}
-            {s.payments.length > 0 && (
-              <div className="space-y-1" data-testid="summary-payments-list">
-                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide px-1">Pagos incluidos ({s.payments.length})</div>
-                {s.payments.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between rounded-sm px-2 py-2 text-xs border border-border">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
-                      <span className="font-mono truncate text-muted-foreground">{p.clientNumber}</span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-2">
-                      <span className="font-mono font-medium tabular-nums">
-                        {fmt2(Number(p.amount))}
-                      </span>
-                      <Badge variant="outline" className="text-xs px-1 py-0 h-4 font-mono">
-                        {p.currency?.code ?? "?"}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )}
       </CardContent>
@@ -304,8 +274,6 @@ export default function TutorPaymentsPage() {
   const { user } = useAuth();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
-  const [isNewPaymentOpen, setIsNewPaymentOpen] = useState(false);
-  const [isVerifiedPaymentOpen, setIsVerifiedPaymentOpen] = useState(false);
 
   const { data: weeks } = useQuery<Week[]>({
     queryKey: ["/api/weeks"],
@@ -343,110 +311,42 @@ export default function TutorPaymentsPage() {
   return (
     <div className="space-y-6 relative pb-24">
 
-      {/* Saludo de bienvenida */}
-      <div className="px-1">
-        <h1 className="text-2xl font-bold tracking-tight">
-          Bienvenido, {user?.name?.split(" ")[0]} 👋
-        </h1>
-        {currentWeek ? (
-          <p className="text-sm text-muted-foreground mt-1">
-            Semana S{currentWeek.weekNumber} · {format(new Date(currentWeek.startDate + "T12:00:00"), "d MMM", { locale: es })} – {format(new Date(currentWeek.endDate + "T12:00:00"), "d MMM yyyy", { locale: es })}
-          </p>
-        ) : (
-          <p className="text-sm text-muted-foreground mt-1">Sin semana activa</p>
-        )}
-      </div>
-
-      {/* Resumen semana actual */}
-      {settlementData && (
-        <CurrentWeekSummaryCard
-          settlements={settlementData.settlements}
-          currentWeek={currentWeek}
-        />
-      )}
-
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <CardTitle className="text-base">Historial de Pagos</CardTitle>
-              <CardDescription className="text-xs mt-1">
-                {selectedWeek ? `${filteredPayments?.length ?? 0} pago${filteredPayments?.length !== 1 ? "s" : ""} en S${selectedWeek.weekNumber}` : "Selecciona una semana"}
-              </CardDescription>
-            </div>
-            <Select
-              value={activeWeekId ?? ""}
-              onValueChange={(val) => setSelectedWeekId(val)}
-              data-testid="select-week"
-            >
-              <SelectTrigger className="w-44" data-testid="trigger-select-week">
-                <SelectValue placeholder="Semana…" />
-              </SelectTrigger>
-              <SelectContent>
-                {[...sortedWeeks].reverse().map((week) => {
-                  const isCurrent = currentWeek?.id === week.id;
-                  return (
-                    <SelectItem key={week.id} value={week.id} data-testid={`option-week-${week.weekNumber}`}>
-                      <span className="font-mono">S{week.weekNumber}</span>
-                      {isCurrent && <span className="ml-2 text-xs text-success font-medium">● actual</span>}
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-
-        <div className="px-4 py-2 border-t flex flex-wrap gap-4 text-xs text-muted-foreground">
-          <span>Total: <strong className="text-foreground">{filteredPayments?.length ?? 0}</strong></span>
-          <span>Pendientes: <strong className="text-warning">{filteredPayments?.filter((p) => p.status === "pending").length ?? 0}</strong></span>
-          <span>Verificados: <strong className="text-success">{filteredPayments?.filter((p) => p.status === "verified").length ?? 0}</strong></span>
+      {/* Saludo + selector de semana: filtro global de la pantalla (historial y resumen) */}
+      <div className="flex flex-col gap-4 px-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Bienvenido, {user?.name?.split(" ")[0]} 👋
+          </h1>
         </div>
-      </Card>
-
-      {/* Botones de pago */}
-      <div className={`flex gap-2 ${user?.autoVerificaPagos ? "flex-col sm:flex-row" : ""}`}>
-        <button
-          onClick={() => {
-            if (!currentWeek || currentWeek.status !== "open") return;
-            setIsNewPaymentOpen(true);
-          }}
-          disabled={!currentWeek || currentWeek.status !== "open"}
-          data-testid="button-nuevo-pago-first"
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed text-sm font-medium transition-colors
-            ${currentWeek?.status === "open"
-              ? "border-primary/40 text-primary hover:bg-accent hover:border-primary"
-              : "border-muted text-muted-foreground opacity-50 cursor-default"
-            }`}
+        <div className="flex flex-wrap items-center gap-2">
+        <Select
+          value={activeWeekId ?? ""}
+          onValueChange={(val) => setSelectedWeekId(val)}
+          data-testid="select-week"
         >
-          {currentWeek?.status === "open" ? <PlusCircle className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
-          Nuevo Pago
-          {currentWeek && <span className="text-xs font-mono opacity-70">S{currentWeek.weekNumber}</span>}
-        </button>
-
-        {user?.autoVerificaPagos && (
-          <button
-            onClick={() => {
-              if (!currentWeek || currentWeek.status !== "open") return;
-              setIsVerifiedPaymentOpen(true);
-            }}
-            disabled={!currentWeek || currentWeek.status !== "open"}
-            data-testid="button-pago-verificado-first"
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed text-sm font-medium transition-colors
-              ${currentWeek?.status === "open"
-                ? "border-success/40 text-success hover:bg-accent hover:border-success"
-                : "border-muted text-muted-foreground opacity-50 cursor-default"
-              }`}
-          >
-            {currentWeek?.status === "open" ? <CheckCircle className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
-            Agregar Pago Verificado
-            {currentWeek && <span className="text-xs font-mono opacity-70">S{currentWeek.weekNumber}</span>}
-          </button>
-        )}
+          <SelectTrigger className="w-auto gap-2 border-transparent hover:bg-accent/60 focus:ring-0 focus:ring-offset-0 focus-visible:ring-2 focus-visible:ring-ring" data-testid="trigger-select-week">
+            <SelectValue placeholder="Semana…" />
+          </SelectTrigger>
+          <SelectContent>
+            {[...sortedWeeks].reverse().map((week) => {
+              const isCurrent = currentWeek?.id === week.id;
+              return (
+                <SelectItem key={week.id} value={week.id} data-testid={`option-week-${week.weekNumber}`}>
+                  <WeekOptionLabel week={week} isCurrent={isCurrent} />
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+        </div>
       </div>
 
+      {/* Acción principal del tutor: ancho completo, encima de la tabla */}
+      <PaymentActions className="sm:flex-row [&>button]:flex-1" disabled={!!selectedWeek && selectedWeek.id !== currentWeek?.id} />
+
+      <Card className="overflow-hidden">
       {isLoading ? (
-        <Card>
+        <div>
           <div className="space-y-0 divide-y divide-border">
             {[1, 2, 3].map((i) => (
               <div key={i} className="flex items-center gap-4 px-4 py-3">
@@ -459,7 +359,7 @@ export default function TutorPaymentsPage() {
               </div>
             ))}
           </div>
-        </Card>
+        </div>
       ) : filteredPayments?.length === 0 ? (
         <div className="text-center py-12">
           <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 border border-border">
@@ -471,7 +371,7 @@ export default function TutorPaymentsPage() {
           </p>
         </div>
       ) : (
-        <Card className="overflow-hidden">
+        <div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -532,8 +432,19 @@ export default function TutorPaymentsPage() {
               </TableBody>
             </Table>
           </div>
-        </Card>
+        </div>
       )}
+      </Card>
+
+      {/* Resumen de la semana seleccionada */}
+      {settlementData && (
+        <CurrentWeekSummaryCard
+          settlements={settlementData.settlements}
+          currentWeek={selectedWeek}
+        />
+      )}
+
+
 
       <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
@@ -552,8 +463,6 @@ export default function TutorPaymentsPage() {
         </DialogContent>
       </Dialog>
 
-      <NewPaymentModal open={isNewPaymentOpen} onOpenChange={setIsNewPaymentOpen} />
-      <VerifiedPaymentModal open={isVerifiedPaymentOpen} onOpenChange={setIsVerifiedPaymentOpen} />
     </div>
   );
 }

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -18,26 +17,20 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { NewPaymentModal } from "@/components/new-payment-modal";
-import { VerifiedPaymentModal } from "@/components/verified-payment-modal";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useToast } from "@/hooks/use-toast";
 import {
   LayoutDashboard,
   Users,
   CreditCard,
   Coins,
   LogOut,
-  PlusCircle,
   FileText,
   AlertTriangle,
   Calendar,
   Calculator,
   ShieldCheck,
   Phone,
-  Lock,
   Activity,
-  CheckCircle,
 } from "lucide-react";
 
 const adminItems = [
@@ -65,20 +58,9 @@ type Stats = {
   pendingPayments: number;
 };
 
-type CurrentWeek = {
-  id: string;
-  weekNumber: number;
-  status: string;
-  startDate: string;
-  endDate: string;
-};
-
 export function AppSidebar() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
-  const { toast } = useToast();
-  const [isNewPaymentOpen, setIsNewPaymentOpen] = useState(false);
-  const [isVerifiedPaymentOpen, setIsVerifiedPaymentOpen] = useState(false);
 
   const isAdmin = user?.role === "admin";
   const isTutor = user?.role === "tutor";
@@ -94,13 +76,6 @@ export function AppSidebar() {
     queryKey: ["/api/admin/stats"],
     enabled: isAdmin,
   });
-
-  const { data: currentWeek } = useQuery<CurrentWeek | null>({
-    queryKey: ["/api/weeks/current"],
-    enabled: isTutor,
-  });
-
-  const hasOpenWeek = isTutor && !!currentWeek && currentWeek.status === "open";
 
   const getInitials = (name: string) => {
     return name
@@ -124,60 +99,11 @@ export function AppSidebar() {
               </span>
             </div>
           </div>
-          {isTutor && (
-            <div className="mt-3 flex flex-col gap-2">
-              <button
-                onClick={() => {
-                  if (!hasOpenWeek) {
-                    toast({ title: "Semana cerrada", description: "No hay una semana abierta para registrar pagos.", variant: "destructive" });
-                    return;
-                  }
-                  setIsNewPaymentOpen(true);
-                }}
-                data-testid="nav-nuevo-pago-top"
-                className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors
-                  ${hasOpenWeek
-                    ? "border border-primary bg-background text-primary hover:bg-accent"
-                    : "border border-border text-muted-foreground opacity-60 cursor-default"
-                  }`}
-              >
-                {hasOpenWeek ? <PlusCircle className="h-4 w-4 shrink-0" /> : <Lock className="h-4 w-4 shrink-0" />}
-                <span className="flex-1 text-left">Nuevo Pago</span>
-                {hasOpenWeek && currentWeek && (
-                  <span className="text-xs font-mono opacity-80">S{currentWeek.weekNumber}</span>
-                )}
-              </button>
-
-              {user?.autoVerificaPagos && (
-                <button
-                  onClick={() => {
-                    if (!hasOpenWeek) {
-                      toast({ title: "Semana cerrada", description: "No hay una semana abierta para registrar pagos.", variant: "destructive" });
-                      return;
-                    }
-                    setIsVerifiedPaymentOpen(true);
-                  }}
-                  data-testid="nav-pago-verificado-top"
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors
-                    ${hasOpenWeek
-                      ? "border border-success/40 text-success hover:bg-accent"
-                      : "border border-border text-muted-foreground opacity-60 cursor-default"
-                    }`}
-                >
-                  {hasOpenWeek ? <CheckCircle className="h-4 w-4 shrink-0" /> : <Lock className="h-4 w-4 shrink-0" />}
-                  <span className="flex-1 text-left">Agregar Pago Verificado</span>
-                  {hasOpenWeek && currentWeek && (
-                    <span className="text-xs font-mono opacity-80">S{currentWeek.weekNumber}</span>
-                  )}
-                </button>
-              )}
-            </div>
-          )}
         </SidebarHeader>
 
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>{isAdmin ? "Administración" : isVerifier ? "Verificación" : "Menú Principal"}</SidebarGroupLabel>
+            {!isTutor && <SidebarGroupLabel>{isAdmin ? "Administración" : "Verificación"}</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
                 {items.map((item) => {
@@ -239,8 +165,6 @@ export function AppSidebar() {
         </SidebarFooter>
       </Sidebar>
 
-      <NewPaymentModal open={isNewPaymentOpen} onOpenChange={setIsNewPaymentOpen} />
-      <VerifiedPaymentModal open={isVerifiedPaymentOpen} onOpenChange={setIsVerifiedPaymentOpen} />
     </>
   );
 }
