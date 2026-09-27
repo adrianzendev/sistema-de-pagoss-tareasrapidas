@@ -18,9 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Loader2, UserPlus, Mail, Percent, Trash2, Edit, DollarSign, TrendingUp, Megaphone, ExternalLink } from "lucide-react";
+import { Plus, Search, Loader2, UserPlus, Mail, Percent, Trash2, Edit, DollarSign, Megaphone } from "lucide-react";
 import { Link } from "wouter";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,27 +33,6 @@ import {
 
 type TutorRow = User;
 
-type TutorWeekSummary = {
-  tutorId: string;
-  tutorName: string;
-  commissionPercent: number;
-  paymentCount: number;
-  grossIncomePen: number;
-  totalAdvPen: number;
-  netIncomePen: number;
-  tutorEarningsPen: number;
-};
-
-type CurrentWeekSummaryData = {
-  week: { weekNumber: number } | null;
-  tutors: TutorWeekSummary[];
-  usdRate: number;
-};
-
-function pen(val: number) {
-  // Formato único: valor primero, divisa después ("49.00 PEN")
-  return `${val.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} PEN`;
-}
 
 const createTutorSchema = z.object({
   name: z.string().min(2, "Nombre debe tener al menos 2 caracteres"),
@@ -103,25 +81,54 @@ function AdvertisingPreview({ value }: { value: string }) {
   );
 }
 
+type DailyCampaign = {
+  id: string;
+  dailyCostUsd: string;
+  startDate: string;
+  endDate: string | null;
+  days: number;
+  active: boolean;
+};
+
 export default function TutorsPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [editingTutor, setEditingTutor] = useState<TutorRow | null>(null);
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [campaignInput, setCampaignInput] = useState("");
+  const [showPastCampaigns, setShowPastCampaigns] = useState(false);
   const { toast } = useToast();
 
   const { data: tutors, isLoading } = useQuery<TutorRow[]>({
     queryKey: ["/api/admin/tutors"],
   });
 
-  const { data: weekSummary } = useQuery<CurrentWeekSummaryData>({
-    queryKey: ["/api/admin/current-week-summary"],
-    staleTime: 2 * 60 * 1000,
+  const { data: campaigns = [] } = useQuery<DailyCampaign[]>({
+    queryKey: [`/api/admin/tutors/${editingTutor?.id}/daily-campaigns`],
+    enabled: !!editingTutor,
   });
 
-  const summaryByTutor = Object.fromEntries(
-    (weekSummary?.tutors ?? []).map(s => [s.tutorId, s])
-  );
+  const startCampaignMutation = useMutation({
+    mutationFn: (dailyCostUsd: number) =>
+      apiRequest("POST", `/api/admin/tutors/${editingTutor?.id}/daily-campaigns`, { dailyCostUsd }),
+    onSuccess: () => {
+      setCampaignInput("");
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/tutors/${editingTutor?.id}/daily-campaigns`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settlements/matrix"] });
+    },
+  });
+
+  const endCampaignMutation = useMutation({
+    mutationFn: (campaignId: string) =>
+      apiRequest("PATCH", `/api/admin/daily-campaigns/${campaignId}/end`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/tutors/${editingTutor?.id}/daily-campaigns`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settlements/matrix"] });
+    },
+  });
+
+  const activeCampaign = campaigns.find(c => c.active);
+  const pastCampaigns = campaigns.filter(c => !c.active);
 
   const createForm = useForm<CreateTutorForm>({
     resolver: zodResolver(createTutorSchema),
@@ -197,6 +204,8 @@ export default function TutorsPage() {
 
   const openEdit = (tutor: TutorRow) => {
     setEditingTutor(tutor);
+    setCampaignInput("");
+    setShowPastCampaigns(false);
     editForm.reset({
       name: tutor.name,
       email: tutor.email,
@@ -474,6 +483,82 @@ export default function TutorsPage() {
                     </FormItem>
                   )}
                 />
+
+                <div className="space-y-2 rounded-lg border p-3">
+                  <div className="flex items-center gap-2">
+                    <Megaphone className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium">Campaña de publicidad diaria</span>
+                  </div>
+                  {activeCampaign ? (
+                    <div className="flex items-center justify-between flex-wrap gap-2 rounded-lg border border-success/40 p-3" data-testid="active-campaign">
+                      <div className="text-sm">
+                        <span className="font-semibold text-success">Activa</span>{" "}
+                        <span className="font-medium">USD {Number(activeCampaign.dailyCostUsd).toFixed(2)}/día</span>
+                        <div className="text-xs text-muted-foreground">
+                          Desde {new Date(activeCampaign.startDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })} · {activeCampaign.days} {activeCampaign.days === 1 ? "día" : "días"} acumulados · USD {(activeCampaign.days * Number(activeCampaign.dailyCostUsd)).toFixed(2)} total (50% tutor)
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        disabled={endCampaignMutation.isPending}
+                        onClick={() => endCampaignMutation.mutate(activeCampaign.id)}
+                        data-testid="btn-end-campaign"
+                      >Desactivar</Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Input
+                        className="h-8 w-32 text-sm"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        placeholder="USD por día"
+                        value={campaignInput}
+                        onChange={e => setCampaignInput(e.target.value)}
+                        data-testid="input-campaign-cost"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={startCampaignMutation.isPending || !(Number(campaignInput) > 0)}
+                        onClick={() => startCampaignMutation.mutate(Number(campaignInput))}
+                        data-testid="btn-start-campaign"
+                      >Activar campaña</Button>
+                      <span className="text-xs text-muted-foreground">Se cobra por día calendario (Perú), 50% tutor / 50% agencia.</span>
+                    </div>
+                  )}
+                  {pastCampaigns.length > 0 && (
+                    <div>
+                      <button
+                        type="button"
+                        className="text-xs text-muted-foreground underline"
+                        onClick={() => setShowPastCampaigns(!showPastCampaigns)}
+                        data-testid="btn-toggle-past-campaigns"
+                      >
+                        {showPastCampaigns ? "Ocultar" : "Ver"} campañas pasadas ({pastCampaigns.length})
+                      </button>
+                      {showPastCampaigns && (
+                        <div className="mt-2 space-y-1">
+                          {pastCampaigns.map(c => (
+                            <div key={c.id} className="text-xs text-muted-foreground flex items-center gap-2">
+                              <span className="tabular-nums">
+                                {new Date(c.startDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
+                                {" – "}
+                                {c.endDate ? new Date(c.endDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" }) : "—"}
+                              </span>
+                              <span>USD {Number(c.dailyCostUsd).toFixed(2)}/día</span>
+                              <span>· {c.days} {c.days === 1 ? "día" : "días"}</span>
+                              <span className="font-medium">· USD {(c.days * Number(c.dailyCostUsd)).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <FormField
                   control={editForm.control}
                   name="isActive"
@@ -552,23 +637,16 @@ export default function TutorsPage() {
                     <TableHead>Nombre</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead className="text-right">Comisión</TableHead>
-                    <TableHead className="text-right">
-                      <span className="flex items-center justify-end gap-1">
-                        <TrendingUp className="h-4 w-4" />
-                        {weekSummary?.week ? `Ganancia S${weekSummary.week.weekNumber}` : "Ganancia semana actual"}
-                      </span>
-                    </TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredTutors?.map((tutor) => {
-                    const s = summaryByTutor[tutor.id];
                     return (
                       <TableRow key={tutor.id} data-testid={`row-tutor-${tutor.id}`}>
                         <TableCell>
                           <Link href={`/admin/tutors/${tutor.id}/view`}>
-                            <div className="cursor-pointer hover:underline">
+                            <div className="cursor-pointer underline">
                               <div>{tutor.name}</div>
                               <div className="text-xs text-muted-foreground">{tutor.email}</div>
                             </div>
@@ -584,58 +662,8 @@ export default function TutorsPage() {
                         <TableCell className="text-right">
                           {tutor.commissionPercent}%
                         </TableCell>
-                        <TableCell className="text-right" data-testid={`text-earnings-tutor-${tutor.id}`}>
-                          {s && weekSummary?.week ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="cursor-default">
-                                    <div className="tabular-nums">
-                                      {pen(s.tutorEarningsPen)}
-                                    </div>
-                                    {s.paymentCount > 0 && (
-                                      <div className="text-xs text-muted-foreground tabular-nums">
-                                        bruto: {pen(s.grossIncomePen)}
-                                      </div>
-                                    )}
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="left" className="text-xs space-y-1 min-w-48">
-                                  <p className="font-semibold mb-1">S{weekSummary.week.weekNumber} · solo verificados</p>
-                                  <div className="flex justify-between gap-4">
-                                    <span className="text-muted-foreground">Ingresos brutos</span>
-                                    <span className="font-mono">{pen(s.grossIncomePen)}</span>
-                                  </div>
-                                  <div className="flex justify-between gap-4">
-                                    <span className="flex items-center gap-1"><Megaphone className="h-3 w-3" />Publicidad</span>
-                                    <span className="font-mono">- {pen(s.totalAdvPen)}</span>
-                                  </div>
-                                  <div className="flex justify-between gap-4 border-t pt-1">
-                                    <span className="text-muted-foreground">Ingreso neto ({s.commissionPercent}%)</span>
-                                    <span className="font-mono">{pen(s.netIncomePen)}</span>
-                                  </div>
-                                  <div className="flex justify-between gap-4 font-semibold">
-                                    <span>Ganancia estimada</span>
-                                    <span className="font-mono">{pen(s.tutorEarningsPen)}</span>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ) : (
-                            <span className="text-muted-foreground opacity-40 text-xs">—</span>
-                          )}
-                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            <Link href={`/admin/tutors/${tutor.id}/detail`}>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                data-testid={`button-profile-tutor-${tutor.id}`}
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </Button>
-                            </Link>
                             <Button
                               variant="ghost"
                               size="icon"

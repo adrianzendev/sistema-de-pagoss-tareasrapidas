@@ -608,7 +608,7 @@ export class DatabaseStorage implements IStorage {
       let verifier: User | undefined;
       if (payment.verifiedBy) {
         const [v] = await db.select().from(users).where(eq(users.id, payment.verifiedBy));
-        verifier = v;
+        if (v) { const { password, ...safeV } = v; verifier = safeV as User; }
       }
       paymentDetails.push({ ...payment, currency, verifier });
     }

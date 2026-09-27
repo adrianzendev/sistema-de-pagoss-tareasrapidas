@@ -48,14 +48,6 @@ const currencySchema = z.object({
 
 type CurrencyForm = z.infer<typeof currencySchema>;
 
-const getColorPreview = (color: string) => {
-  const colorMap: Record<string, string> = {
-    white: "bg-white border border-border",
-    black: "bg-black",
-  };
-  return colorMap[color] ?? "";
-};
-
 export default function CurrenciesPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [editingCurrency, setEditingCurrency] = useState<Currency | null>(null);
@@ -331,7 +323,6 @@ export default function CurrenciesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Color</TableHead>
                     <TableHead>Código</TableHead>
                     <TableHead>Nombre</TableHead>
                     <TableHead>Verificador</TableHead>
@@ -343,9 +334,6 @@ export default function CurrenciesPage() {
                 <TableBody>
                   {currencies?.map((currency) => (
                     <TableRow key={currency.id} data-testid={`row-currency-${currency.id}`}>
-                      <TableCell>
-                        <div className={`w-6 h-6 rounded-sm ${getColorPreview(currency.color ?? "gray")}`} />
-                      </TableCell>
                       <TableCell className="font-mono">{currency.code}</TableCell>
                       <TableCell>{currency.name}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">

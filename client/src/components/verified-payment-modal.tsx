@@ -3,12 +3,13 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Week, Client } from "@shared/schema";
+import { Currency, Week, Client } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -17,10 +18,11 @@ import { Loader2, X, Image as ImageIcon, AlertTriangle, Calendar, Phone, CheckCi
 import { normalizePhone } from "@shared/schema";
 
 const paymentSchema = z.object({
-  amountPen: z.string().refine((val) => {
+  amount: z.string().refine((val) => {
     const num = parseFloat(val);
     return !isNaN(num) && num > 0;
   }, "Monto debe ser mayor a 0"),
+  currencyId: z.string().min(1, "Selecciona una divisa"),
   clientNumber: z.string().min(1, "Número de cliente requerido"),
   notes: z.string().optional(),
 });
@@ -47,6 +49,10 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
   const fileInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
+  const { data: currencies } = useQuery<Currency[]>({
+    queryKey: ["/api/currencies"],
+  });
+
   const { data: weeks } = useQuery<Week[]>({
     queryKey: ["/api/weeks"],
   });
@@ -62,7 +68,6 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
 
   const today = new Date();
   const currentOpenWeek = weeks?.find(week => {
-    if (week.status !== "open") return false;
     const startDate = new Date(week.startDate + "T00:00:00");
     const endDate = new Date(week.endDate + "T23:59:59");
     return today >= startDate && today <= endDate;
@@ -72,10 +77,12 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
 
   const form = useForm<PaymentForm>({
     resolver: zodResolver(paymentSchema),
-    defaultValues: { amountPen: "", clientNumber: "", notes: "" },
+    defaultValues: { amount: "", currencyId: "", clientNumber: "", notes: "" },
   });
 
   const clientNumber = form.watch("clientNumber");
+  const selectedCurrencyId = form.watch("currencyId");
+  const selectedCurrency = currencies?.find(c => c.id === selectedCurrencyId);
 
   useEffect(() => {
     if (!clientNumber || clientNumber.length < 1) {
@@ -125,7 +132,8 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amountPen: data.amountPen,
+          amount: data.amount,
+          currencyId: data.currencyId,
           clientNumber: data.clientNumber,
           notes: data.notes || undefined,
           proofImage: proofImage || undefined,
@@ -198,8 +206,8 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
           <DialogDescription className="flex items-center gap-2 flex-wrap">
             <Badge className="text-success border-success/40 text-xs">Ya cobrado</Badge>
             {currentOpenWeek
-              ? `Semana S${currentOpenWeek.weekNumber} — ingresa el monto en PEN`
-              : "Se registrará directamente como verificado"
+              ? `Semana S${currentOpenWeek.weekNumber} — se registrará como autoverificado`
+              : "Se registrará directamente como autoverificado"
             }
           </DialogDescription>
         </DialogHeader>
@@ -276,14 +284,39 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
 
             <FormField
               control={form.control}
-              name="amountPen"
+              name="currencyId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Monto cobrado (PEN)</FormLabel>
+                  <FormLabel>Divisa</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-verified-currency">
+                        <SelectValue placeholder="Selecciona una divisa" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {currencies?.map((currency) => (
+                        <SelectItem key={currency.id} value={currency.id}>
+                          {currency.code} - {currency.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Monto cobrado</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium w-10 text-center">
-                        PEN
+                        {selectedCurrency?.code || "$"}
                       </div>
                       <Input
                         {...field}
@@ -297,7 +330,7 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
                     </div>
                   </FormControl>
                   <FormDescription className="text-xs">
-                    Convierte el monto a soles y escríbelo aquí. No afecta las estadísticas de otras divisas.
+                    Monto que ya cobraste directamente en tu cuenta.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

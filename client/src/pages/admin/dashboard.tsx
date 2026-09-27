@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PaidToggleButton } from "@/components/paid-toggle-button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "wouter";
-import { Users, CreditCard, Coins, TableIcon } from "lucide-react";
-import type { Week } from "@shared/schema";
+import { Users, CreditCard, Coins, TableIcon, ChevronDown, ChevronRight, Eye, EyeOff } from "lucide-react";
+import type { Week, User } from "@shared/schema";
 import { todayPeru, formatShortDate } from "@/lib/utils";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface DashboardStats {
   totalTutors: number;
@@ -50,8 +54,69 @@ type SettlementsMatrix = {
 
 type TutorRow = { id: string; name: string; commissionPercent: string };
 
+const DEFAULT_TUTOR_COL_WIDTH = 160;
+const DEFAULT_WEEK_COL_WIDTH = 144;
+const DEFAULT_TOTAL_COL_WIDTH = 130;
+const MIN_COL_WIDTH = 96;
+
+function ColumnResizeHandle({ width, onResize }: { width: number; onResize: (newWidth: number) => void }) {
+  return (
+    <div
+      className="absolute right-0 top-0 h-full w-2 cursor-col-resize select-none touch-none z-20"
+      onMouseDown={(e) => {
+        e.preventDefault();
+        const startX = e.clientX;
+        const startWidth = width;
+        const handleMove = (moveEvent: MouseEvent) => {
+          onResize(Math.max(MIN_COL_WIDTH, startWidth + (moveEvent.clientX - startX)));
+        };
+        const handleUp = () => {
+          document.removeEventListener("mousemove", handleMove);
+          document.removeEventListener("mouseup", handleUp);
+        };
+        document.addEventListener("mousemove", handleMove);
+        document.addEventListener("mouseup", handleUp);
+      }}
+    />
+  );
+}
+
 export default function AdminDashboard() {
   const [selectedTutor, setSelectedTutor] = useState<TutorRow | null>(null);
+  const [periodFilter, setPeriodFilterState] = useState<string>("all");
+
+  const { data: me } = useQuery<User>({ queryKey: ["/api/auth/me"] });
+
+  useEffect(() => {
+    if (me?.dashboardPeriodFilter) setPeriodFilterState(me.dashboardPeriodFilter);
+  }, [me?.dashboardPeriodFilter]);
+
+  const setPeriodFilter = (value: string) => {
+    setPeriodFilterState(value);
+    queryClient.setQueryData<User>(["/api/auth/me"], (prev) =>
+      prev ? { ...prev, dashboardPeriodFilter: value } : prev
+    );
+    apiRequest("PATCH", "/api/auth/preferences", { dashboardPeriodFilter: value }).catch(console.error);
+  };
+  const [expandedAdCosts, setExpandedAdCosts] = useState<Record<string, boolean>>({});
+  const [detailsCell, setDetailsCell] = useState<{
+    tutorName: string;
+    weekNumber: number;
+    commissionPercent: string;
+    cell: MatrixCell | undefined;
+  } | null>(null);
+  const [hiddenTutors, setHiddenTutors] = useState<Set<string>>(new Set());
+  const toggleTutorHidden = (tutorId: string) => {
+    setHiddenTutors(prev => {
+      const next = new Set(prev);
+      if (next.has(tutorId)) next.delete(tutorId);
+      else next.add(tutorId);
+      return next;
+    });
+  };
+  const [tutorColWidth, setTutorColWidth] = useState(DEFAULT_TUTOR_COL_WIDTH);
+  const [totalColWidth, setTotalColWidth] = useState(DEFAULT_TOTAL_COL_WIDTH);
+  const [weekColWidths, setWeekColWidths] = useState<Record<string, number>>({});
 
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/admin/stats"],
@@ -110,7 +175,7 @@ export default function AdminDashboard() {
   };
 
   const today = todayPeru();
-  const weeks = matrixData?.weeks ?? [];
+  const allWeeks = matrixData?.weeks ?? [];
   const tutors = matrixData?.tutors ?? [];
   const matrix = matrixData?.matrix ?? {};
   const currencyTotals = matrixData?.currencyTotals ?? [];
@@ -121,6 +186,32 @@ export default function AdminDashboard() {
 
   const tutorsWithAnyPayment = tutors;
 
+  const monthOptions = Array.from(
+    new Map(
+      allWeeks.map(w => {
+        const d = new Date(w.startDate + "T00:00:00");
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        const label = d.toLocaleDateString("es-PE", { month: "long", year: "numeric" });
+        return [key, label];
+      })
+    ).entries()
+  ).sort((a, b) => (a[0] < b[0] ? 1 : -1));
+
+  const weeks = periodFilter === "all"
+    ? allWeeks
+    : periodFilter.startsWith("week:")
+      ? allWeeks.filter(w => w.id === periodFilter.slice(5))
+      : allWeeks.filter(w => {
+          const d = new Date(w.startDate + "T00:00:00");
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+          return key === periodFilter;
+        });
+
+  const gridTemplateColumns = `${tutorColWidth}px ${weeks.map(w => `${weekColWidths[w.id] ?? DEFAULT_WEEK_COL_WIDTH}px`).join(" ")} ${totalColWidth}px`;
+  const resizeWeekCol = (weekId: string, newWidth: number) => {
+    setWeekColWidths(prev => ({ ...prev, [weekId]: newWidth }));
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -130,7 +221,25 @@ export default function AdminDashboard() {
 
 
       {/* Settlements matrix table */}
-      <h2 className="text-lg font-semibold">Ganancias por Tutor y Semana</h2>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <h2 className="text-lg font-semibold">Ganancias por Tutor y Semana</h2>
+        <Select value={periodFilter} onValueChange={setPeriodFilter}>
+          <SelectTrigger className="w-56" data-testid="select-period-filter">
+            <SelectValue placeholder="Todas las semanas" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las semanas</SelectItem>
+            {monthOptions.map(([key, label]) => (
+              <SelectItem key={key} value={key} className="capitalize">{label}</SelectItem>
+            ))}
+            {[...allWeeks].sort((a, b) => b.weekNumber - a.weekNumber).map(w => (
+              <SelectItem key={w.id} value={`week:${w.id}`}>
+                S{w.weekNumber} ({formatShortDate(new Date(w.startDate + "T00:00:00"))} - {formatShortDate(new Date(w.endDate + "T00:00:00"))})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <Card>
         <CardContent className="p-0">
@@ -145,43 +254,34 @@ export default function AdminDashboard() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <div style={{ minWidth: `${160 + weeks.length * 120}px` }}>
+              <div style={{ minWidth: `${tutorColWidth + weeks.reduce((sum, w) => sum + (weekColWidths[w.id] ?? DEFAULT_WEEK_COL_WIDTH), 0) + totalColWidth}px` }}>
                 {/* Header */}
                 <div
                   className="grid border-b-2 border-border text-xs font-bold uppercase"
-                  style={{ gridTemplateColumns: `160px repeat(${weeks.length}, 120px) 130px` }}
+                  style={{ gridTemplateColumns }}
                 >
-                  <div className="p-3 border-r border-border sticky left-0 z-10 bg-card">
+                  <div className="relative p-3 border-r border-border sticky left-0 z-10 bg-card">
                     Tutor
+                    <ColumnResizeHandle width={tutorColWidth} onResize={setTutorColWidth} />
                   </div>
                   {weeks.map(w => {
-                    const activeTutorsThisWeek = tutorsWithAnyPayment.filter(t =>
-                      (matrix[t.id]?.[w.id]?.paymentCount ?? 0) > 0 ||
-                      (matrix[t.id]?.[w.id]?.tutorAdvertisingShare ?? 0) > 0
-                    );
-                    const paidCount = activeTutorsThisWeek.filter(t => weekPaidMap[w.id]?.includes(t.id)).length;
-                    const totalActive = activeTutorsThisWeek.length;
                     const isCurrent = w.startDate <= today && w.endDate >= today;
                     return (
-                      <div key={w.id} className="p-2 text-center border-r border-border last:border-r-0">
-                        <div className={isCurrent ? "font-bold text-foreground" : "font-normal text-muted-foreground"}>S{w.weekNumber}</div>
-                        <div className={`normal-case text-xs ${isCurrent ? "font-bold text-foreground" : "font-normal text-muted-foreground"}`}>
-                          {formatShortDate(new Date(w.startDate + "T00:00:00"))}
-                          {" - "}
-                          {formatShortDate(new Date(w.endDate + "T00:00:00"))}
+                      <div key={w.id} className="relative p-2 text-center border-r border-border last:border-r-0">
+                        <div className={`normal-case ${isCurrent ? "font-bold text-foreground" : "font-normal text-muted-foreground"}`}>
+                          S{w.weekNumber}
+                          <span className="text-xs"> ({formatShortDate(new Date(w.startDate + "T00:00:00"))}{" - "}{formatShortDate(new Date(w.endDate + "T00:00:00"))})</span>
                         </div>
-                        {totalActive > 0 && paidCount > 0 && (
-                          <div className="mt-1">
-                            <span className={`text-xs font-semibold ${paidCount === totalActive ? "text-success" : "text-muted-foreground/60"}`}>
-                              {paidCount}/{totalActive} pagados
-                            </span>
-                          </div>
-                        )}
+                        <ColumnResizeHandle
+                          width={weekColWidths[w.id] ?? DEFAULT_WEEK_COL_WIDTH}
+                          onResize={(newWidth) => resizeWeekCol(w.id, newWidth)}
+                        />
                       </div>
                     );
                   })}
-                  <div className="p-2 text-center text-primary">
+                  <div className="relative p-2 text-center text-primary">
                     TOTAL
+                    <ColumnResizeHandle width={totalColWidth} onResize={setTotalColWidth} />
                   </div>
                 </div>
 
@@ -193,29 +293,30 @@ export default function AdminDashboard() {
                     <div
                       key={tutor.id}
                       className="grid border-b border-border last:border-b-0 hover:bg-muted/40 transition-colors"
-                      style={{ gridTemplateColumns: `160px repeat(${weeks.length}, 120px) 130px` }}
+                      style={{ gridTemplateColumns }}
                       data-testid={`row-matrix-${tutor.id}`}
                     >
                       {/* Tutor name cell */}
                       <div className="p-3 border-r border-border sticky left-0 z-10 bg-card">
-                        <Link href={`/admin/tutors/${tutor.id}/detail`}>
-                          <div className={`font-semibold text-sm truncate hover:underline cursor-pointer ${tutor.isActive === false ? "text-muted-foreground" : "text-primary"}`}>{tutor.name}</div>
-                        </Link>
+                        <div className="flex items-center gap-1">
+                          <Link href={`/admin/tutors/${tutor.id}/view`}>
+                            <div className={`font-semibold text-sm truncate underline cursor-pointer ${tutor.isActive === false ? "text-muted-foreground" : "text-foreground"}`}>{tutor.name}</div>
+                          </Link>
+                          <button
+                            className="text-muted-foreground/40 hover:text-foreground transition-colors shrink-0"
+                            onClick={() => toggleTutorHidden(tutor.id)}
+                            title={hiddenTutors.has(tutor.id) ? "Mostrar (no afecta los totales)" : "Ocultar (no afecta los totales)"}
+                            data-testid={`btn-toggle-hidden-${tutor.id}`}
+                          >
+                            {hiddenTutors.has(tutor.id) ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          </button>
+                        </div>
                         {tutor.isActive === false && (
                           <Badge variant="outline" className="text-xs px-2 py-0 h-5 leading-none text-muted-foreground border-muted-foreground/40 mt-1">inactivo</Badge>
                         )}
-                        <div className="text-xs text-muted-foreground">{tutor.commissionPercent}%</div>
-                        {Number(tutor.advertisingCostUsd ?? 0) > 0 && (() => {
-                          const half = Number(tutor.advertisingCostUsd) / 2;
-                          const pen = half * usdRate;
-                          return (
-                            <div className="text-xs text-muted-foreground/60 leading-tight">
-                              <span className="text-muted-foreground/40">USD</span> {half.toFixed(2)}
-                              <span className="text-muted-foreground/30"> · </span>
-                              <span className="text-muted-foreground/40">PEN</span> {pen.toFixed(2)}
-                            </div>
-                          );
-                        })()}
+                        <div className="text-xs text-muted-foreground">
+                          <span className="text-muted-foreground/60">Comisión:</span> {tutor.commissionPercent}%
+                        </div>
                       </div>
 
                       {/* Week cells */}
@@ -229,35 +330,78 @@ export default function AdminDashboard() {
                         const showCell = hasPayments || hasAdvCharge;
                         const isAutoVerif = !!(tutor as any).autoVerificaPagos;
                         const isTutorPaid = weekPaidMap[w.id]?.includes(tutor.id) ?? false;
+                        const isCurrentWeek = w.startDate <= today && w.endDate >= today;
+                        const isHidden = hiddenTutors.has(tutor.id);
                         return (
                           <div
                             key={w.id}
-                            className="p-2 text-right border-r border-border last:border-r-0 text-xs"
-                            title={showCell ? `Bruto: ${fmt(cell!.grossIncome)} | ×${tutor.commissionPercent}% = ${fmt(cell!.netIncome)} | −pub = ${fmt(cell!.tutorAdvertisingShare)} | Tutor: ${fmt(tutorE)} | Agencia: ${fmt(agencyE)}` : "Sin actividad"}
+                            className="p-2 text-right border-r border-border last:border-r-0 text-xs cursor-pointer"
+                            onClick={() => setDetailsCell({ tutorName: tutor.name, weekNumber: w.weekNumber, commissionPercent: tutor.commissionPercent, cell })}
                             data-testid={`cell-${tutor.id}-${w.weekNumber}`}
                           >
-                            {showCell ? (
+                            {isHidden && showCell ? (
+                              <span className="text-xs text-muted-foreground/40 italic">oculto</span>
+                            ) : showCell ? (
                               <>
-                                <div className="text-xs font-bold text-foreground">
-                                  {fmt(tutorE)}
+                                <div className="flex items-baseline justify-between gap-1">
+                                  <span className="text-xs text-muted-foreground/60">Tutor:</span>
+                                  <span className="text-xs text-foreground">{fmt(tutorE)}</span>
                                 </div>
-                                <div className="text-xs font-medium text-muted-foreground">
-                                  {fmt(agencyE)}
+                                <div className="flex items-baseline justify-between gap-1">
+                                  <span className="text-xs text-muted-foreground/60">Agencia:</span>
+                                  <span className="text-xs text-foreground">{fmt(agencyE)}</span>
+                                </div>
+                                <div className="flex items-baseline justify-between gap-1 mt-1">
+                                  <span className="text-xs text-muted-foreground/60">Cantidad:</span>
+                                  <span className="text-xs text-foreground">{cell?.paymentCount ?? 0} pagos</span>
+                                </div>
+                                {isCurrentWeek && (
+                                  <div className="mt-1" onClick={e => e.stopPropagation()}>
+                                    <div className="flex justify-end">
+                                      <button
+                                        className="flex items-center gap-1 text-muted-foreground/60 hover:text-foreground transition-colors"
+                                        onClick={() => setExpandedAdCosts(prev => ({ ...prev, [tutor.id]: !(prev[tutor.id] ?? false) }))}
+                                        data-testid={`btn-toggle-ad-costs-${tutor.id}`}
+                                      >
+                                        {(expandedAdCosts[tutor.id] ?? false) ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                                        Más detalles
+                                      </button>
+                                    </div>
+                                    {(expandedAdCosts[tutor.id] ?? false) && (() => {
+                                      const half = Number(tutor.advertisingCostUsd ?? 0) / 2;
+                                      const pen = half * usdRate;
+                                      return (
+                                        <div className="mt-1">
+                                          <div className="flex items-baseline justify-between gap-1">
+                                            <span className="text-xs text-muted-foreground/60">Publicidad USD:</span>
+                                            <span className="text-xs text-muted-foreground/40">USD {half.toFixed(2)}</span>
+                                          </div>
+                                          <div className="flex items-baseline justify-between gap-1">
+                                            <span className="text-xs text-muted-foreground/60">Publicidad PEN:</span>
+                                            <span className="text-xs text-muted-foreground/40">PEN {pen.toFixed(2)}</span>
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                )}
+                                <div className="flex justify-end mt-1" onClick={e => e.stopPropagation()}>
+                                  <PaidToggleButton
+                                    tutorId={tutor.id}
+                                    tutorName={tutor.name}
+                                    weekId={w.id}
+                                    weekNumber={w.weekNumber}
+                                    isPaid={isTutorPaid}
+                                  />
                                 </div>
                                 {isAutoVerif && (
-                                  <div className="text-xs font-semibold mt-1 text-foreground">
+                                  <div className="mt-1 pt-1 border-t border-border text-xs font-semibold text-foreground">
                                     {netTransfer < 0
-                                      ? `→ te debe ${fmt(Math.abs(netTransfer))}`
-                                      : `← agencia paga ${fmt(netTransfer)}`
+                                      ? `${tutor.name} → Agencia: ${fmt(Math.abs(netTransfer))}`
+                                      : `Agencia → ${tutor.name}: ${fmt(netTransfer)}`
                                     }
                                   </div>
                                 )}
-                                <div className="flex items-center justify-end gap-1 mt-1">
-                                  <span className="text-xs text-muted-foreground/60">{cell?.paymentCount ?? 0} pg</span>
-                                  {isTutorPaid && (
-                                    <Badge className="text-xs px-2 py-0 h-5 border-success/40 bg-background text-success leading-none">Pagado</Badge>
-                                  )}
-                                </div>
                               </>
                             ) : cell?.wasActive === false ? (
                               <span className="text-xs text-muted-foreground/40 italic">inactivo</span>
@@ -270,12 +414,18 @@ export default function AdminDashboard() {
 
                       {/* Total cell */}
                       <div className="p-2 text-right" data-testid={`total-${tutor.id}`}>
-                        <div className="text-xs font-bold text-foreground">
-                          {fmt(rowTotal)}
-                        </div>
-                        <div className="text-xs font-medium text-muted-foreground">
-                          {fmt(rowAgencyTotal)}
-                        </div>
+                        {hiddenTutors.has(tutor.id) ? (
+                          <span className="text-xs text-muted-foreground/40 italic">oculto</span>
+                        ) : (
+                          <>
+                            <div className="text-xs font-bold text-foreground">
+                              {fmt(rowTotal)}
+                            </div>
+                            <div className="text-xs font-medium text-muted-foreground">
+                              {fmt(rowAgencyTotal)}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   );
@@ -283,15 +433,10 @@ export default function AdminDashboard() {
 
                 {/* Totals row */}
                 <div
-                  className="grid border-t-2 border-border font-bold text-sm"
-                  style={{ gridTemplateColumns: `160px repeat(${weeks.length}, 120px) 130px` }}
+                  className="grid border-t-2 border-border text-sm"
+                  style={{ gridTemplateColumns }}
                 >
-                  <div className="p-2 border-r border-border sticky left-0 z-10 bg-card flex flex-col justify-center">
-                    <div className="text-xs uppercase text-muted-foreground/70 font-normal leading-4">Total Bruto</div>
-                    <div className="text-xs uppercase text-muted-foreground/60 font-normal leading-4">Publicidad Total</div>
-                    <div className="text-xs uppercase text-muted-foreground leading-4">Tutores</div>
-                    <div className="text-xs uppercase text-muted-foreground leading-4">Agencia</div>
-                  </div>
+                  <div className="p-2 border-r border-border sticky left-0 z-10 bg-card" />
                   {weeks.map(w => {
                     const colTutor = tutorsWithAnyPayment.reduce(
                       (sum, t) => sum + (matrix[t.id]?.[w.id]?.tutorEarnings ?? 0), 0
@@ -308,32 +453,48 @@ export default function AdminDashboard() {
                       <div key={w.id} className="p-2 text-right text-xs border-r border-border last:border-r-0">
                         {anyPayments ? (
                           <>
-                            <div className="text-xs text-muted-foreground/70 font-normal tabular-nums leading-4">
-                              {fmt(tutorsWithAnyPayment.reduce((sum, t) => sum + (matrix[t.id]?.[w.id]?.grossIncome ?? 0), 0))}
+                            <div className="flex items-baseline justify-between gap-1 leading-4">
+                              <span className="text-muted-foreground/60">Bruto:</span>
+                              <span className="text-muted-foreground/70">
+                                {fmt(tutorsWithAnyPayment.reduce((sum, t) => sum + (matrix[t.id]?.[w.id]?.grossIncome ?? 0), 0))}
+                              </span>
                             </div>
-                            <div className="text-xs text-muted-foreground/60 font-normal tabular-nums leading-4 flex items-center justify-end gap-1">
-                              {(() => {
-                                const sharedUsd = Number(w.sharedAdvertisingUsd ?? 0);
-                                const ownUsd = tutorsWithAnyPayment.reduce((sum, t) => {
-                                  const v = tutorWeekAdvMap[t.id]?.[w.id] ?? Number((t as any).advertisingCostUsd ?? 0);
-                                  return sum + v;
-                                }, 0);
-                                const totalUsd = sharedUsd + ownUsd;
-                                if (totalUsd <= 0) return "—";
-                                const totalPen = totalUsd * usdRate;
+                            {(() => {
+                              const sharedUsd = Number(w.sharedAdvertisingUsd ?? 0);
+                              const ownUsd = tutorsWithAnyPayment.reduce((sum, t) => {
+                                const v = tutorWeekAdvMap[t.id]?.[w.id] ?? Number((t as any).advertisingCostUsd ?? 0);
+                                return sum + v;
+                              }, 0);
+                              const totalUsd = sharedUsd + ownUsd;
+                              if (totalUsd <= 0) {
                                 return (
-                                  <>
-                                    <span className="text-muted-foreground/40">−USD {totalUsd.toFixed(2)}</span>
-                                    <span>{`−${fmt(totalPen)}`}</span>
-                                  </>
+                                  <div className="flex items-baseline justify-between gap-1 leading-4">
+                                    <span className="text-muted-foreground/60">Publicidad:</span>
+                                    <span className="text-muted-foreground/60">—</span>
+                                  </div>
                                 );
-                              })()}
+                              }
+                              const totalPen = totalUsd * usdRate;
+                              return (
+                                <>
+                                  <div className="flex items-baseline justify-between gap-1 leading-4">
+                                    <span className="text-muted-foreground/60">Publicidad USD:</span>
+                                    <span className="text-muted-foreground/40">−USD {totalUsd.toFixed(2)}</span>
+                                  </div>
+                                  <div className="flex items-baseline justify-between gap-1 leading-4">
+                                    <span className="text-muted-foreground/60">Publicidad PEN:</span>
+                                    <span className="text-muted-foreground/60">{`−${fmt(totalPen)}`}</span>
+                                  </div>
+                                </>
+                              );
+                            })()}
+                            <div className="flex items-baseline justify-between gap-1 leading-4">
+                              <span className="text-muted-foreground/60">Tutor:</span>
+                              <span className="font-semibold text-foreground">{fmt(colTutor)}</span>
                             </div>
-                            <div className="font-bold leading-4 text-foreground">
-                              {fmt(colTutor)}
-                            </div>
-                            <div className="font-medium leading-4 text-muted-foreground">
-                              {fmt(colAgency)}
+                            <div className="flex items-baseline justify-between gap-1 leading-4">
+                              <span className="text-muted-foreground/60">Agencia:</span>
+                              <span className="font-semibold text-foreground">{fmt(colAgency)}</span>
                             </div>
                           </>
                         ) : (
@@ -343,10 +504,10 @@ export default function AdminDashboard() {
                     );
                   })}
                   <div className="p-2 text-right">
-                    <div className="text-xs font-bold text-foreground">
+                    <div className="text-xs font-semibold text-foreground">
                       {fmt(tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.tutorEarnings ?? 0), 0), 0))}
                     </div>
-                    <div className="text-xs font-medium text-muted-foreground">
+                    <div className="text-xs font-semibold text-foreground">
                       {fmt(tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.agencyEarnings ?? 0), 0), 0))}
                     </div>
                   </div>
@@ -356,6 +517,42 @@ export default function AdminDashboard() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!detailsCell} onOpenChange={(open) => !open && setDetailsCell(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {detailsCell?.tutorName} — S{detailsCell?.weekNumber}
+            </DialogTitle>
+          </DialogHeader>
+          {detailsCell?.cell ? (
+            <div className="space-y-2 text-sm">
+              <div className="flex items-baseline justify-between gap-1">
+                <span className="text-muted-foreground/60">Bruto:</span>
+                <span className="text-foreground">{fmt(detailsCell.cell.grossIncome)}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-1">
+                <span className="text-muted-foreground/60">× {detailsCell.commissionPercent}%:</span>
+                <span className="text-foreground">{fmt(detailsCell.cell.netIncome)}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-1">
+                <span className="text-muted-foreground/60">− Publicidad:</span>
+                <span className="text-foreground">{fmt(detailsCell.cell.tutorAdvertisingShare)}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-1 pt-2 border-t border-border">
+                <span className="text-muted-foreground/60">Tutor:</span>
+                <span className="font-semibold text-foreground">{fmt(detailsCell.cell.tutorEarnings)}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-1">
+                <span className="text-muted-foreground/60">Agencia:</span>
+                <span className="text-foreground">{fmt(detailsCell.cell.agencyEarnings)}</span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Sin actividad</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

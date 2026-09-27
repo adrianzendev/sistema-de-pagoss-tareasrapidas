@@ -66,7 +66,6 @@ export function NewPaymentModal({ open, onOpenChange }: NewPaymentModalProps) {
 
   const today = new Date();
   const currentOpenWeek = weeks?.find(week => {
-    if (week.status !== "open") return false;
     const startDate = new Date(week.startDate + "T00:00:00");
     const endDate = new Date(week.endDate + "T23:59:59");
     return today >= startDate && today <= endDate;

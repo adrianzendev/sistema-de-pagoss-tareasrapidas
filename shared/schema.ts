@@ -8,7 +8,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const userRoleEnum = pgEnum("user_role", ["admin", "tutor", "verifier"]);
-export const paymentStatusEnum = pgEnum("payment_status", ["pending", "verified", "rejected", "refunded"]);
+export const paymentStatusEnum = pgEnum("payment_status", ["pending", "verified", "autoverificado", "rejected", "refunded"]);
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -23,6 +23,7 @@ export const users = pgTable("users", {
   activatedAt: timestamp("activated_at"),
   deactivatedAt: timestamp("deactivated_at"),
   autoVerificaPagos: boolean("auto_verifica_pagos").notNull().default(false),
+  dashboardPeriodFilter: text("dashboard_period_filter"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

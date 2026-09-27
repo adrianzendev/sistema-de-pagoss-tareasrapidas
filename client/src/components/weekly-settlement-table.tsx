@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Week } from "@shared/schema";
 import { todayPeru, formatShortDate } from "@/lib/utils";
@@ -21,15 +20,6 @@ const fmt = (n: number) => n.toLocaleString("es-PE", { minimumFractionDigits: 2,
 const fmtPen = (n: number) => `${fmt(n)} PEN`;
 const fmtDate = (d: string) => formatShortDate(new Date(d + "T00:00:00"));
 
-function weekStatusBadge(status: string) {
-  switch (status) {
-    case "open": return <Badge variant="default">Abierta</Badge>;
-    case "closed": return <Badge variant="secondary">Cerrada</Badge>;
-    case "paid": return <Badge className="border-success/40 bg-background text-success">Pagada</Badge>;
-    default: return <Badge variant="outline">{status}</Badge>;
-  }
-}
-
 export function WeeklySettlementTable({ settlements, commissionPercent }: { settlements: WeeklySettlementRow[]; commissionPercent: number }) {
   const totals = settlements.reduce(
     (acc, s) => ({
@@ -49,7 +39,6 @@ export function WeeklySettlementTable({ settlements, commissionPercent }: { sett
         <TableRow>
           <TableHead className="text-center">#</TableHead>
           <TableHead className="text-center">Semana</TableHead>
-          <TableHead className="text-center">Estado</TableHead>
           <TableHead className="text-center">Pagos</TableHead>
           <TableHead className="text-right">Bruto</TableHead>
           <TableHead className="text-right">× {commissionPercent}%</TableHead>
@@ -70,7 +59,6 @@ export function WeeklySettlementTable({ settlements, commissionPercent }: { sett
               >
                 S{n} ({fmtDate(s.week.startDate)} - {fmtDate(s.week.endDate)})
               </TableCell>
-              <TableCell className="text-center">{weekStatusBadge(s.week.status)}</TableCell>
               <TableCell className="text-center" data-testid={`text-payments-${n}`}>{s.payments.length}</TableCell>
               <TableCell className="text-right font-semibold tabular-nums" data-testid={`text-gross-${n}`}>{fmtPen(s.grossIncome)}</TableCell>
               <TableCell className="text-right font-semibold tabular-nums" data-testid={`text-net-commission-${n}`}>{fmtPen(s.netIncome)}</TableCell>

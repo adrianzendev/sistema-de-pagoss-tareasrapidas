@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
@@ -29,6 +30,7 @@ const weekPaymentsCache = new Map<string, PaymentWithDetails[]>();
 const statusLabels: Record<string, { label: string; icon: any; className: string }> = {
   pending:  { label: "Pendiente",   icon: Clock,        className: "text-foreground border-border" },
   verified: { label: "Verificado",  icon: CheckCircle,  className: "text-success border-success/40" },
+  autoverificado: { label: "Autoverificado", icon: CheckCircle, className: "text-primary border-primary/40" },
   rejected: { label: "Rechazado",   icon: XCircle,      className: "text-destructive border-destructive/40" },
   refunded: { label: "Reembolsado", icon: RotateCcw,    className: "text-muted-foreground border-border" },
 };
@@ -336,7 +338,9 @@ function WeekSection({
 }
 
 export default function PaymentsPage() {
-  const [search, setSearch] = useState("");
+  const urlParams = new URLSearchParams(useSearch());
+  const linkedWeekNumber = urlParams.get("week") ? Number(urlParams.get("week")) : null;
+  const [search, setSearch] = useState(urlParams.get("tutor") ?? "");
   const [previewCtx, setPreviewCtx] = useState<{ payment: PaymentWithDetails; list: PaymentWithDetails[] } | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [movePayment, setMovePayment] = useState<{ id: string; weekId: string } | null>(null);
@@ -348,8 +352,9 @@ export default function PaymentsPage() {
 
   const today = todayPeru();
   const sortedWeeks = [...weeks].sort((a, b) => b.weekNumber - a.weekNumber);
-  const currentWeekId = sortedWeeks.find(w => w.startDate <= today && w.endDate >= today)?.id
-    ?? sortedWeeks[0]?.id;
+  const highlightedWeekId = linkedWeekNumber
+    ? sortedWeeks.find(w => w.weekNumber === linkedWeekNumber)?.id
+    : (sortedWeeks.find(w => w.startDate <= today && w.endDate >= today)?.id ?? sortedWeeks[0]?.id);
 
   const updateMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
@@ -443,7 +448,7 @@ export default function PaymentsPage() {
             <WeekSection
               key={week.id}
               week={week}
-              isCurrentWeek={week.id === currentWeekId}
+              isCurrentWeek={week.id === highlightedWeekId}
               search={search}
               setPreviewPayment={setPreviewCtx}
               setDeleteId={setDeleteId}

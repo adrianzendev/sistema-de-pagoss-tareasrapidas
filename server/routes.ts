@@ -41,11 +41,11 @@ function dailyCampaignUsdForWeek(
   return { totalUsd, days };
 }
 
-/** Historical active check: was the tutor considered active during the week that ended at weekEnd? */
-function wasActiveForWeek(tutor: { activatedAt?: Date | string | null; deactivatedAt?: Date | string | null }, weekEnd: Date): boolean {
-  if (tutor.activatedAt && new Date(tutor.activatedAt) > weekEnd) return false;
+/** Historical active check: was the tutor considered active during the week ending on weekEndDate (YYYY-MM-DD, hora Perú)? */
+function wasActiveForWeek(tutor: { activatedAt?: Date | string | null; deactivatedAt?: Date | string | null }, weekEndDate: string): boolean {
+  if (tutor.activatedAt && peruDateOf(new Date(tutor.activatedAt)) > weekEndDate) return false;
   // deactivatedAt <= weekEnd means they were deactivated before or when the week ended → inactive
-  if (tutor.deactivatedAt && new Date(tutor.deactivatedAt) <= weekEnd) return false;
+  if (tutor.deactivatedAt && peruDateOf(new Date(tutor.deactivatedAt)) <= weekEndDate) return false;
   return true;
 }
 
@@ -114,6 +114,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return res.status(401).json({ message: "Usuario no encontrado" });
     }
     const { password, ...safeUser } = user;
+    res.json(safeUser);
+  });
+
+  app.patch("/api/auth/preferences", async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "No autenticado" });
+    }
+    const { dashboardPeriodFilter } = req.body;
+    const [updated] = await db.update(users)
+      .set({ dashboardPeriodFilter })
+      .where(eq(users.id, req.session.userId))
+      .returning();
+    const { password, ...safeUser } = updated;
     res.json(safeUser);
   });
 
@@ -233,7 +246,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const d = new Date(p.createdAt).toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
           return d >= week.startDate && d <= week.endDate;
         });
-        const verifiedPayments = weekPayments.filter(p => p.status === "verified");
+        const verifiedPayments = weekPayments.filter(p => p.status === "verified" || p.status === "autoverificado");
         const tutorPayments = verifiedPayments.filter(p => p.tutorId === user.id);
 
         const weekAdvRec = allTutorWeekAdv.find(r => r.tutorId === user.id && r.weekId === week.id);
@@ -244,12 +257,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const daily = advDisabled
           ? { totalUsd: 0, days: 0 }
           : dailyCampaignUsdForWeek(tutorCampaigns, week.startDate, week.endDate, todayPeru);
-        const weekEnd = new Date(week.endDate);
-        const selfActiveForWeek = wasActiveForWeek(user, weekEnd);
+        const selfActiveForWeek = wasActiveForWeek(user, week.endDate);
         const ownAdvPen = selfActiveForWeek && !advDisabled ? (ownAdvUsd + daily.totalUsd) * usdRate * 0.5 : 0;
 
         const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
-        const activeTutorCount = tutors.filter(t => wasActiveForWeek(t, weekEnd)).length || 1;
+        const activeTutorCount = tutors.filter(t => wasActiveForWeek(t, week.endDate)).length || 1;
         const sharedAdvPen = selfActiveForWeek ? (sharedAdvertisingUsd * usdRate * 0.5) / activeTutorCount : 0;
 
         const tutorAdvertisingShare = ownAdvPen + sharedAdvPen;
@@ -263,7 +275,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const rate = Number(currency?.exchangeRate ?? 1);
           const rawAmountPen = Number(p.amount) * rate;
           grossIncome += rawAmountPen;
-          if (currency?.code === "DIRECTO") {
+          if (p.status === "autoverificado") {
             grossDirect += rawAmountPen;
           } else {
             grossRegular += rawAmountPen;
@@ -530,7 +542,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           p.clientNumber,
           p.amount,
           p.currency?.code ?? "",
-          p.status === "pending" ? "Pendiente" : p.status === "verified" ? "Verificado" : "Rechazado",
+          p.status === "pending" ? "Pendiente" : p.status === "verified" ? "Verificado" : p.status === "autoverificado" ? "Autoverificado" : p.status === "refunded" ? "Reembolsado" : "Rechazado",
           p.verifier?.name ?? "",
           (p.verifiedAt ? peruDateOf(p.verifiedAt) : ""),
         ].join(",")
@@ -545,7 +557,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Admin: Currencies
   app.get("/api/currencies", requireAuth, async (req, res) => {
     const all = await storage.getCurrencies();
-    res.json(all.filter(c => c.code !== "DIRECTO"));
+    res.json(all);
   });
 
   app.post("/api/admin/currencies", requireAdmin, async (req, res) => {
@@ -682,7 +694,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           client,
           stats: {
             total: clientPayments.length,
-            verified: clientPayments.filter((p) => p.status === "verified").length,
+            verified: clientPayments.filter((p) => p.status === "verified" || p.status === "autoverificado").length,
             rejected: clientPayments.filter((p) => p.status === "rejected").length,
             pending: clientPayments.filter((p) => p.status === "pending").length,
             tutors: Array.from(tutorMap, ([id, name]) => ({ id, name })),
@@ -777,13 +789,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(403).json({ message: "No tienes permiso para registrar pagos verificados directamente" });
       }
       const currentWeek = await storage.getCurrentWeek();
-      if (!currentWeek || currentWeek.status !== "open") {
+      if (!currentWeek) {
         return res.status(400).json({ message: "No hay una semana abierta para la fecha actual." });
       }
-      // Validate incoming fields (amountPen + clientNumber only)
-      const amountPen = parseFloat(req.body.amountPen);
-      if (isNaN(amountPen) || amountPen <= 0) {
-        return res.status(400).json({ message: "Monto en PEN debe ser mayor a 0" });
+      const amount = parseFloat(req.body.amount);
+      if (isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ message: "Monto debe ser mayor a 0" });
+      }
+      const currencyId: string = req.body.currencyId || "";
+      const currency = currencyId ? await storage.getCurrency(currencyId) : undefined;
+      if (!currency) {
+        return res.status(400).json({ message: "Divisa inválida" });
       }
       const clientNumber: string = req.body.clientNumber || "";
       if (!clientNumber.trim()) {
@@ -791,12 +807,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
       const notes: string | undefined = req.body.notes || undefined;
       const proofImage: string | undefined = req.body.proofImage || undefined;
-      // Always use the DIRECTO system currency — isolated from regular currency stats
-      const allCurrencies = await storage.getCurrencies();
-      const directoCurrency = allCurrencies.find(c => c.code === "DIRECTO");
-      if (!directoCurrency) {
-        return res.status(500).json({ message: "Divisa DIRECTO no configurada. Contacta al administrador." });
-      }
       const normalized = normalizePhone(clientNumber);
       if (normalized) {
         const existingClient = await storage.getClientByNormalizedPhone(normalized);
@@ -806,13 +816,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
       const payment = await storage.createPayment({
         tutorId: user.id,
-        amount: String(amountPen),
-        currencyId: directoCurrency.id,
+        amount: String(amount),
+        currencyId: currency.id,
         clientNumber,
         proofImage: proofImage ?? null,
-        exchangeRateSnapshot: "1.0000",
+        exchangeRateSnapshot: String(currency.exchangeRate),
         notes: notes ?? null,
-        status: "verified",
+        status: "autoverificado",
         verifiedAt: new Date(),
         verifiedBy: user.id,
       });
@@ -832,7 +842,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(403).json({ message: "Acceso denegado" });
       }
       const currentWeek = await storage.getCurrentWeek();
-      if (!currentWeek || currentWeek.status !== "open") {
+      if (!currentWeek) {
         return res.status(400).json({ message: "No hay una semana abierta para la fecha actual. Solo puedes registrar pagos en la semana vigente." });
       }
 
@@ -1062,7 +1072,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       const settings = await storage.getAgencySettings();
       const weekPayments = await storage.getPaymentsByWeek(week.id);
-      const verifiedPayments = weekPayments.filter(p => p.status === "verified");
+      const verifiedPayments = weekPayments.filter(p => p.status === "verified" || p.status === "autoverificado");
       const allCurrencies = await storage.getCurrencies();
       const tutors = await storage.getTutors();
 
@@ -1071,8 +1081,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
       const advertisingInSoles = sharedAdvertisingUsd * usdRate;
 
-      const weekEnd = new Date(week.endDate);
-      const activeTutorCountForWeek = tutors.filter(t => wasActiveForWeek(t, weekEnd)).length || 1;
+      const activeTutorCountForWeek = tutors.filter(t => wasActiveForWeek(t, week.endDate)).length || 1;
       const tutorAdvertisingShare = (advertisingInSoles * 0.5) / activeTutorCountForWeek;
 
       // Load per-week advertising overrides for this week
@@ -1099,13 +1108,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const rate = Number((p as any).exchangeRateSnapshot ?? currency?.exchangeRate ?? 1);
           const rawAmountPen = Number(p.amount) * rate;
           grossIncome += rawAmountPen;
-          if (currency?.code === "DIRECTO") grossDirect += rawAmountPen;
-          currencyCommissionHalf += rawAmountPen * (Number(currency?.commissionPercent ?? 0) / 100) * 0.5;
+          if (p.status === "autoverificado") {
+            grossDirect += rawAmountPen;
+          } else {
+            currencyCommissionHalf += rawAmountPen * (Number(currency?.commissionPercent ?? 0) / 100) * 0.5;
+          }
         });
 
         const grossRegular = grossIncome - grossDirect;
         const commission = Number(tutor.commissionPercent) / 100;
-        const isActiveForWeek = wasActiveForWeek(tutor, weekEnd);
+        const isActiveForWeek = wasActiveForWeek(tutor, week.endDate);
         const sharedAdvShare = isActiveForWeek ? tutorAdvertisingShare : 0;
         const advDisabled = !!weekAdvDisabledByTutor[tutor.id];
         const ownAdvUsd = weekAdvByTutor[tutor.id] ?? Number(tutor.advertisingCostUsd ?? 0);
@@ -1235,12 +1247,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       for (const week of allWeeks) {
         const weekPayments = allWeekPaymentsMap[week.id] ?? [];
-        const verifiedPayments = weekPayments.filter((p: any) => p.status === "verified");
+        const verifiedPayments = weekPayments.filter((p: any) => p.status === "verified" || p.status === "autoverificado");
 
         const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
         const advertisingInSoles = sharedAdvertisingUsd * usdRate;
-        const weekEndDate = new Date(week.endDate);
-        const activeTutorCount = tutors.filter(t => wasActiveForWeek(t, weekEndDate)).length || 1;
+        const activeTutorCount = tutors.filter(t => wasActiveForWeek(t, week.endDate)).length || 1;
         const weekTutorAdShare = (advertisingInSoles * 0.5) / activeTutorCount;
 
         for (const tutor of tutors) {
@@ -1255,8 +1266,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             const rate = Number((p as any).exchangeRateSnapshot ?? currency?.exchangeRate ?? 1);
             const rawAmountPen = Number(p.amount) * rate;
             grossIncome += rawAmountPen;
-            if (currency?.code === "DIRECTO") grossDirect += rawAmountPen;
-            currencyCommissionHalf += rawAmountPen * (Number(currency?.commissionPercent ?? 0) / 100) * 0.5;
+            if (p.status === "autoverificado") {
+              grossDirect += rawAmountPen;
+            } else {
+              currencyCommissionHalf += rawAmountPen * (Number(currency?.commissionPercent ?? 0) / 100) * 0.5;
+            }
             if (currency) {
               const sym = currency.code === "USD" ? "$" : currency.code === "PEN" ? "S/." : currency.code;
               if (!cellCurrencies[currency.id]) cellCurrencies[currency.id] = { code: currency.code, symbol: sym, total: 0 };
@@ -1266,7 +1280,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
           const grossRegular = grossIncome - grossDirect;
           const commission = Number(tutor.commissionPercent) / 100;
-          const tutorIsActive = wasActiveForWeek(tutor, weekEndDate);
+          const tutorIsActive = wasActiveForWeek(tutor, week.endDate);
           const sharedAdvShare = tutorIsActive ? weekTutorAdShare : 0;
           const advDisabledMx = !!tutorWeekAdvDisabledMap[tutor.id]?.[week.id];
           const weekOwnAdv = tutorWeekAdvMap[tutor.id]?.[week.id] ?? Number(tutor.advertisingCostUsd ?? 0);
@@ -1297,7 +1311,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const currencyTotals: Record<string, { code: string; name: string; symbol: string; total: number }> = {};
       const weekCurrencyTotals: Record<string, Record<string, { code: string; symbol: string; total: number }>> = {};
       for (const week of allWeeks) {
-        const verifiedPayments = (allWeekPaymentsMap[week.id] ?? []).filter((p: any) => p.status === "verified");
+        const verifiedPayments = (allWeekPaymentsMap[week.id] ?? []).filter((p: any) => p.status === "verified" || p.status === "autoverificado");
         weekCurrencyTotals[week.id] = {};
         for (const p of verifiedPayments) {
           const currency = allCurrencies.find(c => c.id === p.currencyId);
@@ -1390,12 +1404,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const allCampaignsCw = await storage.getAllTutorDailyCampaigns();
       const todayPeruCw = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
 
-      const weekEnd = new Date(currentWeek.endDate + "T23:59:59");
-
       const tutorSummaries = tutors.map(tutor => {
         const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
         const commission = Number(tutor.commissionPercent) / 100;
-        const isActive = wasActiveForWeek(tutor, weekEnd);
+        const isActive = wasActiveForWeek(tutor, currentWeek.endDate);
 
         let grossIncomePen = 0;
         let currencyCommissionHalfPen = 0;
@@ -1481,7 +1493,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             const d = new Date(p.createdAt).toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
             return d >= week.startDate && d <= week.endDate;
           });
-          const verifiedPayments = weekPayments.filter(p => p.status === "verified");
+          const verifiedPayments = weekPayments.filter(p => p.status === "verified" || p.status === "autoverificado");
           const tutorPayments = verifiedPayments.filter(p => p.tutorId === user.id);
 
           // Mirror the admin formula exactly:
@@ -1495,12 +1507,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const dailyTt = advDisabledTt
             ? { totalUsd: 0, days: 0 }
             : dailyCampaignUsdForWeek(tutorCampaignsSelf, week.startDate, week.endDate, todayPeruSelf);
-          const weekEnd = new Date(week.endDate);
-          const selfActiveForWeek = wasActiveForWeek(user, weekEnd);
+          const selfActiveForWeek = wasActiveForWeek(user, week.endDate);
           const ownAdvPen = selfActiveForWeek && !advDisabledTt ? (ownAdvUsd + dailyTt.totalUsd) * usdRate * 0.5 : 0;
 
           const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
-          const activeTutorCount = tutors.filter(t => wasActiveForWeek(t, weekEnd)).length || 1;
+          const activeTutorCount = tutors.filter(t => wasActiveForWeek(t, week.endDate)).length || 1;
           const sharedAdvPen = selfActiveForWeek ? (sharedAdvertisingUsd * usdRate * 0.5) / activeTutorCount : 0;
 
           const tutorAdvertisingShare = ownAdvPen + sharedAdvPen;
@@ -1514,7 +1525,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             const rate = Number(currency?.exchangeRate ?? 1);
             const rawAmountPen = Number(p.amount) * rate;
             grossIncome += rawAmountPen;
-            if (currency?.code === "DIRECTO") {
+            if (p.status === "autoverificado") {
               grossDirect += rawAmountPen;
             } else {
               grossRegular += rawAmountPen;

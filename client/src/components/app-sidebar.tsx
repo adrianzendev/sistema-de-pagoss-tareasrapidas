@@ -25,7 +25,6 @@ import {
   LogOut,
   FileText,
   AlertTriangle,
-  Calendar,
   ShieldCheck,
   Phone,
   Activity,
@@ -33,8 +32,7 @@ import {
 
 const adminItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
-  { title: "Pagos", url: "/admin/payments", icon: CreditCard },
-  { title: "Semanas", url: "/admin/weeks", icon: Calendar },
+  { title: "Historial de Pagos", url: "/admin/payments", icon: CreditCard },
   { title: "Tutores", url: "/admin/tutors", icon: Users },
   { title: "Verificadores", url: "/admin/verifiers", icon: ShieldCheck },
   { title: "Divisas", url: "/admin/currencies", icon: Coins },
@@ -62,7 +60,7 @@ export function AppSidebar() {
   const isAdmin = user?.role === "admin";
   const isVerifier = user?.role === "verifier";
   const items = isAdmin ? adminItems : isVerifier ? verifierItems : tutorItems;
-  // Activo = la URL más larga que coincide, así /admin/tutors/:id/detail marca "Tutores" y no "Dashboard"
+  // Activo = la URL más larga que coincide, así /admin/tutors/:id/view marca "Tutores" y no "Dashboard"
   const activeUrl = items
     .map(i => i.url)
     .filter(u => location === u || location.startsWith(u + "/"))

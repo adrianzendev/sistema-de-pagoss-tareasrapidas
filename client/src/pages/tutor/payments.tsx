@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, RotateCcw, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
+import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, RotateCcw, ChevronRight, AlertCircle } from "lucide-react";
 import { PaymentActions } from "@/components/payment-actions";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { todayPeru } from "@/lib/utils";
@@ -19,6 +19,7 @@ import { WeekSelector } from "@/components/week-selector";
 const statusConfig: Record<string, { label: string; variant: "secondary" | "default" | "destructive" | "outline"; icon: typeof Clock; className: string }> = {
   pending: { label: "Pendiente", variant: "secondary", icon: Clock, className: "text-warning border-warning/40" },
   verified: { label: "Verificado", variant: "default", icon: CheckCircle, className: "text-success border-success/40" },
+  autoverificado: { label: "Autoverificado", variant: "default", icon: CheckCircle, className: "text-primary border-primary/40" },
   rejected: { label: "Rechazado", variant: "destructive", icon: XCircle, className: "text-destructive border-destructive/40" },
   refunded: { label: "Reembolsado", variant: "outline", icon: RotateCcw, className: "text-muted-foreground border-border" },
 };
@@ -161,97 +162,41 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
           );
         })()}
 
-        {/* Toggle detalles */}
+        {/* Ver más detalles: mismo modal y descripción que el panel de administración */}
         <button
-          onClick={() => setShowDetails(v => !v)}
-          className="w-full flex items-center justify-center gap-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          onClick={() => setShowDetails(true)}
+          className="text-xs text-primary hover:underline flex items-center gap-1"
           data-testid="button-toggle-details"
         >
-          {showDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          {showDetails ? "Ocultar detalles" : "Ver cálculo detallado"}
+          <ChevronRight className="h-3 w-3" />
+          Ver más detalles
         </button>
+      </CardContent>
 
-        {/* Detalles expandibles */}
-        {showDetails && (
-          <div className="space-y-3 border-t pt-2">
-
-            {/* Desglose por divisa */}
+      <Dialog open={showDetails} onOpenChange={setShowDetails}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Detalle de cálculo — S{currentWeek.weekNumber}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
             {(() => {
               const byCode: Record<string, number> = {};
               s.payments.forEach(p => {
                 const code = p.currency?.code ?? "?";
                 byCode[code] = (byCode[code] ?? 0) + Number(p.amount);
               });
-              const entries = Object.entries(byCode);
-              if (entries.length === 0) return null;
-              return (
-                <div className="space-y-1" data-testid="summary-currency-breakdown">
-                  <div className="text-sm font-normal text-muted-foreground">
-                    Cobrado por divisa
-                  </div>
-                  {entries.map(([code, total]) => (
-                    <div key={code} className="flex items-center justify-between text-sm font-normal text-muted-foreground">
-                      <span>Ingresos en {code}</span>
-                      <span className="text-right font-mono tabular-nums text-foreground">{fmt2(total)} {code}</span>
-                    </div>
-                  ))}
-                </div>
-              );
+              return Object.entries(byCode).map(([code, total]) => (
+                <div key={code} className="text-muted-foreground">{code} {fmt2(total)}</div>
+              ));
             })()}
-
-            {/* Fórmula paso a paso */}
-            <div className="space-y-2 text-sm font-normal text-muted-foreground" data-testid="summary-formula">
-              <div className="text-sm font-normal text-muted-foreground">Cálculo</div>
-
-              <div className="flex items-center justify-between" data-testid="summary-gross-income">
-                <span className="flex items-center gap-2">
-                  Ingresos brutos
-                </span>
-                <span className="text-right font-mono tabular-nums text-foreground">{pen(s.grossIncome)}</span>
-              </div>
-
-              <div className="flex items-center justify-between" data-testid="summary-advertising">
-                <span className="flex items-center gap-2">
-                  Publicidad tutor
-                </span>
-                <span className="text-right font-mono tabular-nums text-foreground">- {pen(s.advertisingCost)}</span>
-              </div>
-
-              <div className="flex items-center justify-between" data-testid="summary-advertising-agency">
-                <span className="flex items-center gap-2">
-                  Publicidad agencia
-                </span>
-                <span className="text-right font-mono tabular-nums text-foreground">- {pen(s.advertisingCost)}</span>
-              </div>
-
-              <div className="border-t border-border pt-1 flex items-center justify-between" data-testid="summary-net-income">
-                <span>Ingresos netos base</span>
-                <span className="text-right font-mono tabular-nums text-foreground">{pen(s.grossIncome - s.advertisingCost)}</span>
-              </div>
-
-              <div className="text-sm font-normal text-muted-foreground pt-3">Reparto</div>
-
-              <div className="flex items-center justify-between">
-                <span>Tutor ({s.commissionPercent}%)</span>
-                <span className="text-right font-mono tabular-nums text-foreground">{pen(s.tutorEarnings)}</span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1">
-                  Agencia ({100 - s.commissionPercent}%)
-                  {s.agencyEarnings < 0 && (
-                    <button onClick={() => setShowNegWarning(v => !v)} className="inline-flex">
-                      <AlertCircle className="h-3 w-3 text-destructive" />
-                    </button>
-                  )}
-                </span>
-                <span className="text-right font-mono tabular-nums text-foreground">{pen(s.agencyEarnings)}</span>
-              </div>
-            </div>
-
+            <div>Bruto: {pen(s.grossIncome)}</div>
+            <div>× {s.commissionPercent}% = {pen(s.netIncome)}</div>
+            <div>− Publicidad: {pen(s.advertisingCost)}</div>
+            <div className="font-semibold text-foreground">Tutor: {pen(s.tutorEarnings)}</div>
+            <div className="text-muted-foreground">Agencia: {pen(s.agencyEarnings)}</div>
           </div>
-        )}
-      </CardContent>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
