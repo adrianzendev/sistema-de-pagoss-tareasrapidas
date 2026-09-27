@@ -7,6 +7,8 @@ const vapidSubject = process.env.VAPID_SUBJECT || "mailto:admin@tutorpay.app";
 
 if (vapidPublicKey && vapidPrivateKey) {
   webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+} else {
+  console.warn("VAPID_PUBLIC_KEY o VAPID_PRIVATE_KEY vacías: las notificaciones push no se enviarán.");
 }
 
 export function getVapidPublicKey(): string {
@@ -27,6 +29,8 @@ async function sendToUser(userId: string, payload: object): Promise<void> {
     } catch (error: any) {
       if (error.statusCode === 410 || error.statusCode === 404) {
         await storage.deletePushSubscription(sub.endpoint);
+      } else {
+        console.error("Error enviando notificación push:", error);
       }
     }
   }
@@ -46,6 +50,8 @@ async function sendToRole(role: string, payload: object): Promise<void> {
     } catch (error: any) {
       if (error.statusCode === 410 || error.statusCode === 404) {
         await storage.deletePushSubscription(sub.endpoint);
+      } else {
+        console.error("Error enviando notificación push:", error);
       }
     }
   }
