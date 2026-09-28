@@ -16,6 +16,23 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { todayPeru } from "@/lib/utils";
 import { WeekSelector } from "@/components/week-selector";
 
+function ProofImagePreview({ paymentId }: { paymentId: string }) {
+  const { data, isLoading } = useQuery<{ proofImage: string | null }>({
+    queryKey: ["/api/tutor/payments", paymentId, "proof"],
+    queryFn: async () => {
+      const res = await fetch(`/api/tutor/payments/${paymentId}/proof`, { credentials: "include" });
+      if (!res.ok) throw new Error("Error al cargar comprobante");
+      return res.json();
+    },
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+
+  if (isLoading) return <Skeleton className="w-full h-64 rounded-lg" />;
+  if (!data?.proofImage) return null;
+  return <img src={data.proofImage} alt="Comprobante" className="w-full rounded-lg" />;
+}
+
 const statusConfig: Record<string, { label: string; variant: "secondary" | "default" | "destructive" | "outline"; icon: typeof Clock; className: string }> = {
   pending: { label: "Pendiente", variant: "secondary", icon: Clock, className: "text-warning border-warning/40" },
   verified: { label: "Verificado", variant: "default", icon: CheckCircle, className: "text-success border-success/40" },
@@ -237,7 +254,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
 
 export default function TutorPaymentsPage() {
   const { user } = useAuth();
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewPaymentId, setPreviewPaymentId] = useState<string | null>(null);
   const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
 
   const { data: weeks } = useQuery<Week[]>({
@@ -355,13 +372,13 @@ export default function TutorPaymentsPage() {
                         <span className="text-xs text-muted-foreground ml-1">{payment.currency?.code ?? ""}</span>
                       </TableCell>
                       <TableCell className="text-center">
-                        {payment.proofImage ? (
+                        {payment.hasProof ? (
                           <button
-                            onClick={() => setPreviewImage(payment.proofImage!)}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-sm overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
+                            onClick={() => setPreviewPaymentId(payment.id)}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-sm border hover:bg-accent transition-colors mx-auto"
                             data-testid={`button-proof-${payment.id}`}
                           >
-                            <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
+                            <ImageIcon className="h-4 w-4 text-primary" />
                           </button>
                         ) : (
                           <div className="inline-flex items-center justify-center w-8 h-8 rounded-sm border mx-auto">
@@ -398,18 +415,14 @@ export default function TutorPaymentsPage() {
 
 
 
-      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+      <Dialog open={!!previewPaymentId} onOpenChange={() => setPreviewPaymentId(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>Comprobante de Pago</DialogTitle>
           </DialogHeader>
-          {previewImage && (
+          {previewPaymentId && (
             <div className="overflow-y-auto flex-1">
-              <img
-                src={previewImage}
-                alt="Comprobante"
-                className="w-full rounded-lg"
-              />
+              <ProofImagePreview key={previewPaymentId} paymentId={previewPaymentId} />
             </div>
           )}
         </DialogContent>

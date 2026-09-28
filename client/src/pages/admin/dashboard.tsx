@@ -98,7 +98,6 @@ export default function AdminDashboard() {
     );
     apiRequest("PATCH", "/api/auth/preferences", { dashboardPeriodFilter: value }).catch(console.error);
   };
-  const [expandedAdCosts, setExpandedAdCosts] = useState<Record<string, boolean>>({});
   const [detailsCell, setDetailsCell] = useState<{
     tutorName: string;
     weekNumber: number;
@@ -355,36 +354,6 @@ export default function AdminDashboard() {
                                   <span className="text-xs text-muted-foreground/60">Cantidad:</span>
                                   <span className="text-xs text-foreground">{cell?.paymentCount ?? 0} pagos</span>
                                 </div>
-                                {isCurrentWeek && (
-                                  <div className="mt-1" onClick={e => e.stopPropagation()}>
-                                    <div className="flex justify-end">
-                                      <button
-                                        className="flex items-center gap-1 text-muted-foreground/60 hover:text-foreground transition-colors"
-                                        onClick={() => setExpandedAdCosts(prev => ({ ...prev, [tutor.id]: !(prev[tutor.id] ?? false) }))}
-                                        data-testid={`btn-toggle-ad-costs-${tutor.id}`}
-                                      >
-                                        {(expandedAdCosts[tutor.id] ?? false) ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                                        Más detalles
-                                      </button>
-                                    </div>
-                                    {(expandedAdCosts[tutor.id] ?? false) && (() => {
-                                      const pen = cell?.tutorAdvertisingShare ?? 0;
-                                      const half = usdRate > 0 ? pen / usdRate : 0;
-                                      return (
-                                        <div className="mt-1">
-                                          <div className="flex items-baseline justify-between gap-1">
-                                            <span className="text-xs text-muted-foreground/60">Publicidad USD:</span>
-                                            <span className="text-xs text-muted-foreground/40">USD {half.toFixed(2)}</span>
-                                          </div>
-                                          <div className="flex items-baseline justify-between gap-1">
-                                            <span className="text-xs text-muted-foreground/60">Publicidad PEN:</span>
-                                            <span className="text-xs text-muted-foreground/40">PEN {pen.toFixed(2)}</span>
-                                          </div>
-                                        </div>
-                                      );
-                                    })()}
-                                  </div>
-                                )}
                                 <div className="flex justify-end mt-1" onClick={e => e.stopPropagation()}>
                                   <PaidToggleButton
                                     tutorId={tutor.id}
@@ -462,6 +431,7 @@ export default function AdminDashboard() {
                             {(() => {
                               const sharedUsd = Number(w.sharedAdvertisingUsd ?? 0);
                               const ownUsd = tutorsWithAnyPayment.reduce((sum, t) => {
+                                if (matrix[t.id]?.[w.id]?.wasActive === false) return sum;
                                 const v = tutorWeekAdvMap[t.id]?.[w.id] ?? Number((t as any).advertisingCostUsd ?? 0);
                                 return sum + v;
                               }, 0);
@@ -476,16 +446,10 @@ export default function AdminDashboard() {
                               }
                               const totalPen = totalUsd * usdRate;
                               return (
-                                <>
-                                  <div className="flex items-baseline justify-between gap-1 leading-4">
-                                    <span className="text-muted-foreground/60">Publicidad USD:</span>
-                                    <span className="text-muted-foreground/40">−USD {totalUsd.toFixed(2)}</span>
-                                  </div>
-                                  <div className="flex items-baseline justify-between gap-1 leading-4">
-                                    <span className="text-muted-foreground/60">Publicidad PEN:</span>
-                                    <span className="text-muted-foreground/60">{`−${fmt(totalPen)}`}</span>
-                                  </div>
-                                </>
+                                <div className="flex items-baseline justify-between gap-1 leading-4">
+                                  <span className="text-muted-foreground/60">Publicidad (USD {totalUsd.toFixed(2)}):</span>
+                                  <span className="text-muted-foreground/60">{`−${fmt(totalPen)}`}</span>
+                                </div>
                               );
                             })()}
                             <div className="flex items-baseline justify-between gap-1 leading-4">

@@ -108,6 +108,7 @@ export const tutorWeekAdvertising = pgTable("tutor_week_advertising", {
   weekId: varchar("week_id").notNull().references(() => weeks.id, { onDelete: "cascade" }),
   advertisingCostUsd: decimal("advertising_cost_usd", { precision: 12, scale: 2 }).notNull().default("0"),
   disabled: boolean("disabled").notNull().default(false),
+  active: boolean("active").notNull().default(true),
 });
 
 export type TutorWeekAdvertising = typeof tutorWeekAdvertising.$inferSelect;

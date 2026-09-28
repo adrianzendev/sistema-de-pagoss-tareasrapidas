@@ -16,14 +16,33 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { PaidToggleButton } from "@/components/paid-toggle-button";
+import { WeekActiveToggleButton } from "@/components/week-active-toggle-button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { PaymentWithDetails, Week } from "@shared/schema";
 import { todayPeru } from "@/lib/utils";
 import { WeekSelector } from "@/components/week-selector";
 
+function ProofImagePreview({ paymentId }: { paymentId: string }) {
+  const { data, isLoading } = useQuery<{ proofImage: string | null }>({
+    queryKey: ["/api/admin/payments", paymentId, "proof"],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/payments/${paymentId}/proof`, { credentials: "include" });
+      if (!res.ok) throw new Error("Error al cargar comprobante");
+      return res.json();
+    },
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+
+  if (isLoading) return <Skeleton className="w-full h-64 rounded-lg" />;
+  if (!data?.proofImage) return null;
+  return <img src={data.proofImage} alt="Comprobante" className="w-full rounded-lg" />;
+}
+
 type WeekPaidMatrix = {
   weekPaidMap: Record<string, string[]>;
+  tutorWeekActiveMap: Record<string, Record<string, boolean>>;
 };
 
 type TutorSettlement = {
@@ -68,7 +87,7 @@ export default function AdminTutorViewPage() {
   const { username } = useParams<{ username: string }>();
   const { toast } = useToast();
   const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewPaymentId, setPreviewPaymentId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [movePayment, setMovePayment] = useState<{ id: string; weekId: string } | null>(null);
 
@@ -179,6 +198,16 @@ export default function AdminTutorViewPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   {selectedWeek && tutor && (
+                    <WeekActiveToggleButton
+                      tutorId={tutor.id}
+                      tutorName={tutor.name}
+                      weekId={selectedWeek.id}
+                      weekNumber={selectedWeek.weekNumber}
+                      username={username!}
+                      isActive={matrixData?.tutorWeekActiveMap[tutor.id]?.[selectedWeek.id] ?? true}
+                    />
+                  )}
+                  {selectedWeek && tutor && (
                     <PaidToggleButton
                       tutorId={tutor.id}
                       tutorName={tutor.name}
@@ -261,12 +290,12 @@ export default function AdminTutorViewPage() {
                             <span className="text-xs text-muted-foreground ml-1">{payment.currency?.code ?? ""}</span>
                           </TableCell>
                           <TableCell className="text-center">
-                            {payment.proofImage ? (
+                            {payment.hasProof ? (
                               <button
-                                onClick={() => setPreviewImage(payment.proofImage!)}
-                                className="inline-flex items-center justify-center w-8 h-8 rounded-sm overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
+                                onClick={() => setPreviewPaymentId(payment.id)}
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-sm border hover:bg-accent transition-colors mx-auto"
                               >
-                                <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
+                                <ImageIcon className="h-4 w-4 text-primary" />
                               </button>
                             ) : (
                               <div className="inline-flex items-center justify-center w-8 h-8 rounded-sm border mx-auto">
@@ -433,14 +462,14 @@ export default function AdminTutorViewPage() {
         </div>
 
       {/* Image preview dialog */}
-      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+      <Dialog open={!!previewPaymentId} onOpenChange={() => setPreviewPaymentId(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>Comprobante de Pago</DialogTitle>
           </DialogHeader>
-          {previewImage && (
+          {previewPaymentId && (
             <div className="overflow-y-auto flex-1">
-              <img src={previewImage} alt="Comprobante" className="w-full rounded-lg" />
+              <ProofImagePreview key={previewPaymentId} paymentId={previewPaymentId} />
             </div>
           )}
         </DialogContent>

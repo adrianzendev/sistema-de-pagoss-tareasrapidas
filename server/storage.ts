@@ -142,6 +142,7 @@ export interface IStorage {
   setTutorWeekAdvertising(tutorId: string, weekId: string, cost: number): Promise<TutorWeekAdvertising>;
   getAllTutorWeekAdvertising(): Promise<TutorWeekAdvertising[]>;
   setTutorWeekAdvertisingDisabled(tutorId: string, weekId: string, disabled: boolean, defaultCost: number): Promise<TutorWeekAdvertising>;
+  setTutorWeekActive(tutorId: string, weekId: string, active: boolean, defaultCost: number): Promise<TutorWeekAdvertising>;
 
   // Tutor Daily Campaigns
   getTutorDailyCampaigns(tutorId: string): Promise<TutorDailyCampaign[]>;
@@ -361,14 +362,31 @@ export class DatabaseStorage implements IStorage {
     }
 
     const rows = await db
-      .select({ payment: payments, tutor: users, currency: currencies })
+      .select({
+        payment: {
+          id: payments.id,
+          tutorId: payments.tutorId,
+          amount: payments.amount,
+          currencyId: payments.currencyId,
+          clientNumber: payments.clientNumber,
+          status: payments.status,
+          notes: payments.notes,
+          exchangeRateSnapshot: payments.exchangeRateSnapshot,
+          createdAt: payments.createdAt,
+          verifiedAt: payments.verifiedAt,
+          verifiedBy: payments.verifiedBy,
+          hasProof: sql<boolean>`${payments.proofImage} IS NOT NULL`,
+        },
+        tutor: users,
+        currency: currencies,
+      })
       .from(payments)
       .leftJoin(users, eq(payments.tutorId, users.id))
       .leftJoin(currencies, eq(payments.currencyId, currencies.id))
       .where(whereClause)
       .orderBy(desc(payments.createdAt));
 
-    return rows.map(r => ({ ...r.payment, tutor: r.tutor ?? undefined, currency: r.currency ?? undefined }));
+    return rows.map(r => ({ ...r.payment, proofImage: null, tutor: r.tutor ?? undefined, currency: r.currency ?? undefined }));
   }
 
   // Blacklist
@@ -646,7 +664,20 @@ export class DatabaseStorage implements IStorage {
     const week = await this.getWeek(weekId);
     if (!week) return [];
     const result = await db
-      .select()
+      .select({
+        id: payments.id,
+        tutorId: payments.tutorId,
+        amount: payments.amount,
+        currencyId: payments.currencyId,
+        clientNumber: payments.clientNumber,
+        status: payments.status,
+        notes: payments.notes,
+        exchangeRateSnapshot: payments.exchangeRateSnapshot,
+        createdAt: payments.createdAt,
+        verifiedAt: payments.verifiedAt,
+        verifiedBy: payments.verifiedBy,
+        hasProof: sql<boolean>`${payments.proofImage} IS NOT NULL`,
+      })
       .from(payments)
       .where(
         and(
@@ -655,17 +686,22 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(desc(payments.createdAt));
-    const paymentDetails: PaymentWithDetails[] = [];
-    for (const payment of result) {
-      const [currency] = await db.select().from(currencies).where(eq(currencies.id, payment.currencyId));
-      let verifier: User | undefined;
-      if (payment.verifiedBy) {
-        const [v] = await db.select().from(users).where(eq(users.id, payment.verifiedBy));
-        if (v) { const { password, ...safeV } = v; verifier = safeV as User; }
-      }
-      paymentDetails.push({ ...payment, currency, verifier });
-    }
-    return paymentDetails;
+
+    const currencyIds = Array.from(new Set(result.map(p => p.currencyId)));
+    const verifierIds = Array.from(new Set(result.map(p => p.verifiedBy).filter((id): id is string => !!id)));
+    const [currencyRows, verifierRows] = await Promise.all([
+      currencyIds.length ? db.select().from(currencies).where(inArray(currencies.id, currencyIds)) : Promise.resolve([]),
+      verifierIds.length ? db.select().from(users).where(inArray(users.id, verifierIds)) : Promise.resolve([]),
+    ]);
+    const currencyMap = new Map(currencyRows.map(c => [c.id, c]));
+    const verifierMap = new Map(verifierRows.map(v => { const { password, ...safe } = v; return [v.id, safe as User]; }));
+
+    return result.map(payment => ({
+      ...payment,
+      proofImage: null,
+      currency: currencyMap.get(payment.currencyId),
+      verifier: payment.verifiedBy ? verifierMap.get(payment.verifiedBy) : undefined,
+    }));
   }
 
   // Agency Settings
@@ -799,6 +835,21 @@ export class DatabaseStorage implements IStorage {
     }
     const [rec] = await db.insert(tutorWeekAdvertising)
       .values({ tutorId, weekId, advertisingCostUsd: String(defaultCost), disabled })
+      .returning();
+    return rec;
+  }
+
+  async setTutorWeekActive(tutorId: string, weekId: string, active: boolean, defaultCost: number): Promise<TutorWeekAdvertising> {
+    const existing = await this.getTutorWeekAdvertising(tutorId, weekId);
+    if (existing) {
+      const [rec] = await db.update(tutorWeekAdvertising)
+        .set({ active })
+        .where(and(eq(tutorWeekAdvertising.tutorId, tutorId), eq(tutorWeekAdvertising.weekId, weekId)))
+        .returning();
+      return rec;
+    }
+    const [rec] = await db.insert(tutorWeekAdvertising)
+      .values({ tutorId, weekId, advertisingCostUsd: String(defaultCost), active })
       .returning();
     return rec;
   }

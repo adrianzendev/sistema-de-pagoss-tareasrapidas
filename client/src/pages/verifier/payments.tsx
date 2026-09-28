@@ -21,6 +21,23 @@ import { CheckCircle, XCircle, Image as ImageIcon, ChevronLeft, ChevronRight, X 
 import { todayPeru } from "@/lib/utils";
 import { WeekSelector } from "@/components/week-selector";
 
+function ProofImagePreview({ paymentId }: { paymentId: string }) {
+  const { data, isLoading } = useQuery<{ proofImage: string | null }>({
+    queryKey: ["/api/verifier/payments", paymentId, "proof"],
+    queryFn: async () => {
+      const res = await fetch(`/api/verifier/payments/${paymentId}/proof`, { credentials: "include" });
+      if (!res.ok) throw new Error("Error al cargar comprobante");
+      return res.json();
+    },
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+
+  if (isLoading) return <Skeleton className="w-full h-64 rounded-lg" />;
+  if (!data?.proofImage) return null;
+  return <img src={data.proofImage} alt="Comprobante" className="w-full rounded-lg" />;
+}
+
 const statusConfig: Record<string, { label: string; className: string }> = {
   pending:  { label: "Pendiente",   className: "text-warning border-warning/40" },
   verified: { label: "Verificado",  className: "text-success border-success/40" },
@@ -139,13 +156,13 @@ export default function VerifierPaymentsPage() {
                           {Number(payment.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })} {payment.currency?.code}
                         </TableCell>
                         <TableCell className="text-center">
-                          {payment.proofImage ? (
+                          {payment.hasProof ? (
                             <button
                               onClick={() => setPreviewPayment(payment)}
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-sm overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-sm border hover:bg-accent transition-colors mx-auto"
                               data-testid={`button-proof-${payment.id}`}
                             >
-                              <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
+                              <ImageIcon className="h-4 w-4 text-primary" />
                             </button>
                           ) : (
                             <div className="inline-flex items-center justify-center w-8 h-8 rounded-sm border mx-auto">
@@ -246,7 +263,7 @@ export default function VerifierPaymentsPage() {
 
       {/* Preview image dialog */}
       {(() => {
-        const paymentsWithImage = sortedPayments.filter(p => p.proofImage);
+        const paymentsWithImage = sortedPayments.filter(p => p.hasProof);
         const currentIdx = previewPayment ? paymentsWithImage.findIndex(p => p.id === previewPayment.id) : -1;
         const hasPrev = currentIdx > 0;
         const hasNext = currentIdx < paymentsWithImage.length - 1;
@@ -285,9 +302,7 @@ export default function VerifierPaymentsPage() {
 
               {/* Image */}
               <div className="overflow-y-auto flex-1 p-3">
-                {previewPayment?.proofImage && (
-                  <img src={previewPayment.proofImage} alt="Comprobante" className="w-full rounded-lg" />
-                )}
+                {previewPayment && <ProofImagePreview key={previewPayment.id} paymentId={previewPayment.id} />}
               </div>
 
               {/* Actions for pending */}

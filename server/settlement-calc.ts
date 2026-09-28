@@ -70,16 +70,17 @@ export function computeWeekTutorSettlement(params: {
   activeTutorCount: number;
   weekAdvOverrideUsd: number | undefined;
   weekAdvDisabled: boolean;
+  weekActiveOverride?: boolean;
   campaigns: TutorDailyCampaign[];
   todayPeru: string;
 }): WeekTutorSettlement {
   const {
     tutor, verifiedPayments, allCurrencies, usdRate, weekStartDate, weekEndDate,
-    sharedAdvertisingUsd, activeTutorCount, weekAdvOverrideUsd, weekAdvDisabled, campaigns, todayPeru,
+    sharedAdvertisingUsd, activeTutorCount, weekAdvOverrideUsd, weekAdvDisabled, weekActiveOverride, campaigns, todayPeru,
   } = params;
 
   const commission = Number(tutor.commissionPercent) / 100;
-  const wasActive = wasActiveForWeek(tutor, weekEndDate);
+  const wasActive = weekActiveOverride === false ? false : wasActiveForWeek(tutor, weekEndDate);
 
   const ownAdvUsd = weekAdvOverrideUsd ?? Number(tutor.advertisingCostUsd ?? 0);
   const daily = weekAdvDisabled

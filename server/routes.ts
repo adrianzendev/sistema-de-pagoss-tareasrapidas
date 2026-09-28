@@ -227,7 +227,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const tutorPayments = verifiedPayments.filter(p => p.tutorId === user.id);
 
         const weekAdvRec = allTutorWeekAdv.find(r => r.tutorId === user.id && r.weekId === week.id);
-        const activeTutorCount = tutors.filter(t => wasActiveForWeek(t, week.endDate)).length || 1;
+        const activeTutorCount = tutors.filter(t => {
+          const rec = allTutorWeekAdv.find(r => r.tutorId === t.id && r.weekId === week.id);
+          if (rec?.active === false) return false;
+          return wasActiveForWeek(t, week.endDate);
+        }).length || 1;
         const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
 
         const s = computeWeekTutorSettlement({
@@ -241,6 +245,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           activeTutorCount,
           weekAdvOverrideUsd: weekAdvRec ? Number(weekAdvRec.advertisingCostUsd) : undefined,
           weekAdvDisabled: !!weekAdvRec?.disabled,
+          weekActiveOverride: weekAdvRec?.active,
           campaigns: tutorCampaigns,
           todayPeru,
         });
@@ -740,6 +745,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json(payments);
   });
 
+  app.get("/api/tutor/payments/:id/proof", requireAuth, async (req, res) => {
+    const user = await storage.getUser(req.session.userId!);
+    if (!user || user.role !== "tutor") {
+      return res.status(403).json({ message: "Acceso denegado" });
+    }
+    const payment = await storage.getPaymentById(req.params.id);
+    if (!payment || payment.tutorId !== user.id) {
+      return res.status(404).json({ message: "Pago no encontrado" });
+    }
+    res.json({ proofImage: payment.proofImage });
+  });
+
   app.post("/api/tutor/payments/verified", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser(req.session.userId!);
@@ -955,6 +972,26 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // Toggle activo/inactivo de un tutor solo para una semana puntual
+  app.patch("/api/admin/tutors/:tutorId/week-active/:weekId/toggle", requireAdmin, async (req, res) => {
+    try {
+      const active = req.body.active !== false;
+      const tutor = await storage.getUser(req.params.tutorId);
+      if (!tutor) return res.status(404).json({ message: "Tutor no encontrado" });
+      const week = await storage.getWeek(req.params.weekId);
+      if (!week) return res.status(404).json({ message: "Semana no encontrada" });
+      const rec = await storage.setTutorWeekActive(
+        req.params.tutorId,
+        req.params.weekId,
+        active,
+        Number(tutor.advertisingCostUsd ?? 0),
+      );
+      res.json(rec);
+    } catch (e) {
+      res.status(500).json({ message: "Error al cambiar estado semanal" });
+    }
+  });
+
   // Daily advertising campaigns
   app.get("/api/admin/tutors/:tutorId/daily-campaigns", requireAdmin, async (req, res) => {
     try {
@@ -1042,18 +1079,21 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
       const advertisingInSoles = sharedAdvertisingUsd * usdRate;
 
-      const activeTutorCountForWeek = tutors.filter(t => wasActiveForWeek(t, week.endDate)).length || 1;
-
       // Load per-week advertising overrides for this week
       const weekAdvRecords = await storage.getAllTutorWeekAdvertising();
       const weekAdvByTutor: Record<string, number> = {};
       const weekAdvDisabledByTutor: Record<string, boolean> = {};
+      const weekActiveByTutor: Record<string, boolean> = {};
       for (const r of weekAdvRecords) {
         if (r.weekId === week.id) {
           weekAdvByTutor[r.tutorId] = Number(r.advertisingCostUsd);
           weekAdvDisabledByTutor[r.tutorId] = !!r.disabled;
+          weekActiveByTutor[r.tutorId] = r.active;
         }
       }
+      const activeTutorCountForWeek = tutors.filter(t =>
+        weekActiveByTutor[t.id] === false ? false : wasActiveForWeek(t, week.endDate)
+      ).length || 1;
       const allCampaigns = await storage.getAllTutorDailyCampaigns();
       const todayPeru = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
 
@@ -1071,6 +1111,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           activeTutorCount: activeTutorCountForWeek,
           weekAdvOverrideUsd: tutor.id in weekAdvByTutor ? weekAdvByTutor[tutor.id] : undefined,
           weekAdvDisabled: !!weekAdvDisabledByTutor[tutor.id],
+          weekActiveOverride: weekActiveByTutor[tutor.id],
           campaigns: allCampaigns.filter(c => c.tutorId === tutor.id),
           todayPeru,
         });
@@ -1153,11 +1194,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const todayPeruMatrix = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
       const tutorWeekAdvMap: Record<string, Record<string, number>> = {};
       const tutorWeekAdvDisabledMap: Record<string, Record<string, boolean>> = {};
+      const tutorWeekActiveMap: Record<string, Record<string, boolean>> = {};
       for (const r of allTutorWeekAdv) {
         if (!tutorWeekAdvMap[r.tutorId]) tutorWeekAdvMap[r.tutorId] = {};
         tutorWeekAdvMap[r.tutorId][r.weekId] = Number(r.advertisingCostUsd);
         if (!tutorWeekAdvDisabledMap[r.tutorId]) tutorWeekAdvDisabledMap[r.tutorId] = {};
         tutorWeekAdvDisabledMap[r.tutorId][r.weekId] = !!r.disabled;
+        if (!tutorWeekActiveMap[r.tutorId]) tutorWeekActiveMap[r.tutorId] = {};
+        tutorWeekActiveMap[r.tutorId][r.weekId] = r.active;
       }
 
       // Fetch all payments for the relevant weeks in one query
@@ -1188,7 +1232,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const verifiedPayments = weekPayments.filter((p: any) => p.status === "verified" || p.status === "autoverificado");
 
         const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
-        const activeTutorCount = tutors.filter(t => wasActiveForWeek(t, week.endDate)).length || 1;
+        const activeTutorCount = tutors.filter(t =>
+          tutorWeekActiveMap[t.id]?.[week.id] === false ? false : wasActiveForWeek(t, week.endDate)
+        ).length || 1;
 
         for (const tutor of tutors) {
           const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
@@ -1213,6 +1259,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             activeTutorCount,
             weekAdvOverrideUsd: tutorWeekAdvMap[tutor.id]?.[week.id],
             weekAdvDisabled: !!tutorWeekAdvDisabledMap[tutor.id]?.[week.id],
+            weekActiveOverride: tutorWeekActiveMap[tutor.id]?.[week.id],
             campaigns: allCampaignsMatrix.filter(c => c.tutorId === tutor.id),
             todayPeru: todayPeruMatrix,
           });
@@ -1251,7 +1298,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       const safeTutors = tutors.map(({ password: _pw, ...safe }) => safe);
-      res.json({ weeks: allWeeks, tutors: safeTutors, matrix, currencyTotals: Object.values(currencyTotals), weekCurrencyTotals, weekPaidMap, tutorWeekAdvMap, tutorWeekAdvDisabledMap, usdRate });
+      res.json({ weeks: allWeeks, tutors: safeTutors, matrix, currencyTotals: Object.values(currencyTotals), weekCurrencyTotals, weekPaidMap, tutorWeekAdvMap, tutorWeekAdvDisabledMap, tutorWeekActiveMap, usdRate });
     } catch (error) {
       console.error("Error getting settlements matrix:", error);
       res.status(500).json({ message: "Error al obtener matriz" });
@@ -1324,7 +1371,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const tutorPayments = verifiedPayments.filter(p => p.tutorId === user.id);
 
           const weekAdvRec = allTutorWeekAdv.find(r => r.tutorId === user.id && r.weekId === week.id);
-          const activeTutorCount = tutors.filter(t => wasActiveForWeek(t, week.endDate)).length || 1;
+          const activeTutorCount = tutors.filter(t => {
+            const rec = allTutorWeekAdv.find(r => r.tutorId === t.id && r.weekId === week.id);
+            if (rec?.active === false) return false;
+            return wasActiveForWeek(t, week.endDate);
+          }).length || 1;
           const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
 
           const s = computeWeekTutorSettlement({
@@ -1338,6 +1389,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             activeTutorCount,
             weekAdvOverrideUsd: weekAdvRec ? Number(weekAdvRec.advertisingCostUsd) : undefined,
             weekAdvDisabled: !!weekAdvRec?.disabled,
+            weekActiveOverride: weekAdvRec?.active,
             campaigns: tutorCampaignsSelf,
             todayPeru: todayPeruSelf,
           });
@@ -1442,6 +1494,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const weekId = req.query.weekId as string | undefined;
     const verifierPayments = await storage.getPaymentsByVerifier(req.session.userId!, weekId);
     res.json(verifierPayments);
+  });
+
+  app.get("/api/verifier/payments/:id/proof", requireVerifier, async (req, res) => {
+    const payment = await storage.getPaymentById(req.params.id);
+    if (!payment) {
+      return res.status(404).json({ message: "Pago no encontrado" });
+    }
+    const verifierCurrencies = await storage.getCurrenciesByVerifier(req.session.userId!);
+    const owned = verifierCurrencies.some(c => c.id === payment.currencyId);
+    if (!owned) {
+      return res.status(403).json({ message: "No tienes permiso para ver este pago" });
+    }
+    res.json({ proofImage: payment.proofImage });
   });
 
   app.patch("/api/verifier/payments/:id", requireVerifier, async (req, res) => {
