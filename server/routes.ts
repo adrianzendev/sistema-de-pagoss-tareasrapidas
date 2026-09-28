@@ -12,41 +12,12 @@ import { nowPeru, toDateStr, todayPeru, addDays, weekRangeOf, peruDateOf } from 
 import { DEFAULT_TUTOR_PASSWORD, hashPassword, parseNewPassword, PasswordValidationError } from "./utils/password";
 import { eq, sql } from "drizzle-orm";
 import { getVapidPublicKey, notifyPaymentStatusChange, notifyNewPaymentRequest } from "./push";
+import { computeWeekTutorSettlement, wasActiveForWeek } from "./settlement-calc";
 
 declare module "express-session" {
   interface SessionData {
     userId?: string;
   }
-}
-
-/** Sum of daily-campaign charges (USD, full amount before 50/50 split) that fall inside a week.
- *  Dates are YYYY-MM-DD strings (Peru); comparison is lexicographic. Active campaigns accrue up to today. */
-function dailyCampaignUsdForWeek(
-  campaigns: Array<{ dailyCostUsd: string; startDate: string; endDate: string | null }>,
-  weekStart: string,
-  weekEnd: string,
-  todayStr: string,
-): { totalUsd: number; days: number } {
-  let totalUsd = 0;
-  let days = 0;
-  for (const c of campaigns) {
-    const effectiveEnd = c.endDate ?? todayStr;
-    const from = c.startDate > weekStart ? c.startDate : weekStart;
-    const to = effectiveEnd < weekEnd ? effectiveEnd : weekEnd;
-    if (to < from) continue;
-    const d = Math.round((Date.parse(to + "T00:00:00Z") - Date.parse(from + "T00:00:00Z")) / 86400000) + 1;
-    days += d;
-    totalUsd += d * Number(c.dailyCostUsd);
-  }
-  return { totalUsd, days };
-}
-
-/** Historical active check: was the tutor considered active during the week ending on weekEndDate (YYYY-MM-DD, hora Perú)? */
-function wasActiveForWeek(tutor: { activatedAt?: Date | string | null; deactivatedAt?: Date | string | null }, weekEndDate: string): boolean {
-  if (tutor.activatedAt && peruDateOf(new Date(tutor.activatedAt)) > weekEndDate) return false;
-  // deactivatedAt <= weekEnd means they were deactivated before or when the week ended → inactive
-  if (tutor.deactivatedAt && peruDateOf(new Date(tutor.deactivatedAt)) <= weekEndDate) return false;
-  return true;
 }
 
 function requireAuth<P>(req: Request<P>, res: Response, next: () => void) {
@@ -199,21 +170,23 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json(tutors.map(({ password, ...t }) => t));
   });
 
-  app.get("/api/admin/tutors/:id/payments", requireAdmin, async (req, res) => {
-    const { id } = req.params;
+  app.get("/api/admin/tutors/:username/payments", requireAdmin, async (req, res) => {
+    const tutor = await storage.getUserByUsername(req.params.username);
+    if (!tutor || tutor.role !== "tutor") {
+      return res.status(404).json({ message: "Tutor no encontrado" });
+    }
     const { weekId } = req.query;
     if (weekId) {
-      const pays = await storage.getPaymentsByTutorAndWeek(id, weekId as string);
+      const pays = await storage.getPaymentsByTutorAndWeek(tutor.id, weekId as string);
       return res.json(pays);
     }
-    const pays = await storage.getPaymentsByTutor(id);
+    const pays = await storage.getPaymentsByTutor(tutor.id);
     res.json(pays);
   });
 
-  app.get("/api/admin/tutors/:id/settlement", requireAdmin, async (req, res) => {
+  app.get("/api/admin/tutors/:username/settlement", requireAdmin, async (req, res) => {
     try {
-      const { id } = req.params;
-      const user = await storage.getUser(id);
+      const user = await storage.getUserByUsername(req.params.username);
       if (!user || user.role !== "tutor") {
         return res.status(404).json({ message: "Tutor no encontrado" });
       }
@@ -250,66 +223,45 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const tutorPayments = verifiedPayments.filter(p => p.tutorId === user.id);
 
         const weekAdvRec = allTutorWeekAdv.find(r => r.tutorId === user.id && r.weekId === week.id);
-        const advDisabled = !!weekAdvRec?.disabled;
-        const ownAdvUsd = weekAdvRec !== undefined
-          ? Number(weekAdvRec.advertisingCostUsd)
-          : Number(user.advertisingCostUsd ?? 0);
-        const daily = advDisabled
-          ? { totalUsd: 0, days: 0 }
-          : dailyCampaignUsdForWeek(tutorCampaigns, week.startDate, week.endDate, todayPeru);
-        const selfActiveForWeek = wasActiveForWeek(user, week.endDate);
-        const ownAdvPen = selfActiveForWeek && !advDisabled ? (ownAdvUsd + daily.totalUsd) * usdRate * 0.5 : 0;
-
-        const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
         const activeTutorCount = tutors.filter(t => wasActiveForWeek(t, week.endDate)).length || 1;
-        const sharedAdvPen = selfActiveForWeek ? (sharedAdvertisingUsd * usdRate * 0.5) / activeTutorCount : 0;
+        const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
 
-        const tutorAdvertisingShare = ownAdvPen + sharedAdvPen;
-
-        let grossIncome = 0;
-        let grossRegular = 0;
-        let grossDirect = 0;
-        let currencyCommissionHalf = 0;
-        tutorPayments.forEach(p => {
-          const currency = allCurrencies.find(c => c.id === p.currencyId);
-          const rate = Number(currency?.exchangeRate ?? 1);
-          const rawAmountPen = Number(p.amount) * rate;
-          grossIncome += rawAmountPen;
-          if (p.status === "autoverificado") {
-            grossDirect += rawAmountPen;
-          } else {
-            grossRegular += rawAmountPen;
-            currencyCommissionHalf += rawAmountPen * (Number(currency?.commissionPercent ?? 0) / 100) * 0.5;
-          }
+        const s = computeWeekTutorSettlement({
+          tutor: user,
+          verifiedPayments: tutorPayments,
+          allCurrencies,
+          usdRate,
+          weekStartDate: week.startDate,
+          weekEndDate: week.endDate,
+          sharedAdvertisingUsd,
+          activeTutorCount,
+          weekAdvOverrideUsd: weekAdvRec ? Number(weekAdvRec.advertisingCostUsd) : undefined,
+          weekAdvDisabled: !!weekAdvRec?.disabled,
+          campaigns: tutorCampaigns,
+          todayPeru,
         });
-
-        const netIncome = grossIncome * commission;
-        const tutorEarnings = netIncome - tutorAdvertisingShare - currencyCommissionHalf;
-        const agencyEarnings = grossIncome * (1 - commission) - tutorAdvertisingShare - currencyCommissionHalf;
-        const tutorEarningsFromRegular = grossRegular * commission - tutorAdvertisingShare - currencyCommissionHalf;
-        const agencyEarningsFromDirect = grossDirect * (1 - commission);
-        const netTransfer = tutorEarningsFromRegular - agencyEarningsFromDirect;
 
         return {
           week,
           tutorId: user.id,
           tutorName: user.name,
           commissionPercent: Number(user.commissionPercent),
-          grossIncome,
-          grossRegular,
-          grossDirect,
-          advertisingCost: tutorAdvertisingShare,
-          tutorAdvertisingShare,
-          agencyAdvertisingShare: tutorAdvertisingShare,
+          grossIncome: s.grossIncome,
+          grossRegular: s.grossRegular,
+          grossDirect: s.grossDirect,
+          advertisingCost: s.tutorAdvertisingShare,
+          tutorAdvertisingShare: s.tutorAdvertisingShare,
+          agencyAdvertisingShare: s.tutorAdvertisingShare,
           sharedAdvertisingUsd,
           usdRate,
-          dailyAdvUsd: daily.totalUsd,
-          dailyAdvDays: daily.days,
-          weeklyAdvDisabled: !!weekAdvRec?.disabled,
-          netIncome,
-          tutorEarnings,
-          agencyEarnings,
-          netTransfer,
+          dailyAdvUsd: s.dailyAdvUsd,
+          dailyAdvDays: s.dailyAdvDays,
+          weeklyAdvDisabled: s.weeklyAdvDisabled,
+          netIncome: s.netIncome,
+          tutorEarnings: s.tutorEarnings,
+          agencyEarnings: s.agencyEarnings,
+          netTransfer: s.netTransfer,
+          currencyCommissionHalf: s.currencyCommissionHalf,
           payments: tutorPayments,
         };
       });
@@ -318,7 +270,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         settlements: weeklySettlements,
         settings: { agencyPercent, tutorPercent },
         commissionPercent: Number(user.commissionPercent),
-        tutor: { id: user.id, name: user.name, email: user.email },
+        tutor: { id: user.id, name: user.name, email: user.email, autoVerificaPagos: user.autoVerificaPagos },
       });
     } catch (error) {
       console.error("Error getting tutor settlement (admin):", error);
@@ -491,6 +443,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const period = req.query.period as string || "week";
     const payments = await storage.getPayments(period);
     res.json(payments);
+  });
+
+  app.get("/api/admin/payments/:id/proof", requireAdmin, async (req, res) => {
+    const proofImage = await storage.getPaymentProofImage(req.params.id);
+    res.json({ proofImage });
   });
 
   app.patch("/api/admin/payments/:id", requireAdmin, async (req, res) => {
@@ -1082,7 +1039,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const advertisingInSoles = sharedAdvertisingUsd * usdRate;
 
       const activeTutorCountForWeek = tutors.filter(t => wasActiveForWeek(t, week.endDate)).length || 1;
-      const tutorAdvertisingShare = (advertisingInSoles * 0.5) / activeTutorCountForWeek;
 
       // Load per-week advertising overrides for this week
       const weekAdvRecords = await storage.getAllTutorWeekAdvertising();
@@ -1100,64 +1056,42 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const settlements = tutors.map(tutor => {
         const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
 
-        let grossIncome = 0;
-        let grossDirect = 0;
-        let currencyCommissionHalf = 0;
-        tutorPayments.forEach(p => {
-          const currency = allCurrencies.find(c => c.id === p.currencyId);
-          const rate = Number((p as any).exchangeRateSnapshot ?? currency?.exchangeRate ?? 1);
-          const rawAmountPen = Number(p.amount) * rate;
-          grossIncome += rawAmountPen;
-          if (p.status === "autoverificado") {
-            grossDirect += rawAmountPen;
-          } else {
-            currencyCommissionHalf += rawAmountPen * (Number(currency?.commissionPercent ?? 0) / 100) * 0.5;
-          }
+        const s = computeWeekTutorSettlement({
+          tutor,
+          verifiedPayments: tutorPayments,
+          allCurrencies,
+          usdRate,
+          weekStartDate: week.startDate,
+          weekEndDate: week.endDate,
+          sharedAdvertisingUsd,
+          activeTutorCount: activeTutorCountForWeek,
+          weekAdvOverrideUsd: tutor.id in weekAdvByTutor ? weekAdvByTutor[tutor.id] : undefined,
+          weekAdvDisabled: !!weekAdvDisabledByTutor[tutor.id],
+          campaigns: allCampaigns.filter(c => c.tutorId === tutor.id),
+          todayPeru,
         });
-
-        const grossRegular = grossIncome - grossDirect;
-        const commission = Number(tutor.commissionPercent) / 100;
-        const isActiveForWeek = wasActiveForWeek(tutor, week.endDate);
-        const sharedAdvShare = isActiveForWeek ? tutorAdvertisingShare : 0;
-        const advDisabled = !!weekAdvDisabledByTutor[tutor.id];
-        const ownAdvUsd = weekAdvByTutor[tutor.id] ?? Number(tutor.advertisingCostUsd ?? 0);
-        const daily = advDisabled
-          ? { totalUsd: 0, days: 0 }
-          : dailyCampaignUsdForWeek(allCampaigns.filter(c => c.tutorId === tutor.id), week.startDate, week.endDate, todayPeru);
-        const ownAdvShare = isActiveForWeek && !advDisabled ? (ownAdvUsd + daily.totalUsd) * usdRate * 0.5 : 0;
-        const totalAdvShare = sharedAdvShare + ownAdvShare;
-        const netIncome = grossIncome * commission;
-        const tutorEarnings = netIncome - totalAdvShare - currencyCommissionHalf;
-        const agencyEarnings = grossIncome * (1 - commission) - totalAdvShare - currencyCommissionHalf;
-        const dailyAdvUsd = daily.totalUsd;
-        const dailyAdvDays = daily.days;
-
-        // netTransfer: positive = agency owes tutor, negative = tutor owes agency
-        const tutorEarningsFromRegular = grossRegular * commission - totalAdvShare - currencyCommissionHalf;
-        const agencyEarningsFromDirect = grossDirect * (1 - commission);
-        const netTransfer = tutorEarningsFromRegular - agencyEarningsFromDirect;
 
         return {
           week,
           tutorId: tutor.id,
           tutorName: tutor.name,
-          autoVerificaPagos: !!(tutor as any).autoVerificaPagos,
+          autoVerificaPagos: !!tutor.autoVerificaPagos,
           commissionPercent: Number(tutor.commissionPercent),
-          grossIncome,
-          grossDirect,
-          grossRegular,
-          advertisingCost: totalAdvShare,
-          tutorAdvertisingShare: totalAdvShare,
-          sharedAdvertisingShare: sharedAdvShare,
-          ownAdvertisingShare: ownAdvShare,
-          dailyAdvUsd,
-          dailyAdvDays,
-          weeklyAdvDisabled: !!weekAdvDisabledByTutor[tutor.id],
-          agencyAdvertisingShare: totalAdvShare,
-          netIncome,
-          tutorEarnings,
-          agencyEarnings,
-          netTransfer,
+          grossIncome: s.grossIncome,
+          grossDirect: s.grossDirect,
+          grossRegular: s.grossRegular,
+          advertisingCost: s.tutorAdvertisingShare,
+          tutorAdvertisingShare: s.tutorAdvertisingShare,
+          sharedAdvertisingShare: s.sharedAdvertisingShare,
+          ownAdvertisingShare: s.ownAdvertisingShare,
+          dailyAdvUsd: s.dailyAdvUsd,
+          dailyAdvDays: s.dailyAdvDays,
+          weeklyAdvDisabled: s.weeklyAdvDisabled,
+          agencyAdvertisingShare: s.tutorAdvertisingShare,
+          netIncome: s.netIncome,
+          tutorEarnings: s.tutorEarnings,
+          agencyEarnings: s.agencyEarnings,
+          netTransfer: s.netTransfer,
           payments: tutorPayments,
         };
       }).filter(s => s.payments.length > 0 || s.grossIncome > 0 || s.tutorAdvertisingShare > 0);
@@ -1250,59 +1184,43 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const verifiedPayments = weekPayments.filter((p: any) => p.status === "verified" || p.status === "autoverificado");
 
         const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
-        const advertisingInSoles = sharedAdvertisingUsd * usdRate;
         const activeTutorCount = tutors.filter(t => wasActiveForWeek(t, week.endDate)).length || 1;
-        const weekTutorAdShare = (advertisingInSoles * 0.5) / activeTutorCount;
 
         for (const tutor of tutors) {
           const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
 
-          let grossIncome = 0;
-          let grossDirect = 0;
-          let currencyCommissionHalf = 0;
           const cellCurrencies: Record<string, { code: string; symbol: string; total: number }> = {};
-          tutorPayments.forEach(p => {
+          for (const p of tutorPayments) {
             const currency = allCurrencies.find(c => c.id === p.currencyId);
-            const rate = Number((p as any).exchangeRateSnapshot ?? currency?.exchangeRate ?? 1);
-            const rawAmountPen = Number(p.amount) * rate;
-            grossIncome += rawAmountPen;
-            if (p.status === "autoverificado") {
-              grossDirect += rawAmountPen;
-            } else {
-              currencyCommissionHalf += rawAmountPen * (Number(currency?.commissionPercent ?? 0) / 100) * 0.5;
-            }
-            if (currency) {
-              const sym = currency.code === "USD" ? "$" : currency.code === "PEN" ? "S/." : currency.code;
-              if (!cellCurrencies[currency.id]) cellCurrencies[currency.id] = { code: currency.code, symbol: sym, total: 0 };
-              cellCurrencies[currency.id].total += Number(p.amount);
-            }
-          });
+            if (!currency) continue;
+            const sym = currency.code === "USD" ? "$" : currency.code === "PEN" ? "S/." : currency.code;
+            if (!cellCurrencies[currency.id]) cellCurrencies[currency.id] = { code: currency.code, symbol: sym, total: 0 };
+            cellCurrencies[currency.id].total += Number(p.amount);
+          }
 
-          const grossRegular = grossIncome - grossDirect;
-          const commission = Number(tutor.commissionPercent) / 100;
-          const tutorIsActive = wasActiveForWeek(tutor, week.endDate);
-          const sharedAdvShare = tutorIsActive ? weekTutorAdShare : 0;
-          const advDisabledMx = !!tutorWeekAdvDisabledMap[tutor.id]?.[week.id];
-          const weekOwnAdv = tutorWeekAdvMap[tutor.id]?.[week.id] ?? Number(tutor.advertisingCostUsd ?? 0);
-          const dailyMx = advDisabledMx
-            ? { totalUsd: 0, days: 0 }
-            : dailyCampaignUsdForWeek(allCampaignsMatrix.filter(c => c.tutorId === tutor.id), week.startDate, week.endDate, todayPeruMatrix);
-          const ownAdvShare = tutorIsActive && !advDisabledMx ? (weekOwnAdv + dailyMx.totalUsd) * usdRate * 0.5 : 0;
-          const totalAdvShare = sharedAdvShare + ownAdvShare;
-          const netIncome = grossIncome * commission;
-          const tutorEarnings = netIncome - totalAdvShare - currencyCommissionHalf;
-          const agencyEarnings = grossIncome * (1 - commission) - totalAdvShare - currencyCommissionHalf;
-          const tutorEarningsFromRegular = grossRegular * commission - totalAdvShare - currencyCommissionHalf;
-          const agencyEarningsFromDirect = grossDirect * (1 - commission);
-          const netTransfer = tutorEarningsFromRegular - agencyEarningsFromDirect;
+          const s = computeWeekTutorSettlement({
+            tutor,
+            verifiedPayments: tutorPayments,
+            allCurrencies,
+            usdRate,
+            weekStartDate: week.startDate,
+            weekEndDate: week.endDate,
+            sharedAdvertisingUsd,
+            activeTutorCount,
+            weekAdvOverrideUsd: tutorWeekAdvMap[tutor.id]?.[week.id],
+            weekAdvDisabled: !!tutorWeekAdvDisabledMap[tutor.id]?.[week.id],
+            campaigns: allCampaignsMatrix.filter(c => c.tutorId === tutor.id),
+            todayPeru: todayPeruMatrix,
+          });
 
           if (!matrix[tutor.id]) matrix[tutor.id] = {};
           matrix[tutor.id][week.id] = {
-            grossIncome, grossDirect, netIncome, tutorEarnings, agencyEarnings, netTransfer,
-            tutorAdvertisingShare: totalAdvShare,
+            grossIncome: s.grossIncome, grossDirect: s.grossDirect, netIncome: s.netIncome,
+            tutorEarnings: s.tutorEarnings, agencyEarnings: s.agencyEarnings, netTransfer: s.netTransfer,
+            tutorAdvertisingShare: s.tutorAdvertisingShare,
             paymentCount: tutorPayments.length,
             currencies: Object.values(cellCurrencies),
-            wasActive: tutorIsActive,
+            wasActive: s.wasActive,
           };
         }
       }
@@ -1362,101 +1280,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Admin: Current week summary per tutor (PEN)
-  app.get("/api/admin/current-week-summary", requireAdmin, async (req, res) => {
-    try {
-      const { todayPeru } = await import("./utils/peru-time");
-      const today = todayPeru();
-      const allWeeks = await storage.getWeeks();
-      const currentWeek = allWeeks.find(w => w.startDate <= today && w.endDate >= today);
-
-      const tutors = await storage.getTutors();
-      const allCurrencies = await storage.getCurrencies();
-      const settings = await storage.getAgencySettings();
-      const usdCurrency = allCurrencies.find(c => c.code === "USD");
-      const usdRate = Number(usdCurrency?.exchangeRate ?? 1);
-
-      if (!currentWeek) {
-        return res.json({ week: null, tutors: [], usdRate });
-      }
-
-      const weekPayments = await storage.getPaymentsByWeek(currentWeek.id);
-      const verifiedPayments = weekPayments.filter(p => p.status === "verified");
-
-      const sharedAdvertisingUsd = Number(currentWeek.sharedAdvertisingUsd ?? 0);
-      const sharedAdvertisingPen = sharedAdvertisingUsd * usdRate;
-
-      // Count active tutors with verified payments for shared ad split
-      const tutorIdsWithPayments = new Set(verifiedPayments.map(p => p.tutorId));
-      const activeTutorCount = tutorIdsWithPayments.size || 1;
-      const sharedAdvPerTutor = (sharedAdvertisingPen * 0.5) / activeTutorCount;
-
-      // Per-week advertising overrides
-      const allTutorWeekAdv = await storage.getAllTutorWeekAdvertising();
-      const weekAdvByTutor: Record<string, number> = {};
-      const weekAdvDisabledByTutor: Record<string, boolean> = {};
-      for (const r of allTutorWeekAdv) {
-        if (r.weekId === currentWeek.id) {
-          weekAdvByTutor[r.tutorId] = Number(r.advertisingCostUsd);
-          weekAdvDisabledByTutor[r.tutorId] = !!r.disabled;
-        }
-      }
-      const allCampaignsCw = await storage.getAllTutorDailyCampaigns();
-      const todayPeruCw = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
-
-      const tutorSummaries = tutors.map(tutor => {
-        const tutorPayments = verifiedPayments.filter(p => p.tutorId === tutor.id);
-        const commission = Number(tutor.commissionPercent) / 100;
-        const isActive = wasActiveForWeek(tutor, currentWeek.endDate);
-
-        let grossIncomePen = 0;
-        let currencyCommissionHalfPen = 0;
-        tutorPayments.forEach(p => {
-          const currency = allCurrencies.find(c => c.id === p.currencyId);
-          const rate = Number(currency?.exchangeRate ?? 1);
-          const rawAmountPen = Number(p.amount) * rate;
-          grossIncomePen += rawAmountPen;
-          currencyCommissionHalfPen += rawAmountPen * (Number(currency?.commissionPercent ?? 0) / 100) * 0.5;
-        });
-
-        const advDisabledCw = !!weekAdvDisabledByTutor[tutor.id];
-        const ownAdvUsd = weekAdvByTutor[tutor.id] ?? Number(tutor.advertisingCostUsd ?? 0);
-        const dailyCw = advDisabledCw
-          ? { totalUsd: 0, days: 0 }
-          : dailyCampaignUsdForWeek(allCampaignsCw.filter(c => c.tutorId === tutor.id), currentWeek.startDate, currentWeek.endDate, todayPeruCw);
-        const ownAdvPen = isActive && !advDisabledCw ? (ownAdvUsd + dailyCw.totalUsd) * usdRate * 0.5 : 0;
-        const sharedAdv = isActive && tutorPayments.length > 0 ? sharedAdvPerTutor : 0;
-        const totalAdvPen = sharedAdv + ownAdvPen;
-
-        const netIncomePen = grossIncomePen * commission;
-        const tutorEarningsPen = netIncomePen - totalAdvPen - currencyCommissionHalfPen;
-
-        return {
-          tutorId: tutor.id,
-          tutorName: tutor.name,
-          commissionPercent: Number(tutor.commissionPercent),
-          paymentCount: tutorPayments.length,
-          grossIncomePen,
-          totalAdvPen,
-          sharedAdvPen: sharedAdv,
-          ownAdvPen,
-          netIncomePen,
-          tutorEarningsPen,
-        };
-      });
-
-      res.json({
-        week: currentWeek,
-        tutors: tutorSummaries,
-        usdRate,
-        sharedAdvertisingPen,
-      });
-    } catch (error) {
-      console.error("Error getting current week summary:", error);
-      res.status(500).json({ message: "Error al obtener resumen" });
-    }
-  });
-
   // Tutor: Weekly Settlement View
   app.get("/api/tutor/settlement", requireAuth, async (req, res) => {
     try {
@@ -1496,76 +1319,46 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const verifiedPayments = weekPayments.filter(p => p.status === "verified" || p.status === "autoverificado");
           const tutorPayments = verifiedPayments.filter(p => p.tutorId === user.id);
 
-          // Mirror the admin formula exactly:
-          // 1) Own advertising (per-week override or tutor default): tutor pays 50%
-          // 2) Shared week advertising: 50% split equally among active tutors
           const weekAdvRec = allTutorWeekAdv.find(r => r.tutorId === user.id && r.weekId === week.id);
-          const advDisabledTt = !!weekAdvRec?.disabled;
-          const ownAdvUsd = weekAdvRec !== undefined
-            ? Number(weekAdvRec.advertisingCostUsd)
-            : Number(user.advertisingCostUsd ?? 0);
-          const dailyTt = advDisabledTt
-            ? { totalUsd: 0, days: 0 }
-            : dailyCampaignUsdForWeek(tutorCampaignsSelf, week.startDate, week.endDate, todayPeruSelf);
-          const selfActiveForWeek = wasActiveForWeek(user, week.endDate);
-          const ownAdvPen = selfActiveForWeek && !advDisabledTt ? (ownAdvUsd + dailyTt.totalUsd) * usdRate * 0.5 : 0;
-
-          const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
           const activeTutorCount = tutors.filter(t => wasActiveForWeek(t, week.endDate)).length || 1;
-          const sharedAdvPen = selfActiveForWeek ? (sharedAdvertisingUsd * usdRate * 0.5) / activeTutorCount : 0;
+          const sharedAdvertisingUsd = Number(week.sharedAdvertisingUsd ?? 0);
 
-          const tutorAdvertisingShare = ownAdvPen + sharedAdvPen;
-
-          let grossIncome = 0;
-          let grossRegular = 0;
-          let grossDirect = 0;
-          let currencyCommissionHalf = 0;
-          tutorPayments.forEach(p => {
-            const currency = allCurrencies.find(c => c.id === p.currencyId);
-            const rate = Number(currency?.exchangeRate ?? 1);
-            const rawAmountPen = Number(p.amount) * rate;
-            grossIncome += rawAmountPen;
-            if (p.status === "autoverificado") {
-              grossDirect += rawAmountPen;
-            } else {
-              grossRegular += rawAmountPen;
-              currencyCommissionHalf += rawAmountPen * (Number(currency?.commissionPercent ?? 0) / 100) * 0.5;
-            }
+          const s = computeWeekTutorSettlement({
+            tutor: user,
+            verifiedPayments: tutorPayments,
+            allCurrencies,
+            usdRate,
+            weekStartDate: week.startDate,
+            weekEndDate: week.endDate,
+            sharedAdvertisingUsd,
+            activeTutorCount,
+            weekAdvOverrideUsd: weekAdvRec ? Number(weekAdvRec.advertisingCostUsd) : undefined,
+            weekAdvDisabled: !!weekAdvRec?.disabled,
+            campaigns: tutorCampaignsSelf,
+            todayPeru: todayPeruSelf,
           });
-
-          const netIncome = grossIncome * commission;
-          const tutorEarnings = netIncome - tutorAdvertisingShare - currencyCommissionHalf;
-          const agencyEarnings = grossIncome * (1 - commission) - tutorAdvertisingShare - currencyCommissionHalf;
-
-          // Net transfer:
-          // Agency collected regular payments → owes tutor their commission share
-          // Tutor collected direct payments → owes agency their commission share
-          // netTransfer > 0 → agencia paga al tutor
-          // netTransfer < 0 → tutor paga a la agencia
-          const tutorEarningsFromRegular = grossRegular * commission - tutorAdvertisingShare - currencyCommissionHalf;
-          const agencyEarningsFromDirect = grossDirect * (1 - commission);
-          const netTransfer = tutorEarningsFromRegular - agencyEarningsFromDirect;
 
           return {
             week,
             tutorId: user.id,
             tutorName: user.name,
             commissionPercent: Number(user.commissionPercent),
-            grossIncome,
-            grossRegular,
-            grossDirect,
-            advertisingCost: tutorAdvertisingShare,
-            tutorAdvertisingShare,
-            agencyAdvertisingShare: tutorAdvertisingShare,
+            grossIncome: s.grossIncome,
+            grossRegular: s.grossRegular,
+            grossDirect: s.grossDirect,
+            advertisingCost: s.tutorAdvertisingShare,
+            tutorAdvertisingShare: s.tutorAdvertisingShare,
+            agencyAdvertisingShare: s.tutorAdvertisingShare,
             sharedAdvertisingUsd,
             usdRate,
-            dailyAdvUsd: dailyTt.totalUsd,
-            dailyAdvDays: dailyTt.days,
-            weeklyAdvDisabled: !!weekAdvRec?.disabled,
-            netIncome,
-            tutorEarnings,
-            agencyEarnings,
-            netTransfer,
+            dailyAdvUsd: s.dailyAdvUsd,
+            dailyAdvDays: s.dailyAdvDays,
+            weeklyAdvDisabled: s.weeklyAdvDisabled,
+            netIncome: s.netIncome,
+            tutorEarnings: s.tutorEarnings,
+            agencyEarnings: s.agencyEarnings,
+            netTransfer: s.netTransfer,
+            currencyCommissionHalf: s.currencyCommissionHalf,
             payments: tutorPayments,
           };
         });
@@ -1590,33 +1383,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Public: Generate new week (for authenticated users)
   app.post("/api/weeks/generate", requireAuth, async (req, res) => {
     try {
-      const settings = await storage.getAgencySettings();
-      const existingWeeks = await storage.getWeeks();
-      
-      let newWeekNumber = settings?.currentWeekNumber ?? 166;
-      // Semana contable: lunes a domingo (hora Perú). La nueva sigue a la última; si no hay, la de hoy.
-      let range = weekRangeOf(todayPeru());
-
-      if (existingWeeks.length > 0) {
-        const latestWeek = existingWeeks.reduce((max, w) =>
-          w.weekNumber > max.weekNumber ? w : max, existingWeeks[0]);
-        newWeekNumber = latestWeek.weekNumber + 1;
-        range = weekRangeOf(addDays(latestWeek.endDate, 1));
-      }
-
-      const prevSharedAdv = existingWeeks.length > 0
-        ? (existingWeeks.reduce((max, w) => w.weekNumber > max.weekNumber ? w : max, existingWeeks[0]).sharedAdvertisingUsd ?? "0")
-        : "0";
-
-      const week = await storage.createWeek({
-        weekNumber: newWeekNumber,
-        startDate: range.startDate,
-        endDate: range.endDate,
-        status: "open",
-        advertisingCost: "0",
-        sharedAdvertisingUsd: prevSharedAdv,
-      });
-
+      const week = await storage.generateNextWeek();
       res.status(201).json(week);
     } catch (error) {
       console.error("Error generating week:", error);

@@ -43,6 +43,10 @@
   --success-foreground: 0 0% 98%;
   --warning: 38 92% 50%;
   --warning-foreground: 20 14% 4%;
+  --negative: 0 55% 68%;
+  --negative-foreground: 0 0% 98%;
+  --positive: 142 45% 42%;
+  --positive-foreground: 0 0% 98%;
   --input: 220 13% 85%;
   --ring: 217 91% 48%;
   --chart-1: 217 91% 48%;
@@ -128,6 +132,10 @@
   --success-foreground: 0 0% 98%;
   --warning: 38 92% 55%;
   --warning-foreground: 20 14% 4%;
+  --negative: 0 55% 72%;
+  --negative-foreground: 0 0% 98%;
+  --positive: 142 45% 55%;
+  --positive-foreground: 0 0% 98%;
   --input: 220 13% 24%;
   --ring: 217 91% 55%;
   --chart-1: 217 91% 65%;

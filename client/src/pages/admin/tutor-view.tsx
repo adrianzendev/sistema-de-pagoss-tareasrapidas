@@ -43,6 +43,7 @@ type TutorSettlement = {
   tutorEarnings: number;
   agencyEarnings: number;
   netTransfer: number;
+  currencyCommissionHalf: number;
   payments: PaymentWithDetails[];
 };
 
@@ -52,7 +53,7 @@ type SettlementResponse = {
   settlements: TutorSettlement[];
   settings: { agencyPercent: number; tutorPercent: number };
   commissionPercent: number;
-  tutor: { id: string; name: string; email: string };
+  tutor: { id: string; name: string; email: string; autoVerificaPagos: boolean };
 };
 
 const statusConfig: Record<string, { label: string; icon: typeof Clock; className: string }> = {
@@ -64,7 +65,7 @@ const statusConfig: Record<string, { label: string; icon: typeof Clock; classNam
 };
 
 export default function AdminTutorViewPage() {
-  const { id } = useParams<{ id: string }>();
+  const { username } = useParams<{ username: string }>();
   const { toast } = useToast();
   const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -72,7 +73,7 @@ export default function AdminTutorViewPage() {
   const [movePayment, setMovePayment] = useState<{ id: string; weekId: string } | null>(null);
 
   const { data: settlementData, isLoading: settlementLoading } = useQuery<SettlementResponse>({
-    queryKey: [`/api/admin/tutors/${id}/settlement`],
+    queryKey: [`/api/admin/tutors/${username}/settlement`],
   });
 
   const { data: allWeeks } = useQuery<Week[]>({
@@ -89,10 +90,10 @@ export default function AdminTutorViewPage() {
   const activeWeekId = selectedWeekId ?? currentWeek?.id ?? sortedWeeks[sortedWeeks.length - 1]?.id ?? null;
 
   const { data: payments, isLoading: paymentsLoading } = useQuery<PaymentWithDetails[]>({
-    queryKey: [`/api/admin/tutors/${id}/payments`, activeWeekId],
+    queryKey: [`/api/admin/tutors/${username}/payments`, activeWeekId],
     queryFn: async () => {
       if (!activeWeekId) return [];
-      const res = await fetch(`/api/admin/tutors/${id}/payments?weekId=${activeWeekId}`);
+      const res = await fetch(`/api/admin/tutors/${username}/payments?weekId=${activeWeekId}`);
       if (!res.ok) throw new Error("Error al cargar pagos");
       return res.json();
     },
@@ -102,8 +103,8 @@ export default function AdminTutorViewPage() {
   });
 
   const invalidatePaymentQueries = () => {
-    queryClient.invalidateQueries({ queryKey: [`/api/admin/tutors/${id}/payments`] });
-    queryClient.invalidateQueries({ queryKey: [`/api/admin/tutors/${id}/settlement`] });
+    queryClient.invalidateQueries({ queryKey: [`/api/admin/tutors/${username}/payments`] });
+    queryClient.invalidateQueries({ queryKey: [`/api/admin/tutors/${username}/settlement`] });
     queryClient.invalidateQueries({ queryKey: ["/api/admin/settlements/matrix"] });
   };
 
@@ -177,13 +178,13 @@ export default function AdminTutorViewPage() {
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                  {selectedWeek && id && tutor && (
+                  {selectedWeek && tutor && (
                     <PaidToggleButton
-                      tutorId={id}
+                      tutorId={tutor.id}
                       tutorName={tutor.name}
                       weekId={selectedWeek.id}
                       weekNumber={selectedWeek.weekNumber}
-                      isPaid={matrixData?.weekPaidMap[selectedWeek.id]?.includes(id) ?? false}
+                      isPaid={matrixData?.weekPaidMap[selectedWeek.id]?.includes(tutor.id) ?? false}
                     />
                   )}
                   <WeekSelector
@@ -337,16 +338,18 @@ export default function AdminTutorViewPage() {
                   <span className="text-sm text-muted-foreground">Total bruto semanal</span>
                   <span className="text-sm font-semibold">{fmt(selectedSettlement.grossIncome)}</span>
                 </div>
-                <div className="text-xs space-y-1 pl-2">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-muted-foreground">Recaudado por Agencia</span>
-                    <span className="text-muted-foreground">{fmt(selectedSettlement.grossRegular)}</span>
+                {tutor?.autoVerificaPagos && (
+                  <div className="text-xs space-y-1 pl-2">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-muted-foreground">Recaudado en cuentas bancarias de la agencia</span>
+                      <span className="text-muted-foreground">{fmt(selectedSettlement.grossRegular)}</span>
+                    </div>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-muted-foreground">Recaudado por {tutor?.name ?? "Tutor"}</span>
+                      <span className="text-muted-foreground">{fmt(selectedSettlement.grossDirect)}</span>
+                    </div>
                   </div>
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-muted-foreground">Recaudado por {tutor?.name ?? "Tutor"}</span>
-                    <span className="text-muted-foreground">{fmt(selectedSettlement.grossDirect)}</span>
-                  </div>
-                </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="border border-border rounded-lg p-4 space-y-2">
                     <div className="text-xs uppercase text-muted-foreground">
@@ -389,18 +392,22 @@ export default function AdminTutorViewPage() {
                   const commission = selectedSettlement.commissionPercent / 100;
                   const porComision = selectedSettlement.grossDirect * (1 - commission);
                   const porPublicidad = selectedSettlement.tutorAdvertisingShare - selectedSettlement.grossRegular * commission;
+                  const porComisionDivisa = selectedSettlement.currencyCommissionHalf;
+                  if (porComision <= 0 || porPublicidad <= 0) return null;
                   return (
                     <div className="text-xs text-muted-foreground pl-2 space-y-1 pt-2 border-t border-border">
-                      {porComision > 0 && (
+                      <div className="flex items-baseline justify-between">
+                        <span>Por comisión (sobre lo cobrado directo)</span>
+                        <span>{fmt(porComision)}</span>
+                      </div>
+                      <div className="flex items-baseline justify-between">
+                        <span>Por publicidad</span>
+                        <span>{fmt(porPublicidad)}</span>
+                      </div>
+                      {porComisionDivisa > 0 && (
                         <div className="flex items-baseline justify-between">
-                          <span>Por comisión (sobre lo cobrado directo)</span>
-                          <span>{fmt(porComision)}</span>
-                        </div>
-                      )}
-                      {porPublicidad > 0 && (
-                        <div className="flex items-baseline justify-between">
-                          <span>Por publicidad</span>
-                          <span>{fmt(porPublicidad)}</span>
+                          <span>Por comisión de divisa</span>
+                          <span>{fmt(porComisionDivisa)}</span>
                         </div>
                       )}
                     </div>
@@ -417,7 +424,7 @@ export default function AdminTutorViewPage() {
                 </div>
                 {selectedSettlement.tutorEarnings < 0 && (
                   <p className="text-xs text-destructive/80">
-                    La publicidad de esta semana superó lo recaudado por comisión: el tutor debe cubrir la diferencia.
+                    La comisión semanal fue inferior al gasto publicitario; el tutor debe reembolsar la diferencia a la agencia por el saldo pendiente del anuncio.
                   </p>
                 )}
               </CardContent>

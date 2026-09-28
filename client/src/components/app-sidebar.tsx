@@ -60,7 +60,7 @@ export function AppSidebar() {
   const isAdmin = user?.role === "admin";
   const isVerifier = user?.role === "verifier";
   const items = isAdmin ? adminItems : isVerifier ? verifierItems : tutorItems;
-  // Activo = la URL más larga que coincide, así /admin/tutors/:id/view marca "Tutores" y no "Dashboard"
+  // Activo = la URL más larga que coincide, así /admin/tutors/:username/view marca "Tutores" y no "Dashboard"
   const activeUrl = items
     .map(i => i.url)
     .filter(u => location === u || location.startsWith(u + "/"))

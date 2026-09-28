@@ -110,7 +110,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
           </div>
           {isNegative && showNegWarning && (
             <div className="mt-2 text-xs text-destructive/80 rounded-sm px-2 py-2 border border-destructive/30" data-testid="text-neg-warning">
-              ⚠️ El costo de publicidad de esta semana (<strong>{pen(s.advertisingCost)}</strong>) supera tu comisión sobre los pagos regulares (<strong>{pen(s.grossRegular * s.commissionPercent / 100)}</strong>). Eso genera una ganancia negativa. Si tienes pagos DIRECTO, parte de esa diferencia puede quedar cubierta por lo que le debes a la agencia.
+              ⚠️ El costo de publicidad de esta semana (<strong>{pen(s.advertisingCost)}</strong>) supera tu comisión sobre los pagos regulares (<strong>{pen(s.grossRegular * s.commissionPercent / 100)}</strong>). Eso genera una ganancia negativa. Si tienes pagos autoverificados, parte de esa diferencia puede quedar cubierta por lo que le debes a la agencia.
             </div>
           )}
         </div>

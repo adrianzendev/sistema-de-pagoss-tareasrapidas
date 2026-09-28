@@ -25,8 +25,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { todayPeru } from "@/lib/utils";
 
-const weekPaymentsCache = new Map<string, PaymentWithDetails[]>();
-
 const statusLabels: Record<string, { label: string; icon: any; className: string }> = {
   pending:  { label: "Pendiente",   icon: Clock,        className: "text-foreground border-border" },
   verified: { label: "Verificado",  icon: CheckCircle,  className: "text-success border-success/40" },
@@ -34,6 +32,23 @@ const statusLabels: Record<string, { label: string; icon: any; className: string
   rejected: { label: "Rechazado",   icon: XCircle,      className: "text-destructive border-destructive/40" },
   refunded: { label: "Reembolsado", icon: RotateCcw,    className: "text-muted-foreground border-border" },
 };
+
+function ProofImagePreview({ paymentId }: { paymentId: string }) {
+  const { data, isLoading } = useQuery<{ proofImage: string | null }>({
+    queryKey: ["/api/admin/payments", paymentId, "proof"],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/payments/${paymentId}/proof`, { credentials: "include" });
+      if (!res.ok) throw new Error("Error al cargar comprobante");
+      return res.json();
+    },
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+
+  if (isLoading) return <Skeleton className="w-full h-64 rounded-lg" />;
+  if (!data?.proofImage) return null;
+  return <img src={data.proofImage} alt="Comprobante" className="w-full rounded-lg" />;
+}
 
 function PaymentTable({
   payments,
@@ -114,13 +129,13 @@ function PaymentTable({
                   <span className="text-xs text-muted-foreground ml-1">{payment.currency?.code}</span>
                 </TableCell>
                 <TableCell className="text-center">
-                  {payment.proofImage ? (
+                  {payment.hasProof ? (
                     <button
-                      onClick={() => setPreviewPayment({ payment, list: filtered.filter(p => p.proofImage) })}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded-sm overflow-hidden border hover:opacity-80 transition-opacity mx-auto"
+                      onClick={() => setPreviewPayment({ payment, list: filtered.filter(p => p.hasProof) })}
+                      className="inline-flex items-center justify-center w-8 h-8 rounded-sm border hover:bg-accent transition-colors mx-auto"
                       data-testid={`button-view-proof-${payment.id}`}
                     >
-                      <img src={payment.proofImage} alt="Prueba" className="w-full h-full object-cover" />
+                      <ImageIcon className="h-4 w-4 text-primary" />
                     </button>
                   ) : (
                     <div className="inline-flex items-center justify-center w-8 h-8 rounded-sm border mx-auto">
@@ -173,7 +188,7 @@ function PaymentTable({
                         </Button>
                     </>
                     )}
-                    {payment.status === "verified" && (
+                    {(payment.status === "verified" || payment.status === "autoverificado") && (
                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
                         onClick={() => updateMutation.mutate({ id: payment.id, status: "refunded" })}
                         disabled={updateMutation.isPending}
@@ -266,16 +281,13 @@ function WeekSection({
 }) {
   const [expanded, setExpanded] = useState(isCurrentWeek);
 
-  const { data: payments } = useQuery<PaymentWithDetails[]>({
+  const { data: payments, isLoading, isError, refetch } = useQuery<PaymentWithDetails[]>({
     queryKey: ["/api/admin/payments", "week", week.id],
     queryFn: async () => {
       const res = await fetch(`/api/admin/payments?weekId=${week.id}`, { credentials: "include" });
       if (!res.ok) throw new Error("Error al cargar pagos");
-      const data = await res.json();
-      weekPaymentsCache.set(week.id, data);
-      return data;
+      return res.json();
     },
-    initialData: () => weekPaymentsCache.get(week.id),
     enabled: expanded,
     staleTime: Infinity,
     gcTime: Infinity,
@@ -302,7 +314,7 @@ function WeekSection({
         {!expanded && (
           <span className="text-xs text-muted-foreground italic">clic para cargar</span>
         )}
-        {expanded && !payments && (
+        {expanded && isLoading && (
           <span className="text-xs text-muted-foreground">cargando…</span>
         )}
         {expanded && payments && (
@@ -317,9 +329,14 @@ function WeekSection({
 
       {expanded && (
         <div className="border-t">
-          {!payments ? (
+          {isLoading ? (
             <div className="p-4 space-y-2">
               {[1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full" />)}
+            </div>
+          ) : isError ? (
+            <div className="text-center py-8 space-y-2">
+              <p className="text-sm text-destructive">Error al cargar pagos</p>
+              <Button variant="outline" size="sm" onClick={() => refetch()}>Reintentar</Button>
             </div>
           ) : (
             <PaymentTable
@@ -496,7 +513,7 @@ export default function PaymentsPage() {
                 </div>
               </div>
               <div className="overflow-y-auto flex-1 p-3">
-                {p?.proofImage && <img src={p.proofImage} alt="Comprobante" className="w-full rounded-lg" />}
+                {p && <ProofImagePreview key={p.id} paymentId={p.id} />}
               </div>
               {p?.status === "pending" && (
                 <div className="flex gap-2 p-3 border-t shrink-0">

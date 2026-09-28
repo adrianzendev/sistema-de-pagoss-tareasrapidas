@@ -36,7 +36,7 @@ import {
   normalizePhone,
 } from "@shared/schema";
 import { db } from "./db";
-import { todayPeru } from "./utils/peru-time";
+import { todayPeru, weekRangeOf, addDays } from "./utils/peru-time";
 import { eq, desc, and, sql, gte, lte, inArray, isNull } from "drizzle-orm";
 
 export interface IStorage {
@@ -110,10 +110,12 @@ export interface IStorage {
   getWeekByNumber(weekNumber: number): Promise<Week | undefined>;
   getCurrentWeek(): Promise<Week | undefined>;
   createWeek(week: InsertWeek): Promise<Week>;
+  generateNextWeek(): Promise<Week>;
   updateWeek(id: string, data: Partial<InsertWeek>): Promise<Week | undefined>;
   deleteWeek(id: string): Promise<void>;
   getPaymentsByWeek(weekId: string): Promise<PaymentWithDetails[]>;
   getPaymentsByTutorAndWeek(tutorId: string, weekId: string): Promise<PaymentWithDetails[]>;
+  getPaymentProofImage(id: string): Promise<string | null>;
 
   // Agency Settings
   getAgencySettings(): Promise<AgencySettings | undefined>;
@@ -552,6 +554,33 @@ export class DatabaseStorage implements IStorage {
     return week;
   }
 
+  async generateNextWeek(): Promise<Week> {
+    const settings = await this.getAgencySettings();
+    const existingWeeks = await this.getWeeks();
+
+    let newWeekNumber = settings?.currentWeekNumber ?? 166;
+    let range = weekRangeOf(todayPeru());
+
+    if (existingWeeks.length > 0) {
+      const latestWeek = existingWeeks.reduce((max, w) => (w.weekNumber > max.weekNumber ? w : max), existingWeeks[0]);
+      newWeekNumber = latestWeek.weekNumber + 1;
+      range = weekRangeOf(addDays(latestWeek.endDate, 1));
+    }
+
+    const prevSharedAdv = existingWeeks.length > 0
+      ? (existingWeeks.reduce((max, w) => (w.weekNumber > max.weekNumber ? w : max), existingWeeks[0]).sharedAdvertisingUsd ?? "0")
+      : "0";
+
+    return this.createWeek({
+      weekNumber: newWeekNumber,
+      startDate: range.startDate,
+      endDate: range.endDate,
+      status: "open",
+      advertisingCost: "0",
+      sharedAdvertisingUsd: prevSharedAdv,
+    });
+  }
+
   async updateWeek(id: string, data: Partial<InsertWeek>): Promise<Week | undefined> {
     const [week] = await db.update(weeks).set(data).where(eq(weeks.id, id)).returning();
     return week;
@@ -566,27 +595,51 @@ export class DatabaseStorage implements IStorage {
     if (!week) return [];
 
     const result = await db
-      .select()
+      .select({
+        id: payments.id,
+        tutorId: payments.tutorId,
+        amount: payments.amount,
+        currencyId: payments.currencyId,
+        clientNumber: payments.clientNumber,
+        status: payments.status,
+        notes: payments.notes,
+        exchangeRateSnapshot: payments.exchangeRateSnapshot,
+        createdAt: payments.createdAt,
+        verifiedAt: payments.verifiedAt,
+        verifiedBy: payments.verifiedBy,
+        hasProof: sql<boolean>`${payments.proofImage} IS NOT NULL`,
+      })
       .from(payments)
       .where(
         sql`DATE(${payments.createdAt}::timestamptz AT TIME ZONE 'America/Lima') BETWEEN ${week.startDate}::date AND ${week.endDate}::date`
       )
       .orderBy(desc(payments.createdAt));
 
-    const paymentDetails: PaymentWithDetails[] = [];
+    const tutorIds = Array.from(new Set(result.map(p => p.tutorId)));
+    const currencyIds = Array.from(new Set(result.map(p => p.currencyId)));
+    const verifierIds = Array.from(new Set(result.map(p => p.verifiedBy).filter((id): id is string => !!id)));
 
-    for (const payment of result) {
-      const [tutor] = await db.select().from(users).where(eq(users.id, payment.tutorId));
-      const [currency] = await db.select().from(currencies).where(eq(currencies.id, payment.currencyId));
-      let verifier: User | undefined;
-      if (payment.verifiedBy) {
-        const [v] = await db.select().from(users).where(eq(users.id, payment.verifiedBy));
-        verifier = v;
-      }
-      paymentDetails.push({ ...payment, tutor, currency, verifier });
-    }
+    const [tutorRows, currencyRows, verifierRows] = await Promise.all([
+      tutorIds.length ? db.select().from(users).where(inArray(users.id, tutorIds)) : Promise.resolve([]),
+      currencyIds.length ? db.select().from(currencies).where(inArray(currencies.id, currencyIds)) : Promise.resolve([]),
+      verifierIds.length ? db.select().from(users).where(inArray(users.id, verifierIds)) : Promise.resolve([]),
+    ]);
+    const tutorMap = new Map(tutorRows.map(t => [t.id, t]));
+    const currencyMap = new Map(currencyRows.map(c => [c.id, c]));
+    const verifierMap = new Map(verifierRows.map(v => [v.id, v]));
 
-    return paymentDetails;
+    return result.map(payment => ({
+      ...payment,
+      proofImage: null,
+      tutor: tutorMap.get(payment.tutorId),
+      currency: currencyMap.get(payment.currencyId),
+      verifier: payment.verifiedBy ? verifierMap.get(payment.verifiedBy) : undefined,
+    }));
+  }
+
+  async getPaymentProofImage(id: string): Promise<string | null> {
+    const [row] = await db.select({ proofImage: payments.proofImage }).from(payments).where(eq(payments.id, id));
+    return row?.proofImage ?? null;
   }
 
   async getPaymentsByTutorAndWeek(tutorId: string, weekId: string): Promise<PaymentWithDetails[]> {

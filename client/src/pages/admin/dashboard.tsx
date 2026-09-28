@@ -43,7 +43,7 @@ type CurrencyTotal = { code: string; name: string; symbol: string; total: number
 
 type SettlementsMatrix = {
   weeks: Week[];
-  tutors: Array<{ id: string; name: string; commissionPercent: string; advertisingCostUsd?: string; autoVerificaPagos?: boolean; isActive?: boolean }>;
+  tutors: Array<{ id: string; username: string; name: string; commissionPercent: string; advertisingCostUsd?: string; autoVerificaPagos?: boolean; isActive?: boolean }>;
   matrix: Record<string, Record<string, MatrixCell>>;
   currencyTotals: CurrencyTotal[];
   weekPaidMap: Record<string, string[]>;
@@ -299,7 +299,7 @@ export default function AdminDashboard() {
                       {/* Tutor name cell */}
                       <div className="p-3 border-r border-border sticky left-0 z-10 bg-card">
                         <div className="flex items-center gap-1">
-                          <Link href={`/admin/tutors/${tutor.id}/view`}>
+                          <Link href={`/admin/tutors/${tutor.username}/view`}>
                             <div className={`font-semibold text-sm truncate underline cursor-pointer ${tutor.isActive === false ? "text-muted-foreground" : "text-foreground"}`}>{tutor.name}</div>
                           </Link>
                           <button
@@ -345,11 +345,11 @@ export default function AdminDashboard() {
                               <>
                                 <div className="flex items-baseline justify-between gap-1">
                                   <span className="text-xs text-muted-foreground/60">Tutor:</span>
-                                  <span className="text-xs text-foreground">{fmt(tutorE)}</span>
+                                  <span className={`text-xs ${tutorE < 0 ? "text-negative" : tutorE > 0 ? "text-positive" : "text-foreground"}`}>{fmt(tutorE)}</span>
                                 </div>
                                 <div className="flex items-baseline justify-between gap-1">
                                   <span className="text-xs text-muted-foreground/60">Agencia:</span>
-                                  <span className="text-xs text-foreground">{fmt(agencyE)}</span>
+                                  <span className={`text-xs ${agencyE < 0 ? "text-negative" : agencyE > 0 ? "text-positive" : "text-foreground"}`}>{fmt(agencyE)}</span>
                                 </div>
                                 <div className="flex items-baseline justify-between gap-1 mt-1">
                                   <span className="text-xs text-muted-foreground/60">Cantidad:</span>
@@ -368,8 +368,8 @@ export default function AdminDashboard() {
                                       </button>
                                     </div>
                                     {(expandedAdCosts[tutor.id] ?? false) && (() => {
-                                      const half = Number(tutor.advertisingCostUsd ?? 0) / 2;
-                                      const pen = half * usdRate;
+                                      const pen = cell?.tutorAdvertisingShare ?? 0;
+                                      const half = usdRate > 0 ? pen / usdRate : 0;
                                       return (
                                         <div className="mt-1">
                                           <div className="flex items-baseline justify-between gap-1">
@@ -418,10 +418,10 @@ export default function AdminDashboard() {
                           <span className="text-xs text-muted-foreground/40 italic">oculto</span>
                         ) : (
                           <>
-                            <div className="text-xs font-bold text-foreground">
+                            <div className={`text-xs font-bold ${rowTotal < 0 ? "text-negative" : rowTotal > 0 ? "text-positive" : "text-foreground"}`}>
                               {fmt(rowTotal)}
                             </div>
-                            <div className="text-xs font-medium text-muted-foreground">
+                            <div className={`text-xs font-medium ${rowAgencyTotal < 0 ? "text-negative" : rowAgencyTotal > 0 ? "text-positive" : "text-muted-foreground"}`}>
                               {fmt(rowAgencyTotal)}
                             </div>
                           </>
@@ -490,11 +490,11 @@ export default function AdminDashboard() {
                             })()}
                             <div className="flex items-baseline justify-between gap-1 leading-4">
                               <span className="text-muted-foreground/60">Tutor:</span>
-                              <span className="font-semibold text-foreground">{fmt(colTutor)}</span>
+                              <span className={`font-semibold ${colTutor < 0 ? "text-negative" : colTutor > 0 ? "text-positive" : "text-foreground"}`}>{fmt(colTutor)}</span>
                             </div>
                             <div className="flex items-baseline justify-between gap-1 leading-4">
                               <span className="text-muted-foreground/60">Agencia:</span>
-                              <span className="font-semibold text-foreground">{fmt(colAgency)}</span>
+                              <span className={`font-semibold ${colAgency < 0 ? "text-negative" : colAgency > 0 ? "text-positive" : "text-foreground"}`}>{fmt(colAgency)}</span>
                             </div>
                           </>
                         ) : (
@@ -503,14 +503,20 @@ export default function AdminDashboard() {
                       </div>
                     );
                   })}
-                  <div className="p-2 text-right">
-                    <div className="text-xs font-semibold text-foreground">
-                      {fmt(tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.tutorEarnings ?? 0), 0), 0))}
-                    </div>
-                    <div className="text-xs font-semibold text-foreground">
-                      {fmt(tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.agencyEarnings ?? 0), 0), 0))}
-                    </div>
-                  </div>
+                  {(() => {
+                    const grandTutor = tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.tutorEarnings ?? 0), 0), 0);
+                    const grandAgency = tutorsWithAnyPayment.reduce((sum, t) => sum + weeks.reduce((s, w) => s + (matrix[t.id]?.[w.id]?.agencyEarnings ?? 0), 0), 0);
+                    return (
+                      <div className="p-2 text-right">
+                        <div className={`text-xs font-semibold ${grandTutor < 0 ? "text-negative" : grandTutor > 0 ? "text-positive" : "text-foreground"}`}>
+                          {fmt(grandTutor)}
+                        </div>
+                        <div className={`text-xs font-semibold ${grandAgency < 0 ? "text-negative" : grandAgency > 0 ? "text-positive" : "text-foreground"}`}>
+                          {fmt(grandAgency)}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>

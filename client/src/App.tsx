@@ -38,7 +38,7 @@ function AdminRoutes() {
   return (
     <Switch>
       <Route path="/admin" component={AdminDashboard} />
-      <Route path="/admin/tutors/:id/view" component={AdminTutorViewPage} />
+      <Route path="/admin/tutors/:username/view" component={AdminTutorViewPage} />
       <Route path="/admin/tutors" component={TutorsPage} />
       <Route path="/admin/payments" component={AdminPaymentsPage} />
       <Route path="/admin/currencies" component={CurrenciesPage} />

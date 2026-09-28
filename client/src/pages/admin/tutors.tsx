@@ -635,6 +635,7 @@ export default function TutorsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nombre</TableHead>
+                    <TableHead>Correo</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead className="text-right">Comisión</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
@@ -645,13 +646,11 @@ export default function TutorsPage() {
                     return (
                       <TableRow key={tutor.id} data-testid={`row-tutor-${tutor.id}`}>
                         <TableCell>
-                          <Link href={`/admin/tutors/${tutor.id}/view`}>
-                            <div className="cursor-pointer underline">
-                              <div>{tutor.name}</div>
-                              <div className="text-xs text-muted-foreground">{tutor.email}</div>
-                            </div>
+                          <Link href={`/admin/tutors/${tutor.username}/view`}>
+                            <span className="cursor-pointer underline">{tutor.name}</span>
                           </Link>
                         </TableCell>
+                        <TableCell className="text-muted-foreground">{tutor.email}</TableCell>
                         <TableCell>
                           {tutor.isActive !== false ? (
                             <Badge className="border-success/40 bg-background text-success" data-testid={`status-tutor-${tutor.id}`}>Activo</Badge>

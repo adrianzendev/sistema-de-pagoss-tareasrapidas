@@ -235,6 +235,7 @@ export type PaymentWithDetails = Payment & {
   tutor?: User;
   currency?: Currency;
   verifier?: User;
+  hasProof?: boolean;
 };
 
 export type TutorWithPayments = User & {
