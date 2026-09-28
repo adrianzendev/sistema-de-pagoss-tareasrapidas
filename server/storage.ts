@@ -242,25 +242,44 @@ export class DatabaseStorage implements IStorage {
     }
 
     const result = await db
-      .select()
+      .select({
+        id: payments.id,
+        tutorId: payments.tutorId,
+        amount: payments.amount,
+        currencyId: payments.currencyId,
+        clientNumber: payments.clientNumber,
+        status: payments.status,
+        notes: payments.notes,
+        exchangeRateSnapshot: payments.exchangeRateSnapshot,
+        createdAt: payments.createdAt,
+        verifiedAt: payments.verifiedAt,
+        verifiedBy: payments.verifiedBy,
+        hasProof: sql<boolean>`${payments.proofImage} IS NOT NULL`,
+      })
       .from(payments)
       .where(dateFilter)
       .orderBy(desc(payments.createdAt));
-    
-    const paymentDetails: PaymentWithDetails[] = [];
 
-    for (const payment of result) {
-      const [tutor] = await db.select().from(users).where(eq(users.id, payment.tutorId));
-      const [currency] = await db.select().from(currencies).where(eq(currencies.id, payment.currencyId));
-      let verifier: User | undefined;
-      if (payment.verifiedBy) {
-        const [v] = await db.select().from(users).where(eq(users.id, payment.verifiedBy));
-        verifier = v;
-      }
-      paymentDetails.push({ ...payment, tutor, currency, verifier });
-    }
+    const tutorIds = Array.from(new Set(result.map(p => p.tutorId)));
+    const currencyIds = Array.from(new Set(result.map(p => p.currencyId)));
+    const verifierIds = Array.from(new Set(result.map(p => p.verifiedBy).filter((id): id is string => !!id)));
 
-    return paymentDetails;
+    const [tutorRows, currencyRows, verifierRows] = await Promise.all([
+      tutorIds.length ? db.select().from(users).where(inArray(users.id, tutorIds)) : Promise.resolve([]),
+      currencyIds.length ? db.select().from(currencies).where(inArray(currencies.id, currencyIds)) : Promise.resolve([]),
+      verifierIds.length ? db.select().from(users).where(inArray(users.id, verifierIds)) : Promise.resolve([]),
+    ]);
+    const tutorMap = new Map(tutorRows.map(t => { const { password, ...safe } = t; return [t.id, safe as User]; }));
+    const currencyMap = new Map(currencyRows.map(c => [c.id, c]));
+    const verifierMap = new Map(verifierRows.map(v => { const { password, ...safe } = v; return [v.id, safe as User]; }));
+
+    return result.map(payment => ({
+      ...payment,
+      proofImage: null,
+      tutor: tutorMap.get(payment.tutorId),
+      currency: currencyMap.get(payment.currencyId),
+      verifier: payment.verifiedBy ? verifierMap.get(payment.verifiedBy) : undefined,
+    }));
   }
 
   async getPaymentsByTutor(tutorId: string): Promise<PaymentWithDetails[]> {
@@ -386,7 +405,10 @@ export class DatabaseStorage implements IStorage {
       .where(whereClause)
       .orderBy(desc(payments.createdAt));
 
-    return rows.map(r => ({ ...r.payment, proofImage: null, tutor: r.tutor ?? undefined, currency: r.currency ?? undefined }));
+    return rows.map(r => {
+      const { password, ...safeTutor } = r.tutor ?? {};
+      return { ...r.payment, proofImage: null, tutor: r.tutor ? (safeTutor as User) : undefined, currency: r.currency ?? undefined };
+    });
   }
 
   // Blacklist
@@ -642,9 +664,9 @@ export class DatabaseStorage implements IStorage {
       currencyIds.length ? db.select().from(currencies).where(inArray(currencies.id, currencyIds)) : Promise.resolve([]),
       verifierIds.length ? db.select().from(users).where(inArray(users.id, verifierIds)) : Promise.resolve([]),
     ]);
-    const tutorMap = new Map(tutorRows.map(t => [t.id, t]));
+    const tutorMap = new Map(tutorRows.map(t => { const { password, ...safe } = t; return [t.id, safe as User]; }));
     const currencyMap = new Map(currencyRows.map(c => [c.id, c]));
-    const verifierMap = new Map(verifierRows.map(v => [v.id, v]));
+    const verifierMap = new Map(verifierRows.map(v => { const { password, ...safe } = v; return [v.id, safe as User]; }));
 
     return result.map(payment => ({
       ...payment,

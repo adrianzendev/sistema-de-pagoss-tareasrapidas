@@ -24,31 +24,16 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { todayPeru } from "@/lib/utils";
+import { paymentStatusConfig } from "@/lib/payment-status";
+import { ProofImagePreview } from "@/components/proof-image-preview";
 
-const statusLabels: Record<string, { label: string; icon: any; className: string }> = {
-  pending:  { label: "Pendiente",   icon: Clock,        className: "text-foreground border-border" },
-  verified: { label: "Verificado",  icon: CheckCircle,  className: "text-success border-success/40" },
-  autoverificado: { label: "Autoverificado", icon: CheckCircle, className: "text-primary border-primary/40" },
-  rejected: { label: "Rechazado",   icon: XCircle,      className: "text-destructive border-destructive/40" },
-  refunded: { label: "Reembolsado", icon: RotateCcw,    className: "text-muted-foreground border-border" },
+const statusIcons: Record<string, any> = {
+  pending: Clock,
+  verified: CheckCircle,
+  autoverificado: CheckCircle,
+  rejected: XCircle,
+  refunded: RotateCcw,
 };
-
-function ProofImagePreview({ paymentId }: { paymentId: string }) {
-  const { data, isLoading } = useQuery<{ proofImage: string | null }>({
-    queryKey: ["/api/admin/payments", paymentId, "proof"],
-    queryFn: async () => {
-      const res = await fetch(`/api/admin/payments/${paymentId}/proof`, { credentials: "include" });
-      if (!res.ok) throw new Error("Error al cargar comprobante");
-      return res.json();
-    },
-    staleTime: Infinity,
-    gcTime: Infinity,
-  });
-
-  if (isLoading) return <Skeleton className="w-full h-64 rounded-lg" />;
-  if (!data?.proofImage) return null;
-  return <img src={data.proofImage} alt="Comprobante" className="w-full rounded-lg" />;
-}
 
 function PaymentTable({
   payments,
@@ -101,8 +86,8 @@ function PaymentTable({
         </TableHeader>
         <TableBody>
           {filtered.map((payment) => {
-            const status = statusLabels[payment.status] ?? statusLabels.pending;
-            const StatusIcon = status.icon;
+            const status = paymentStatusConfig[payment.status] ?? paymentStatusConfig.pending;
+            const StatusIcon = statusIcons[payment.status] ?? Clock;
             return (
               <TableRow key={payment.id} data-testid={`row-payment-${payment.id}`} className="hover:bg-muted/40">
                 <TableCell>
@@ -513,7 +498,7 @@ export default function PaymentsPage() {
                 </div>
               </div>
               <div className="overflow-y-auto flex-1 p-3">
-                {p && <ProofImagePreview key={p.id} paymentId={p.id} />}
+                {p && <ProofImagePreview key={p.id} endpoint={`/api/admin/payments/${p.id}/proof`} />}
               </div>
               {p?.status === "pending" && (
                 <div className="flex gap-2 p-3 border-t shrink-0">

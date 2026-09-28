@@ -495,7 +495,7 @@ export default function TutorsPage() {
                         <span className="font-semibold text-success">Activa</span>{" "}
                         <span className="font-medium">USD {Number(activeCampaign.dailyCostUsd).toFixed(2)}/día</span>
                         <div className="text-xs text-muted-foreground">
-                          Desde {new Date(activeCampaign.startDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })} · {activeCampaign.days} {activeCampaign.days === 1 ? "día" : "días"} acumulados · USD {(activeCampaign.days * Number(activeCampaign.dailyCostUsd)).toFixed(2)} total (50% tutor)
+                          Desde {new Date(activeCampaign.startDate + "T00:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "short" })} · {activeCampaign.days} {activeCampaign.days === 1 ? "día" : "días"} acumulados · USD {(activeCampaign.days * Number(activeCampaign.dailyCostUsd)).toFixed(2)} total · USD {(activeCampaign.days * Number(activeCampaign.dailyCostUsd) / 2).toFixed(2)} (50% tutor)
                         </div>
                       </div>
                       <Button

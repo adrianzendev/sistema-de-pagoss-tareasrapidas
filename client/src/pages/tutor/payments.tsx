@@ -10,35 +10,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CheckCircle, XCircle, Clock, FileText, Image as ImageIcon, RotateCcw, ChevronRight, AlertCircle } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Image as ImageIcon, RotateCcw, ChevronRight, AlertCircle } from "lucide-react";
 import { PaymentActions } from "@/components/payment-actions";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { todayPeru } from "@/lib/utils";
 import { WeekSelector } from "@/components/week-selector";
+import { ProofImagePreview } from "@/components/proof-image-preview";
+import { paymentStatusConfig } from "@/lib/payment-status";
+import { EmptyPaymentsState } from "@/components/empty-payments-state";
+import { PaymentsListSkeleton } from "@/components/payments-list-skeleton";
+import { useActiveWeek } from "@/hooks/use-active-week";
 
-function ProofImagePreview({ paymentId }: { paymentId: string }) {
-  const { data, isLoading } = useQuery<{ proofImage: string | null }>({
-    queryKey: ["/api/tutor/payments", paymentId, "proof"],
-    queryFn: async () => {
-      const res = await fetch(`/api/tutor/payments/${paymentId}/proof`, { credentials: "include" });
-      if (!res.ok) throw new Error("Error al cargar comprobante");
-      return res.json();
-    },
-    staleTime: Infinity,
-    gcTime: Infinity,
-  });
-
-  if (isLoading) return <Skeleton className="w-full h-64 rounded-lg" />;
-  if (!data?.proofImage) return null;
-  return <img src={data.proofImage} alt="Comprobante" className="w-full rounded-lg" />;
-}
-
-const statusConfig: Record<string, { label: string; variant: "secondary" | "default" | "destructive" | "outline"; icon: typeof Clock; className: string }> = {
-  pending: { label: "Pendiente", variant: "secondary", icon: Clock, className: "text-warning border-warning/40" },
-  verified: { label: "Verificado", variant: "default", icon: CheckCircle, className: "text-success border-success/40" },
-  autoverificado: { label: "Autoverificado", variant: "default", icon: CheckCircle, className: "text-primary border-primary/40" },
-  rejected: { label: "Rechazado", variant: "destructive", icon: XCircle, className: "text-destructive border-destructive/40" },
-  refunded: { label: "Reembolsado", variant: "outline", icon: RotateCcw, className: "text-muted-foreground border-border" },
+const statusIcons: Record<string, typeof Clock> = {
+  pending: Clock,
+  verified: CheckCircle,
+  autoverificado: CheckCircle,
+  rejected: XCircle,
+  refunded: RotateCcw,
 };
 
 type SettlementRow = {
@@ -265,13 +252,7 @@ export default function TutorPaymentsPage() {
     queryKey: ["/api/tutor/settlement"],
   });
 
-  const sortedWeeks = [...(weeks ?? [])].sort((a, b) => a.weekNumber - b.weekNumber);
-
-  const today = todayPeru();
-  const currentWeek = sortedWeeks.find(w => w.startDate <= today && w.endDate >= today);
-  const isWeekPast = (week: Week) => week.endDate < today;
-
-  const activeWeekId = selectedWeekId ?? currentWeek?.id ?? sortedWeeks[sortedWeeks.length - 1]?.id ?? null;
+  const { sortedWeeks, currentWeek, activeWeekId } = useActiveWeek(weeks, selectedWeekId);
 
   const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
     queryKey: ["/api/tutor/payments", "week", activeWeekId],
@@ -315,30 +296,9 @@ export default function TutorPaymentsPage() {
 
       <Card className="overflow-hidden">
       {isLoading ? (
-        <div>
-          <div className="space-y-0 divide-y divide-border">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center gap-4 px-4 py-3">
-                <Skeleton className="h-4 w-6" />
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-8 w-8 rounded-sm" />
-                <Skeleton className="h-5 w-20 rounded-full" />
-              </div>
-            ))}
-          </div>
-        </div>
+        <PaymentsListSkeleton />
       ) : filteredPayments?.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 border border-border">
-            <FileText className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h3 className="font-medium text-lg">No hay pagos</h3>
-          <p className="text-muted-foreground text-sm">
-            {activeWeekId ? "No hay pagos en esta semana" : "Registra tu primer pago"}
-          </p>
-        </div>
+        <EmptyPaymentsState message={activeWeekId ? "No hay pagos en esta semana" : "Registra tu primer pago"} />
       ) : (
         <div>
           <div className="overflow-x-auto">
@@ -355,8 +315,8 @@ export default function TutorPaymentsPage() {
               </TableHeader>
               <TableBody>
                 {filteredPayments?.map((payment, index) => {
-                  const status = statusConfig[payment.status] ?? statusConfig.pending;
-                  const StatusIcon = status.icon;
+                  const status = paymentStatusConfig[payment.status] ?? paymentStatusConfig.pending;
+                  const StatusIcon = statusIcons[payment.status] ?? Clock;
                   return (
                     <TableRow key={payment.id} data-testid={`payment-card-${payment.id}`} className="hover:bg-muted/40">
                       <TableCell>
@@ -422,7 +382,7 @@ export default function TutorPaymentsPage() {
           </DialogHeader>
           {previewPaymentId && (
             <div className="overflow-y-auto flex-1">
-              <ProofImagePreview key={previewPaymentId} paymentId={previewPaymentId} />
+              <ProofImagePreview key={previewPaymentId} endpoint={`/api/tutor/payments/${previewPaymentId}/proof`} />
             </div>
           )}
         </DialogContent>

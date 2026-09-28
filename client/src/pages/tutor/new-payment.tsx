@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useRef } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -13,7 +13,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, X, Coins, User, Image as ImageIcon, AlertTriangle, Calendar } from "lucide-react";
+import { Loader2, Upload, X, Coins, Phone, Image as ImageIcon, AlertTriangle, Calendar } from "lucide-react";
+import { useProofImageUpload } from "@/hooks/use-proof-image-upload";
+import { useBlacklistCheck } from "@/hooks/use-blacklist-check";
 
 const paymentSchema = z.object({
   amount: z.string().refine((val) => {
@@ -26,17 +28,10 @@ const paymentSchema = z.object({
 
 type PaymentForm = z.infer<typeof paymentSchema>;
 
-type BlacklistCheck = {
-  blacklisted: boolean;
-  reason?: string;
-};
-
 export default function NewPaymentPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [proofImage, setProofImage] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [blacklistWarning, setBlacklistWarning] = useState<BlacklistCheck | null>(null);
+  const { proofImage, setProofImage, isUploading, handleFileChange } = useProofImageUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: currencies } = useQuery<Currency[]>({
@@ -70,25 +65,7 @@ export default function NewPaymentPage() {
   const selectedCurrencyId = form.watch("currencyId");
   const selectedCurrency = currencies?.find(c => c.id === selectedCurrencyId);
 
-  useEffect(() => {
-    const checkBlacklist = async () => {
-      if (!clientNumber || clientNumber.length < 2) {
-        setBlacklistWarning(null);
-        return;
-      }
-      try {
-        const res = await fetch(`/api/blacklist/check/${encodeURIComponent(clientNumber)}`);
-        if (res.ok) {
-          const data: BlacklistCheck = await res.json();
-          setBlacklistWarning(data.blacklisted ? data : null);
-        }
-      } catch {
-        // Ignore errors
-      }
-    };
-    const timeout = setTimeout(checkBlacklist, 500);
-    return () => clearTimeout(timeout);
-  }, [clientNumber]);
+  const blacklistWarning = useBlacklistCheck(clientNumber);
 
   const createMutation = useMutation({
     mutationFn: async (data: PaymentForm) => {
@@ -115,34 +92,6 @@ export default function NewPaymentPage() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Error", description: "Solo se permiten imágenes", variant: "destructive" });
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "Error", description: "La imagen debe ser menor a 5MB", variant: "destructive" });
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProofImage(reader.result as string);
-        setIsUploading(false);
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      toast({ title: "Error", description: "No se pudo procesar la imagen", variant: "destructive" });
-      setIsUploading(false);
-    }
-  };
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
@@ -180,13 +129,13 @@ export default function NewPaymentPage() {
                 name="clientNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Número de Cliente</FormLabel>
+                    <FormLabel>WhatsApp / Teléfono o Usuario del Cliente</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           {...field}
-                          placeholder="Ej: CLI-001"
+                          placeholder="Ej: +51 935 436 864 o usuario.whatsapp"
                           className="pl-10"
                           data-testid="input-client-number"
                         />

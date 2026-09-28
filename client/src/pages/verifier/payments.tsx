@@ -18,33 +18,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CheckCircle, XCircle, Image as ImageIcon, ChevronLeft, ChevronRight, X } from "lucide-react";
-import { todayPeru } from "@/lib/utils";
 import { WeekSelector } from "@/components/week-selector";
-
-function ProofImagePreview({ paymentId }: { paymentId: string }) {
-  const { data, isLoading } = useQuery<{ proofImage: string | null }>({
-    queryKey: ["/api/verifier/payments", paymentId, "proof"],
-    queryFn: async () => {
-      const res = await fetch(`/api/verifier/payments/${paymentId}/proof`, { credentials: "include" });
-      if (!res.ok) throw new Error("Error al cargar comprobante");
-      return res.json();
-    },
-    staleTime: Infinity,
-    gcTime: Infinity,
-  });
-
-  if (isLoading) return <Skeleton className="w-full h-64 rounded-lg" />;
-  if (!data?.proofImage) return null;
-  return <img src={data.proofImage} alt="Comprobante" className="w-full rounded-lg" />;
-}
-
-const statusConfig: Record<string, { label: string; className: string }> = {
-  pending:  { label: "Pendiente",   className: "text-warning border-warning/40" },
-  verified: { label: "Verificado",  className: "text-success border-success/40" },
-  autoverificado: { label: "Autoverificado", className: "text-primary border-primary/40" },
-  rejected: { label: "Rechazado",   className: "text-destructive border-destructive/40" },
-  refunded: { label: "Reembolsado", className: "text-muted-foreground border-border" },
-};
+import { ProofImagePreview } from "@/components/proof-image-preview";
+import { paymentStatusConfig as statusConfig } from "@/lib/payment-status";
+import { useActiveWeek } from "@/hooks/use-active-week";
 
 export default function VerifierPaymentsPage() {
   const { toast } = useToast();
@@ -56,10 +33,7 @@ export default function VerifierPaymentsPage() {
     queryKey: ["/api/weeks"],
   });
 
-  const sortedWeeks = [...(weeks ?? [])].sort((a, b) => a.weekNumber - b.weekNumber);
-  const today = todayPeru();
-  const currentWeek = sortedWeeks.find(w => w.startDate <= today && w.endDate >= today);
-  const activeWeekId = selectedWeekId ?? currentWeek?.id ?? sortedWeeks[sortedWeeks.length - 1]?.id ?? null;
+  const { sortedWeeks, currentWeek, activeWeekId } = useActiveWeek(weeks, selectedWeekId);
 
   const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
     queryKey: ["/api/verifier/payments", "week", activeWeekId],
@@ -302,7 +276,7 @@ export default function VerifierPaymentsPage() {
 
               {/* Image */}
               <div className="overflow-y-auto flex-1 p-3">
-                {previewPayment && <ProofImagePreview key={previewPayment.id} paymentId={previewPayment.id} />}
+                {previewPayment && <ProofImagePreview key={previewPayment.id} endpoint={`/api/verifier/payments/${previewPayment.id}/proof`} />}
               </div>
 
               {/* Actions for pending */}

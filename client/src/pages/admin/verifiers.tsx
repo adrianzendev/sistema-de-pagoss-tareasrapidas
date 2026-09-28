@@ -434,6 +434,7 @@ export default function VerifiersPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => openEdit(verifier)}
+                            disabled={!currencies}
                             data-testid={`button-edit-verifier-${verifier.id}`}
                           >
                             <Edit className="h-4 w-4" />

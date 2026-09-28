@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Currency, Week, Client } from "@shared/schema";
+import { Currency, Week } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, X, Image as ImageIcon, AlertTriangle, Calendar, Phone, CheckCircle } from "lucide-react";
-import { normalizePhone } from "@shared/schema";
+import { useProofImageUpload } from "@/hooks/use-proof-image-upload";
+import { useBlacklistCheck } from "@/hooks/use-blacklist-check";
+import { useClientAutocomplete } from "@/hooks/use-client-autocomplete";
 
 const paymentSchema = z.object({
   amount: z.string().refine((val) => {
@@ -29,11 +31,6 @@ const paymentSchema = z.object({
 
 type PaymentForm = z.infer<typeof paymentSchema>;
 
-type BlacklistCheck = {
-  blacklisted: boolean;
-  reason?: string;
-};
-
 interface VerifiedPaymentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -41,13 +38,8 @@ interface VerifiedPaymentModalProps {
 
 export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModalProps) {
   const { toast } = useToast();
-  const [proofImage, setProofImage] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [blacklistWarning, setBlacklistWarning] = useState<BlacklistCheck | null>(null);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
+  const { proofImage, setProofImage, isUploading, handleFileChange } = useProofImageUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
 
   const { data: currencies } = useQuery<Currency[]>({
     queryKey: ["/api/currencies"],
@@ -55,15 +47,6 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
 
   const { data: weeks } = useQuery<Week[]>({
     queryKey: ["/api/weeks"],
-  });
-
-  const { data: allClients } = useQuery<Client[]>({
-    queryKey: ["/api/clients/search"],
-    queryFn: async () => {
-      const res = await fetch("/api/clients/search?q=");
-      if (!res.ok) return [];
-      return res.json();
-    },
   });
 
   const today = new Date();
@@ -84,47 +67,9 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
   const selectedCurrencyId = form.watch("currencyId");
   const selectedCurrency = currencies?.find(c => c.id === selectedCurrencyId);
 
-  useEffect(() => {
-    if (!clientNumber || clientNumber.length < 1) {
-      setFilteredClients([]);
-      return;
-    }
-    const normalized = normalizePhone(clientNumber);
-    const matches = (allClients || []).filter(c =>
-      c.normalizedPhone.includes(normalized) ||
-      c.phoneNumber.toLowerCase().includes(clientNumber.toLowerCase()) ||
-      (c.name && c.name.toLowerCase().includes(clientNumber.toLowerCase()))
-    ).slice(0, 8);
-    setFilteredClients(matches);
-  }, [clientNumber, allClients]);
-
-  useEffect(() => {
-    const checkBlacklist = async () => {
-      if (!clientNumber || clientNumber.length < 2) {
-        setBlacklistWarning(null);
-        return;
-      }
-      try {
-        const res = await fetch(`/api/blacklist/check/${encodeURIComponent(clientNumber)}`);
-        if (res.ok) {
-          const data: BlacklistCheck = await res.json();
-          setBlacklistWarning(data.blacklisted ? data : null);
-        }
-      } catch {}
-    };
-    const timeout = setTimeout(checkBlacklist, 500);
-    return () => clearTimeout(timeout);
-  }, [clientNumber]);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  const blacklistWarning = useBlacklistCheck(clientNumber);
+  const { filteredClients, showSuggestions, setShowSuggestions, suggestionsRef, selectClient } =
+    useClientAutocomplete(clientNumber, (phoneNumber) => form.setValue("clientNumber", phoneNumber));
 
   const createMutation = useMutation({
     mutationFn: async (data: PaymentForm) => {
@@ -160,39 +105,8 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
   const handleClose = () => {
     form.reset();
     setProofImage(null);
-    setBlacklistWarning(null);
     setShowSuggestions(false);
     onOpenChange(false);
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Error", description: "Solo se permiten imágenes", variant: "destructive" });
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "Error", description: "La imagen debe ser menor a 5MB", variant: "destructive" });
-      return;
-    }
-    setIsUploading(true);
-    try {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProofImage(reader.result as string);
-        setIsUploading(false);
-      };
-      reader.readAsDataURL(file);
-    } catch {
-      toast({ title: "Error", description: "No se pudo procesar la imagen", variant: "destructive" });
-      setIsUploading(false);
-    }
-  };
-
-  const selectClient = (client: Client) => {
-    form.setValue("clientNumber", client.phoneNumber);
-    setShowSuggestions(false);
   };
 
   return (

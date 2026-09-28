@@ -26,11 +26,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Loader2, Coins, Edit, Trash2 } from "lucide-react";
 
-const colorOptions = [
-  { value: "white", label: "Blanco", preview: "bg-white border border-border" },
-  { value: "black", label: "Negro", preview: "bg-black" },
-];
-
 const currencySchema = z.object({
   code: z.string().min(1, "Código requerido").max(10, "Código muy largo"),
   name: z.string().min(2, "Nombre muy corto"),
@@ -42,7 +37,6 @@ const currencySchema = z.object({
     const num = parseFloat(val);
     return !isNaN(num) && num >= 0 && num <= 100;
   }, "Comisión debe estar entre 0 y 100"),
-  color: z.string().min(1, "Color requerido"),
   verifierId: z.string().optional(),
 });
 
@@ -69,7 +63,6 @@ export default function CurrenciesPage() {
       name: "",
       exchangeRate: "1",
       commissionPercent: "0",
-      color: "white",
       verifierId: "",
     },
   });
@@ -120,7 +113,6 @@ export default function CurrenciesPage() {
       name: currency.name,
       exchangeRate: String(currency.exchangeRate),
       commissionPercent: String(currency.commissionPercent ?? "0"),
-      color: currency.color ?? "gray",
       verifierId: currency.verifierId ?? "",
     });
   };
@@ -144,7 +136,7 @@ export default function CurrenciesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Divisas</h1>
-          <p className="text-muted-foreground">Gestiona los tipos de cambio y colores de columnas</p>
+          <p className="text-muted-foreground">Gestiona los tipos de cambio</p>
         </div>
 
         <Dialog

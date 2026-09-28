@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowLeft, FileText, Image as ImageIcon, CheckCircle, XCircle, Clock, RotateCcw, AlertTriangle, ArrowLeftRight, Trash2 } from "lucide-react";
+import { ArrowLeft, Image as ImageIcon, CheckCircle, XCircle, Clock, RotateCcw, AlertTriangle, ArrowLeftRight, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,25 +20,12 @@ import { WeekActiveToggleButton } from "@/components/week-active-toggle-button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { PaymentWithDetails, Week } from "@shared/schema";
-import { todayPeru } from "@/lib/utils";
 import { WeekSelector } from "@/components/week-selector";
-
-function ProofImagePreview({ paymentId }: { paymentId: string }) {
-  const { data, isLoading } = useQuery<{ proofImage: string | null }>({
-    queryKey: ["/api/admin/payments", paymentId, "proof"],
-    queryFn: async () => {
-      const res = await fetch(`/api/admin/payments/${paymentId}/proof`, { credentials: "include" });
-      if (!res.ok) throw new Error("Error al cargar comprobante");
-      return res.json();
-    },
-    staleTime: Infinity,
-    gcTime: Infinity,
-  });
-
-  if (isLoading) return <Skeleton className="w-full h-64 rounded-lg" />;
-  if (!data?.proofImage) return null;
-  return <img src={data.proofImage} alt="Comprobante" className="w-full rounded-lg" />;
-}
+import { ProofImagePreview } from "@/components/proof-image-preview";
+import { paymentStatusConfig } from "@/lib/payment-status";
+import { EmptyPaymentsState } from "@/components/empty-payments-state";
+import { PaymentsListSkeleton } from "@/components/payments-list-skeleton";
+import { useActiveWeek } from "@/hooks/use-active-week";
 
 type WeekPaidMatrix = {
   weekPaidMap: Record<string, string[]>;
@@ -66,7 +53,7 @@ type TutorSettlement = {
   payments: PaymentWithDetails[];
 };
 
-const fmt = (n: number) => "PEN " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt = (n: number) => `${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} PEN`;
 
 type SettlementResponse = {
   settlements: TutorSettlement[];
@@ -75,12 +62,12 @@ type SettlementResponse = {
   tutor: { id: string; name: string; email: string; autoVerificaPagos: boolean };
 };
 
-const statusConfig: Record<string, { label: string; icon: typeof Clock; className: string }> = {
-  pending: { label: "Pendiente", icon: Clock, className: "text-warning border-warning/40" },
-  verified: { label: "Verificado", icon: CheckCircle, className: "text-success border-success/40" },
-  autoverificado: { label: "Autoverificado", icon: CheckCircle, className: "text-primary border-primary/40" },
-  rejected: { label: "Rechazado", icon: XCircle, className: "text-destructive border-destructive/40" },
-  refunded: { label: "Reembolsado", icon: RotateCcw, className: "text-muted-foreground border-border" },
+const statusIcons: Record<string, typeof Clock> = {
+  pending: Clock,
+  verified: CheckCircle,
+  autoverificado: CheckCircle,
+  rejected: XCircle,
+  refunded: RotateCcw,
 };
 
 export default function AdminTutorViewPage() {
@@ -103,10 +90,7 @@ export default function AdminTutorViewPage() {
     queryKey: ["/api/admin/settlements/matrix"],
   });
 
-  const today = todayPeru();
-  const sortedWeeks = [...(allWeeks ?? [])].sort((a, b) => a.weekNumber - b.weekNumber);
-  const currentWeek = sortedWeeks.find(w => w.startDate <= today && w.endDate >= today);
-  const activeWeekId = selectedWeekId ?? currentWeek?.id ?? sortedWeeks[sortedWeeks.length - 1]?.id ?? null;
+  const { sortedWeeks, currentWeek, activeWeekId } = useActiveWeek(allWeeks, selectedWeekId);
 
   const { data: payments, isLoading: paymentsLoading } = useQuery<PaymentWithDetails[]>({
     queryKey: [`/api/admin/tutors/${username}/payments`, activeWeekId],
@@ -235,27 +219,10 @@ export default function AdminTutorViewPage() {
 
           {paymentsLoading ? (
             <Card>
-              <div className="space-y-0 divide-y divide-border">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-4 px-4 py-3">
-                    <Skeleton className="h-4 w-6" />
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-4 w-20" />
-                    <Skeleton className="h-8 w-8 rounded-sm" />
-                    <Skeleton className="h-5 w-20 rounded-full" />
-                  </div>
-                ))}
-              </div>
+              <PaymentsListSkeleton />
             </Card>
           ) : !payments?.length ? (
-            <div className="text-center py-12">
-              <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 border border-border">
-                <FileText className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="font-medium text-lg">No hay pagos</h3>
-              <p className="text-muted-foreground text-sm">No hay pagos en esta semana</p>
-            </div>
+            <EmptyPaymentsState message="No hay pagos en esta semana" />
           ) : (
             <Card className="overflow-hidden">
               <div className="overflow-x-auto">
@@ -273,8 +240,8 @@ export default function AdminTutorViewPage() {
                   </TableHeader>
                   <TableBody>
                     {payments.map((payment, index) => {
-                      const status = statusConfig[payment.status] ?? statusConfig.pending;
-                      const StatusIcon = status.icon;
+                      const status = paymentStatusConfig[payment.status] ?? paymentStatusConfig.pending;
+                      const StatusIcon = statusIcons[payment.status] ?? Clock;
                       return (
                         <TableRow key={payment.id} className="hover:bg-muted/40">
                           <TableCell>
@@ -469,7 +436,7 @@ export default function AdminTutorViewPage() {
           </DialogHeader>
           {previewPaymentId && (
             <div className="overflow-y-auto flex-1">
-              <ProofImagePreview key={previewPaymentId} paymentId={previewPaymentId} />
+              <ProofImagePreview key={previewPaymentId} endpoint={`/api/admin/payments/${previewPaymentId}/proof`} />
             </div>
           )}
         </DialogContent>

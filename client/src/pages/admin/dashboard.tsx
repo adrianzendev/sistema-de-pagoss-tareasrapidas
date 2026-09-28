@@ -132,7 +132,7 @@ export default function AdminDashboard() {
   });
 
   const fmt = (n: number) =>
-    "PEN " + new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+    `${new Intl.NumberFormat("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)} PEN`;
 
   const StatCard = ({
     title,

@@ -10,7 +10,7 @@ import { db, pool } from "./db";
 import { users, currencies, payments } from "@shared/schema";
 import { nowPeru, toDateStr, todayPeru, addDays, weekRangeOf, peruDateOf } from "./utils/peru-time";
 import { DEFAULT_TUTOR_PASSWORD, hashPassword, parseNewPassword, PasswordValidationError } from "./utils/password";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getVapidPublicKey, notifyPaymentStatusChange, notifyNewPaymentRequest } from "./push";
 import { computeWeekTutorSettlement, wasActiveForWeek } from "./settlement-calc";
 
@@ -424,7 +424,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (email) updateData.email = email;
       const newPassword = parseNewPassword(rawPassword);
       if (newPassword) updateData.password = await hashPassword(newPassword);
-      const [updated] = await db.update(users).set(updateData).where(eq(users.id, req.params.id)).returning();
+      const [updated] = await db.update(users).set(updateData)
+        .where(and(eq(users.id, req.params.id), eq(users.role, "verifier")))
+        .returning();
       if (!updated) return res.status(404).json({ message: "Verificador no encontrado" });
       const { password, ...safe } = updated;
       res.json(safe);
@@ -589,7 +591,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post("/api/admin/blacklist", requireAdmin, async (req, res) => {
     try {
       const data = insertBlacklistSchema.parse(req.body);
-      const existing = await storage.getBlacklistByClient(data.clientNumber);
+      const existing = await storage.getBlacklistByNormalizedPhone(normalizePhone(data.clientNumber));
       if (existing) {
         return res.status(400).json({ message: "Este cliente ya está en la lista negra" });
       }
@@ -688,7 +690,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/admin/clients", requireAdmin, async (req, res) => {
     try {
-      const { phoneNumber, name } = req.body;
+      const { phoneNumber, name } = z.object({ phoneNumber: z.string().min(1), name: z.string().optional() }).parse(req.body);
       const normalized = normalizePhone(phoneNumber);
       const existing = await storage.getClientByNormalizedPhone(normalized);
       if (existing) {
@@ -697,6 +699,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const client = await storage.createClient({ phoneNumber, normalizedPhone: normalized, name });
       res.status(201).json(client);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
       console.error("Error creating client:", error);
       res.status(500).json({ message: "Error al crear cliente" });
     }
@@ -704,7 +709,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.patch("/api/admin/clients/:id", requireAdmin, async (req, res) => {
     try {
-      const { phoneNumber, name } = req.body;
+      const { phoneNumber, name } = z.object({ phoneNumber: z.string().min(1).optional(), name: z.string().optional() }).parse(req.body);
       const updateData: any = {};
       if (name !== undefined) updateData.name = name;
       if (phoneNumber) {
@@ -714,6 +719,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const client = await storage.updateClient(req.params.id, updateData);
       res.json(client);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
       res.status(500).json({ message: "Error al actualizar cliente" });
     }
   });
@@ -787,6 +795,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const proofImage: string | undefined = req.body.proofImage || undefined;
       const normalized = normalizePhone(clientNumber);
       if (normalized) {
+        const blacklisted = await storage.getBlacklistByNormalizedPhone(normalized);
+        if (blacklisted) {
+          return res.status(400).json({ message: "Este cliente está en la lista negra" });
+        }
         const existingClient = await storage.getClientByNormalizedPhone(normalized);
         if (!existingClient) {
           await storage.createClient({ phoneNumber: clientNumber, normalizedPhone: normalized });
@@ -828,6 +840,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const currency = await storage.getCurrency(data.currencyId);
       const normalized = normalizePhone(data.clientNumber);
       if (normalized) {
+        const blacklisted = await storage.getBlacklistByNormalizedPhone(normalized);
+        if (blacklisted) {
+          return res.status(400).json({ message: "Este cliente está en la lista negra" });
+        }
         const existingClient = await storage.getClientByNormalizedPhone(normalized);
         if (!existingClient) {
           await storage.createClient({
