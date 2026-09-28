@@ -102,7 +102,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.post("/api/auth/login", async (req, res) => {
-    const { username, password } = req.body;
+    const { username, password, remember } = req.body;
     // Acepta usuario o correo, sin espacios ni distinción de mayúsculas en el correo
     const login = String(username ?? "").trim();
     let user = await storage.getUserByUsername(login);
@@ -117,6 +117,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return res.status(401).json({ message: "Credenciales inválidas" });
     }
     req.session.userId = user.id;
+    // "Mantener sesión iniciada" desmarcado => cookie de sesión, se borra al cerrar el navegador
+    if (remember === false) {
+      req.session.cookie.expires = false as unknown as Date;
+    }
     const { password: _, ...safeUser } = user;
     req.session.save((err) => {
       if (err) return res.status(500).json({ message: "Error al iniciar sesión" });

@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Lock, User } from "lucide-react";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Usuario requerido"),
   password: z.string().min(1, "Contraseña requerida"),
+  remember: z.boolean(),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -39,13 +41,14 @@ export default function LoginPage() {
     defaultValues: {
       username: "",
       password: "",
+      remember: true,
     },
   });
 
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
     try {
-      await login(data.username, data.password);
+      await login(data.username, data.password, data.remember);
       toast({
         title: "Bienvenido",
         description: "Has iniciado sesión correctamente",
@@ -89,6 +92,7 @@ export default function LoginPage() {
                             {...field}
                             placeholder="Usuario o correo electrónico"
                             className="pl-10"
+                            autoComplete="username"
                             data-testid="input-username"
                           />
                         </div>
@@ -112,11 +116,31 @@ export default function LoginPage() {
                             type="password"
                             placeholder="Ingresa tu contraseña"
                             className="pl-10"
+                            autoComplete="current-password"
                             data-testid="input-password"
                           />
                         </div>
                       </FormControl>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="remember"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="checkbox-remember"
+                        />
+                      </FormControl>
+                      <FormLabel className="text-sm font-normal cursor-pointer">
+                        Mantener sesión iniciada
+                      </FormLabel>
                     </FormItem>
                   )}
                 />

@@ -6,7 +6,7 @@ import { queryClient } from "./queryClient";
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string, remember?: boolean) => Promise<void>;
   devLogin: (userId: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -49,7 +49,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = (username: string, password: string) => startSession("/api/auth/login", { username, password });
+  const login = (username: string, password: string, remember = true) =>
+    startSession("/api/auth/login", { username, password, remember });
 
   // Solo desarrollo: el servidor expone /api/dev/login únicamente fuera de producción
   const devLogin = (userId: string) => startSession("/api/dev/login", { userId });
