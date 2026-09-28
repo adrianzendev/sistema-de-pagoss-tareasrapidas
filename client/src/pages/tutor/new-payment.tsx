@@ -275,7 +275,7 @@ export default function NewPaymentPage() {
                     <img
                       src={proofImage}
                       alt="Comprobante"
-                      className="w-full h-48 object-cover rounded-lg border"
+                      className="w-full h-48 object-contain rounded-lg border"
                     />
                     <Button
                       type="button"

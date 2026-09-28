@@ -538,19 +538,27 @@ export default function AdminDashboard() {
                 <span className="text-foreground">{fmt(detailsCell.cell.grossIncome)}</span>
               </div>
               <div className="flex items-baseline justify-between gap-1">
-                <span className="text-muted-foreground/60">× {detailsCell.commissionPercent}%:</span>
-                <span className="text-foreground">{fmt(detailsCell.cell.netIncome)}</span>
+                <span className="text-muted-foreground/60">Comisión Tutor ({detailsCell.commissionPercent}%):</span>
+                <span className={detailsCell.cell.netIncome < 0 ? "text-negative" : "text-foreground"}>{fmt(detailsCell.cell.netIncome)}</span>
               </div>
               <div className="flex items-baseline justify-between gap-1">
-                <span className="text-muted-foreground/60">− Publicidad:</span>
-                <span className="text-foreground">{fmt(detailsCell.cell.tutorAdvertisingShare)}</span>
+                <span className="text-muted-foreground/60">Comisión Agencia ({100 - Number(detailsCell.commissionPercent)}%):</span>
+                <span className={detailsCell.cell.grossIncome - detailsCell.cell.netIncome < 0 ? "text-negative" : "text-foreground"}>{fmt(detailsCell.cell.grossIncome - detailsCell.cell.netIncome)}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-1">
+                <span className="text-muted-foreground/60">Publicidad Tutor:</span>
+                <span className={detailsCell.cell.tutorAdvertisingShare > 0 ? "text-negative" : "text-foreground"}>{fmt(detailsCell.cell.tutorAdvertisingShare > 0 ? -detailsCell.cell.tutorAdvertisingShare : 0)}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-1">
+                <span className="text-muted-foreground/60">Publicidad Agencia:</span>
+                <span className={detailsCell.cell.tutorAdvertisingShare > 0 ? "text-negative" : "text-foreground"}>{fmt(detailsCell.cell.tutorAdvertisingShare > 0 ? -detailsCell.cell.tutorAdvertisingShare : 0)}</span>
               </div>
               <div className="flex items-baseline justify-between gap-1 pt-2 border-t border-border">
-                <span className="text-muted-foreground/60">Tutor:</span>
+                <span className="text-muted-foreground/60">Saldo Tutor:</span>
                 <span className="font-semibold text-foreground">{fmt(detailsCell.cell.tutorEarnings)}</span>
               </div>
               <div className="flex items-baseline justify-between gap-1">
-                <span className="text-muted-foreground/60">Agencia:</span>
+                <span className="text-muted-foreground/60">Saldo Agencia:</span>
                 <span className="text-foreground">{fmt(detailsCell.cell.agencyEarnings)}</span>
               </div>
             </div>

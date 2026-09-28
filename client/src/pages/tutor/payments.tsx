@@ -30,11 +30,13 @@ type SettlementRow = {
   grossRegular: number;
   grossDirect: number;
   advertisingCost: number;
+  agencyAdvertisingShare: number;
   netIncome: number;
   tutorEarnings: number;
   agencyEarnings: number;
   netTransfer: number;
   commissionPercent: number;
+  currencyCommissionHalf: number;
   payments: PaymentWithDetails[];
 };
 
@@ -110,7 +112,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
           </div>
           {isNegative && showNegWarning && (
             <div className="mt-2 text-xs text-destructive/80 rounded-sm px-2 py-2 border border-destructive/30" data-testid="text-neg-warning">
-              ⚠️ El costo de publicidad de esta semana (<strong>{pen(s.advertisingCost)}</strong>) supera tu comisión sobre los pagos regulares (<strong>{pen(s.grossRegular * s.commissionPercent / 100)}</strong>). Eso genera una ganancia negativa. Si tienes pagos autoverificados, parte de esa diferencia puede quedar cubierta por lo que le debes a la agencia.
+              ⚠️ El costo de publicidad de esta semana (<strong>{pen(s.advertisingCost)}</strong>) supera tu comisión sobre los pagos regulares (<strong>{pen(s.grossRegular * s.commissionPercent / 100 - s.currencyCommissionHalf)}</strong>). Eso genera una ganancia negativa. Si tienes pagos autoverificados, parte de esa diferencia puede quedar cubierta por lo que le debes a la agencia.
             </div>
           )}
         </div>
@@ -136,7 +138,7 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
               {!even && (() => {
                 const commission = s.commissionPercent / 100;
                 const agencyCommission = s.grossDirect * (1 - commission);
-                const regularTutorGross = s.grossRegular * commission;
+                const regularTutorGross = s.grossRegular * commission - s.currencyCommissionHalf;
                 const uncoveredAdv = Math.max(0, s.advertisingCost - regularTutorGross);
                 // Si la agencia te debe, el desglose ya está en "Ver cálculo detallado"
                 if (agencyOwes) return null;
@@ -153,6 +155,12 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
                       <div className="flex justify-between">
                         <span>Publicidad sin cubrir por tus ingresos regulares</span>
                         <span className="text-right font-mono tabular-nums">{fmt2(uncoveredAdv)} PEN</span>
+                      </div>
+                    )}
+                    {s.currencyCommissionHalf > 0 && (
+                      <div className="flex justify-between">
+                        <span>Comisión de divisa</span>
+                        <span className="text-right font-mono tabular-nums">{fmt2(s.currencyCommissionHalf)} PEN</span>
                       </div>
                     )}
                   </div>
@@ -186,14 +194,40 @@ function CurrentWeekSummaryCard({ settlements, currentWeek }: { settlements: Set
                 byCode[code] = (byCode[code] ?? 0) + Number(p.amount);
               });
               return Object.entries(byCode).map(([code, total]) => (
-                <div key={code} className="text-muted-foreground">{code} {fmt2(total)}</div>
+                <div key={code} className="flex justify-between text-muted-foreground">
+                  <span>{code}</span>
+                  <span>{fmt2(total)}</span>
+                </div>
               ));
             })()}
-            <div>Bruto: {pen(s.grossIncome)}</div>
-            <div>× {s.commissionPercent}% = {pen(s.netIncome)}</div>
-            <div>− Publicidad: {pen(s.advertisingCost)}</div>
-            <div className="font-semibold text-foreground">Tutor: {pen(s.tutorEarnings)}</div>
-            <div className="text-muted-foreground">Agencia: {pen(s.agencyEarnings)}</div>
+            <div className="flex justify-between">
+              <span>Bruto</span>
+              <span>{pen(s.grossIncome)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Comisión Tutor ({s.commissionPercent}%)</span>
+              <span className={s.netIncome < 0 ? "text-negative" : undefined}>{pen(s.netIncome)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Comisión Agencia ({100 - s.commissionPercent}%)</span>
+              <span className={s.grossIncome - s.netIncome < 0 ? "text-negative" : undefined}>{pen(s.grossIncome - s.netIncome)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Publicidad Tutor</span>
+              <span className={s.advertisingCost > 0 ? "text-negative" : undefined}>{pen(s.advertisingCost > 0 ? -s.advertisingCost : 0)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Publicidad Agencia</span>
+              <span className={s.agencyAdvertisingShare > 0 ? "text-negative" : undefined}>{pen(s.agencyAdvertisingShare > 0 ? -s.agencyAdvertisingShare : 0)}</span>
+            </div>
+            <div className="flex justify-between font-semibold text-foreground">
+              <span>Saldo Tutor</span>
+              <span>{pen(s.tutorEarnings)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Saldo Agencia</span>
+              <span>{pen(s.agencyEarnings)}</span>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

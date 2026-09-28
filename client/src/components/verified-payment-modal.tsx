@@ -230,13 +230,13 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
               name="clientNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>WhatsApp / Teléfono del Cliente</FormLabel>
+                  <FormLabel>WhatsApp / Teléfono o Usuario del Cliente</FormLabel>
                   <FormControl>
                     <div className="relative" ref={suggestionsRef}>
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         {...field}
-                        placeholder="Ej: +51 935 436 864"
+                        placeholder="Ej: +51 935 436 864 o usuario.whatsapp"
                         className="pl-10"
                         data-testid="input-verified-client-number"
                         autoComplete="off"
@@ -368,7 +368,7 @@ export function VerifiedPaymentModal({ open, onOpenChange }: VerifiedPaymentModa
               />
               {proofImage ? (
                 <div className="relative">
-                  <img src={proofImage} alt="Comprobante" className="w-full h-32 object-cover rounded-lg border" />
+                  <img src={proofImage} alt="Comprobante" className="w-full h-32 object-contain rounded-lg border" />
                   <Button
                     type="button"
                     variant="destructive"
