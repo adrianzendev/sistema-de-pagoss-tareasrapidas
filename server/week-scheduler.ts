@@ -4,10 +4,11 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 async function ensureCurrentWeekExists() {
   try {
-    const current = await storage.getCurrentWeek();
-    if (current) return;
-    const week = await storage.generateNextWeek();
-    console.log(`[week-scheduler] Semana ${week.weekNumber} generada automáticamente (${week.startDate} - ${week.endDate})`);
+    // Bucle: si faltan varias semanas (corte largo), se crean todas hasta cubrir hoy.
+    while (!(await storage.getCurrentWeek())) {
+      const week = await storage.generateNextWeek();
+      console.log(`[week-scheduler] Semana ${week.weekNumber} generada automáticamente (${week.startDate} - ${week.endDate})`);
+    }
   } catch (error) {
     console.error("Error generando semana automática:", error);
   }
