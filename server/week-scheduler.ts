@@ -1,4 +1,5 @@
 import { storage } from "./storage";
+import { pool } from "./db";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -14,6 +15,19 @@ async function ensureCurrentWeekExists() {
   }
 }
 
+async function pruneExpiredSessions() {
+  try {
+    await pool.query("DELETE FROM session WHERE expire < now()");
+  } catch (error) {
+    console.error("Error limpiando sesiones expiradas:", error);
+  }
+}
+
+async function dailyJob() {
+  await ensureCurrentWeekExists();
+  await pruneExpiredSessions();
+}
+
 function msUntilNextPeruMidnight(): number {
   const PERU_OFFSET_MS = -5 * 60 * 60 * 1000;
   const now = new Date();
@@ -25,9 +39,9 @@ function msUntilNextPeruMidnight(): number {
 }
 
 export function startWeekScheduler() {
-  ensureCurrentWeekExists();
+  dailyJob();
   setTimeout(function scheduleDaily() {
-    ensureCurrentWeekExists();
-    setInterval(ensureCurrentWeekExists, DAY_MS);
+    dailyJob();
+    setInterval(dailyJob, DAY_MS);
   }, msUntilNextPeruMidnight());
 }

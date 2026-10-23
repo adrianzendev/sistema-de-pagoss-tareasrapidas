@@ -59,11 +59,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     session({
       store: new PgSession({
         pool,
-        createTableIfMissing: true,
+        pruneSessionInterval: false, // la limpieza corre en week-scheduler (1 despertar/día en Neon)
         ttl: 30 * 24 * 60 * 60, // 30 days in seconds
       }),
       secret: process.env.SESSION_SECRET || "fallback-secret-key",
-      resave: true,
+      resave: false,
       saveUninitialized: false,
       rolling: true, // Reset maxAge on every request
       cookie: {
